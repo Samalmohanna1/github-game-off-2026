@@ -34,6 +34,15 @@ npm install
 During play, **F2** toggles a debug overlay with the wall's state, timing,
 lanes, letters and stretch score. Tuning values live in `src/config.ts`.
 
+On the dev server, URL options skip ahead for playtesting (published builds
+ignore them):
+
+| URL | What it does |
+|---|---|
+| http://localhost:5173/?wall=13 | Every run, restarts included, starts at wall 13 |
+| http://localhost:5173/?shiftwall | Every wall is a Shift Wall |
+| http://localhost:5173/?wall=12&shiftwall | Both |
+
 ## Deploy (itch.io)
 
 1. `npm run build`

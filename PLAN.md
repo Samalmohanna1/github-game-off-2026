@@ -137,6 +137,7 @@ Lining up is in from wall 1. Early walls are slow enough that new players learn 
 ### Shift Wall details
 - Triggers at a random `t ∈ [0.35, 0.6]`, but only once at least one letter is held.
 - **Warning first:** the wall flashes and an arrow appears on it for 0.3s before the hole slides.
+- **The wall holds still** for 0.6s from the warning: through the warning, the slide and a beat to react, then it carries on. (Added in the M7 tuning pass, because a shift that came while the wall kept approaching was over too fast to follow.)
 - The hole slides 1–2 lanes, staying inside the stage.
 - New letters stop appearing until the player lines up again. Held letters stay held.
 
@@ -173,6 +174,7 @@ WRONG_KEY_JUMP = 0.03          // added to t (0.06 before the M7 tuning pass)
 LOCK_RUSH_DURATION = 400       // ms
 PROMPT_APPEAR_DELAY = 120      // ms after the previous letter is held
 SHIFT_WALL_TELEGRAPH = 300     // ms
+SHIFT_WALL_PAUSE = 600         // ms the wall holds still, from the warning (M7 tuning)
 SHIFT_WALL_T_RANGE = [0.35, 0.6]
 PERFECT_T = 0.5
 GREAT_T = 0.75
@@ -184,6 +186,8 @@ DIFFICULTY_TIERS = [...]       // table in §5
 ```
 
 Add a **debug overlay** (toggled with F2, which never counts as a wrong key). It shows: state, `t`, wall #, figure lane vs hole lane, the current prompt, the queue, held codes, and the stretch score.
+
+On the dev server only, two URL options skip ahead for playtesting (added in the M7 tuning pass): `?wall=13` starts every run at wall 13, and `?shiftwall` makes every wall a Shift Wall. Published builds ignore them.
 
 ---
 
