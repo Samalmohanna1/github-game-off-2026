@@ -124,13 +124,13 @@ All numbers live in `src/config.ts`.
 
 | Walls | Letters | Stretch tier | Wall time | Shift letters | Hole distance (lanes) | Shift Wall |
 |---|---|---|---|---|---|---|
-| 1–3 | 3 | Easy (close together, one hand OK) | 8.0s | 0 | 1–2 | No |
-| 4–6 | 4 | Medium (hands start crossing) | 7.0s | 0 | 1–3 | No |
-| 7–9 | 4 | Medium-high | 6.0s | 1 | 1–4 | No |
-| 10–12 | 5 | Hard (full stretch, e.g. Q + P + Z) | 5.5s | 1–2 | 2–5 | No |
-| 13+ | 4 on Shift Wall rounds, 5 otherwise | Hard+ | −4% per wall, never under 3.5s | 1–2 | 2–6 | 50% of walls, rising to 80% |
+| 1–3 | 3 | Easy (close together, one hand OK) | 10.0s | 0 | 1–2 | No |
+| 4–6 | 4 | Medium (hands start crossing) | 9.0s | 0 | 1–3 | No |
+| 7–9 | 4 | Medium-high | 8.0s | 1 | 1–4 | No |
+| 10–12 | 5 | Hard (full stretch, e.g. Q + P + Z) | 7.0s | 1–2 | 2–5 | No |
+| 13+ | 4 on Shift Wall rounds, 5 otherwise | Hard+ | −4% per wall from 7.0s, never under 3.5s | 1–2 | 2–6 | 50% of walls, rising to 80% |
 
-Lining up is in from wall 1. Early walls are slow enough that new players learn the whole mechanic at once.
+Lining up is in from wall 1. Early walls are slow enough that new players learn the whole mechanic at once. (Wall times were raised from 8 / 7 / 6 / 5.5s in the M7 tuning pass, after playtesting stalled at walls 7–8.)
 
 ### Shift Wall details
 - Triggers at a random `t ∈ [0.35, 0.6]`, but only once at least one letter is held.
@@ -167,7 +167,7 @@ The timing label pops up big over the figure as the wall rushes past. Save the b
 ```ts
 LANE_COUNT = 7
 WALL_START_SCALE = 0.35
-WRONG_KEY_JUMP = 0.06          // added to t
+WRONG_KEY_JUMP = 0.03          // added to t (0.06 before the M7 tuning pass)
 LOCK_RUSH_DURATION = 400       // ms
 PROMPT_APPEAR_DELAY = 120      // ms after the previous letter is held
 SHIFT_WALL_TELEGRAPH = 300     // ms

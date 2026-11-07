@@ -125,7 +125,7 @@ export const WALL_HEIGHT = 380; // px at full scale
 export const WALL_EDGE_WIDTH = 4; // px at full scale
 export const WALL_EASE_POWER = 2; // scale follows t^n, so higher n rushes harder at the end
 
-export const WRONG_KEY_JUMP = 0.06; // added to t
+export const WRONG_KEY_JUMP = 0.03; // added to t
 export const WRONG_KEY_SHAKE_MS = 160;
 export const WRONG_KEY_SHAKE_INTENSITY = 0.006; // fraction of the screen size
 export const WALL_FLASH_MS = 120;
@@ -216,7 +216,7 @@ export const DIFFICULTY_TIERS: readonly DifficultyTier[] = [
     letters: 3,
     stretch: [0, 5],
     allowAdjacent: true,
-    wallTime: 8,
+    wallTime: 10,
     shiftLetters: [0, 0],
     holeDistance: [1, 2],
     shiftWallChance: 0,
@@ -227,7 +227,7 @@ export const DIFFICULTY_TIERS: readonly DifficultyTier[] = [
     letters: 4,
     stretch: [6, 9],
     allowAdjacent: false,
-    wallTime: 7,
+    wallTime: 9,
     shiftLetters: [0, 0],
     holeDistance: [1, 3],
     shiftWallChance: 0,
@@ -238,7 +238,7 @@ export const DIFFICULTY_TIERS: readonly DifficultyTier[] = [
     letters: 4,
     stretch: [8.5, 11],
     allowAdjacent: false,
-    wallTime: 6,
+    wallTime: 8,
     shiftLetters: [1, 1],
     holeDistance: [1, 4],
     shiftWallChance: 0,
@@ -249,7 +249,7 @@ export const DIFFICULTY_TIERS: readonly DifficultyTier[] = [
     letters: 5,
     stretch: [11, 14],
     allowAdjacent: false,
-    wallTime: 5.5,
+    wallTime: 7,
     shiftLetters: [1, 2],
     holeDistance: [2, 5],
     shiftWallChance: 0,
@@ -260,7 +260,7 @@ export const DIFFICULTY_TIERS: readonly DifficultyTier[] = [
     letters: 5,
     stretch: [12.5, 18],
     allowAdjacent: false,
-    wallTime: 5.5,
+    wallTime: 7,
     shiftLetters: [1, 2],
     holeDistance: [2, 6],
     shiftWallChance: 0.5,

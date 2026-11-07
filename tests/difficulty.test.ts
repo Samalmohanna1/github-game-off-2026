@@ -19,14 +19,20 @@ describe('the tier table (PLAN.md §5)', () => {
     DIFFICULTY_TIERS.slice(1).forEach((tier, i) => expect(tier.fromWall).toBeGreaterThan(DIFFICULTY_TIERS[i]!.fromWall));
   });
 
-  it('matches the plan for letters, Shift letters and wall time', () => {
-    expect(DIFFICULTY_TIERS.map((t) => [t.fromWall, t.letters, t.shiftLetters, t.wallTime])).toEqual([
-      [1, 3, [0, 0], 8],
-      [4, 4, [0, 0], 7],
-      [7, 4, [1, 1], 6],
-      [10, 5, [1, 2], 5.5],
-      [13, 5, [1, 2], 5.5],
+  it('matches the plan for walls, letters and Shift letters', () => {
+    expect(DIFFICULTY_TIERS.map((t) => [t.fromWall, t.letters, t.shiftLetters])).toEqual([
+      [1, 3, [0, 0]],
+      [4, 4, [0, 0]],
+      [7, 4, [1, 1]],
+      [10, 5, [1, 2]],
+      [13, 5, [1, 2]],
     ]);
+  });
+
+  it('never gives a later tier a longer wall time', () => {
+    DIFFICULTY_TIERS.slice(1).forEach((tier, i) => {
+      expect(tier.wallTime).toBeLessThanOrEqual(DIFFICULTY_TIERS[i]!.wallTime);
+    });
   });
 
   it('only lets letters sit next to each other on walls 1-3', () => {
@@ -69,12 +75,16 @@ describe('tierFor', () => {
 });
 
 describe('wallTimeFor', () => {
-  it('uses the tier times up to wall 12', () => {
-    expect([1, 4, 7, 10, 12].map(wallTimeFor)).toEqual([8, 7, 6, 5.5, 5.5]);
+  it('uses each tier time up to wall 12', () => {
+    for (const tier of DIFFICULTY_TIERS.slice(0, -1)) {
+      expect(wallTimeFor(tier.fromWall)).toBe(tier.wallTime);
+      expect(wallTimeFor(tier.fromWall + 2)).toBe(tier.wallTime);
+    }
   });
 
-  it('drops 4% per wall from wall 13', () => {
-    expect(wallTimeFor(13)).toBeCloseTo(5.5 * (1 - WALL_TIME_DECAY));
+  it('drops by WALL_TIME_DECAY per wall from wall 13', () => {
+    const hardPlus = DIFFICULTY_TIERS[DIFFICULTY_TIERS.length - 1]!;
+    expect(wallTimeFor(13)).toBeCloseTo(hardPlus.wallTime * (1 - WALL_TIME_DECAY));
     expect(wallTimeFor(14)).toBeCloseTo(wallTimeFor(13) * (1 - WALL_TIME_DECAY));
   });
 
