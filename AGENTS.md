@@ -27,7 +27,7 @@ Scenes, one per screen:
 |---|---|---|
 | `BootScene` | Final for Week 1 | Hands off to Title. Loads nothing until Week 2 art. |
 | `TitleScene` | Interim | Game name, one-line how-to, "Click to play". The click gives the page keyboard focus inside the itch.io iframe. Restyled in Week 2. |
-| `PlayScene` | Interim (M5) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance). A wall approaches with a hole cut from the poses (`wall-gen.ts`). ← / → line the figure up; the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. All letters held while lined up locks the pose: the wall rushes past, a PERFECT / GREAT / CLOSE CALL label pops over the figure, and the next wall starts. If the wall arrives first, it shoves the figure into a placeholder splash and the run ends. Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses behind a "Click to resume" panel. |
+| `PlayScene` | Interim (M6) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). ← / → line the figure up; the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 13+), the wall turns orange with an arrow, then the hole slides 1–2 lanes; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: the wall rushes past, a PERFECT / GREAT / CLOSE CALL label pops over the figure, and the next wall starts. If the wall arrives first, it shoves the figure into a placeholder splash and the run ends. Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses behind a "Click to resume" panel. |
 | `GameOverScene` | Interim | Walls cleared, score, best (saved in `localStorage`) and the wall reached. Restart follows PLAN.md §7: input is ignored for `RESTART_LOCKOUT`, then every key must be up ("Let go of every key" shows meanwhile) before a key or click restarts. |
 
 Shared scene helpers live in `src/scenes/` (`ui.ts`, `text-styles.ts`,
@@ -122,11 +122,12 @@ src/
     restart.ts             # game-over lockout + "release every key" gate
     scoring.ts             # grades, wall points, PERFECT streak multiplier
     sequence.ts            # prompt / held / slip queue state machine + lock
+    shift-wall.ts          # Shift Wall trigger, warning timer, slide target
     wall-gen.ts            # blocks + alt poses per wall, hole grid + outline
   objects/
     Floor.ts               # the two perspective floor lines
     LaneMarkers.ts         # floor strip per lane; lit = lined up
-    Wall.ts                # wall with placeholder hole; flashes on wrong keys
+    Wall.ts                # wall + hole; wrong-key flash, Shift warning + slide
     Figure.ts              # five blocks in the neutral pose; slides lanes
     PromptTray.ts          # tray with held / current / slipped letter chips
     PauseOverlay.ts        # "Click to resume" panel shown on blur
@@ -157,11 +158,12 @@ tests/
   scoring.test.ts          # grades, points, streak multiplier and cap
   seeded.ts                # deterministic random for repeatable tests
   sequence.test.ts         # PLAN.md §2 input rules, incl. the M3 cases + lock
+  shift-wall.test.ts       # trigger, warning, slide range, M6 line-up case
   wall-gen.test.ts         # valid poses for every block set, hole + outline
 ```
 
 Everything in PLAN.md §9's layout now exists. Add new files to this tree when
-they land (M6's Shift Wall, M7's debug overlay).
+they land (M7's debug overlay).
 
 Where things go: rules, and the pure math they depend on (the `t` clock,
 perspective) → `src/logic/`. Static game data such as the keyboard map and
@@ -313,7 +315,9 @@ playtest covers.
   warning shows while Caps Lock is on (PLAN.md §2).
 - **Don't rely on color alone.** Held, current and slipped letters also differ
   by position in the tray (left, center, right; PLAN.md §3). Don't rely on case
-  alone either: capital chips carry a drawn Shift mark (`SHIFT_MARK`).
+  alone either: capital chips carry a drawn Shift mark (`SHIFT_MARK`). The
+  Shift Wall warning is as bright as the wrong-key flash, so its arrow, not
+  its orange, is what sets it apart.
 - **Desktop only.** The game needs a physical keyboard. It renders at 1280×720
   and scales to fit; there is no mobile or touch layout.
 - **Motion.** Honor `prefers-reduced-motion`: the pulsing prompts stay still
@@ -482,12 +486,15 @@ Work through **PLAN.md §10** one milestone at a time.
 - **Restart gate** — after a fail, input is ignored for `RESTART_LOCKOUT`, then
   every key held from the run must be released before a fresh key or a click
   restarts (`src/logic/restart.ts`).
-- **Shift Wall** — from wall 13, the hole slides 1–2 lanes partway through the
-  approach after a `SHIFT_WALL_TELEGRAPH` warning. New letters pause until the
-  player lines up again. The chance starts at 50% on wall 13 and rises
+- **Shift Wall** — from wall 13, partway through the approach, the hole slides
+  `SHIFT_WALL_SLIDE` (1–2) lanes, staying on the stage. It fires once, at a
+  random `t` in `SHIFT_WALL_T_RANGE` but not before a letter is held. First the
+  wall turns `wallWarning` orange with an arrow pointing the way it will go for
+  `SHIFT_WALL_TELEGRAPH`, then the hole slides (`src/logic/shift-wall.ts`).
+  Held letters stay held; new letters wait until the figure lines up again,
+  and show at once when it does. The chance starts at 50% on wall 13 and rises
   `SHIFT_WALL_CHANCE_STEP` per wall to `SHIFT_WALL_CHANCE_MAX`. Shift Wall
-  rounds ask for at most `MAX_LETTERS_SHIFT_WALL` letters. M5 rolls the rounds
-  (`WallPlan.shiftWall`); the slide itself arrives in M6.
+  rounds ask for at most `MAX_LETTERS_SHIFT_WALL` letters.
 - **Stretch score** — how awkward a letter combo is to hold
   (`stretchScore()` in `src/logic/letters.ts`): the widest gap between two
   keys in key widths, plus `STRETCH_WEIGHTS` points per extra keyboard row, per
