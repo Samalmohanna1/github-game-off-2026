@@ -116,6 +116,11 @@ describe('graphics contrast', () => {
   it.each(['chipHeld', 'chipCurrent', 'chipSlipped'] as const)('the Shift mark reads on %s chips', (name) => {
     expect(contrastRatio(C.COLORS.chipShiftMark, C.COLORS[name])).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
+
+  it('outlines the next-letter preview, and its Shift mark, clearly on the tray', () => {
+    expect(contrastRatio(C.COLORS.chipNextEdge, C.COLORS.tray)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(contrastRatio(C.COLORS.chipNextEdge, C.COLORS.chipNext)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  });
 });
 
 const css = (color: string) => parseInt(color.slice(1), 16);
@@ -125,6 +130,7 @@ const TEXT_ON = {
   stage: ['ink', 'muted', 'accent', 'danger'],
   panel: ['ink', 'muted', 'accent', 'danger'],
   labelStroke: ['ink', 'accent', 'danger'],
+  chipNext: ['accent'],
   chipHeld: ['onChip'],
   chipCurrent: ['onChip'],
   chipSlipped: ['onChip'],

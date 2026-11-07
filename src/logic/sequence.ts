@@ -8,6 +8,9 @@ export type SequenceEffect =
 export interface SequenceView {
   readonly held: readonly string[];
   readonly current: string | null;
+  // The fresh letter after the current one, previewed while lined up so the
+  // player can get ready for it. A slipped one is already in `slipped`.
+  readonly next: string | null;
   readonly slipped: readonly string[];
 }
 
@@ -145,9 +148,14 @@ export class LetterSequence {
 
   view(): SequenceView {
     const current = this.current;
+    // During the appear delay the upcoming letter is still queue[0], and stays
+    // previewed until it becomes current.
+    const upcoming = this.queue[current === null ? 0 : 1];
+    const previewing = this.aligned && !this.isPaused && upcoming !== undefined && !this.slippedLetters.has(upcoming);
     return {
       held: this.held.map((h) => h.letter),
       current,
+      next: previewing ? upcoming : null,
       slipped: this.queue.filter((letter, i) => this.slippedLetters.has(letter) && !(i === 0 && current !== null)),
     };
   }

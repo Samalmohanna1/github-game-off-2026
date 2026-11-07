@@ -20,6 +20,10 @@ export const COLORS = {
   chipCurrent: 0x1d4fb8,
   chipSlipped: 0xb3243a,
   chipShiftMark: 0xffffff,
+  // The next-letter preview is hollow rather than faded, so its letter keeps
+  // full contrast while still reading as "not yet".
+  chipNext: 0xffffff,
+  chipNextEdge: 0x1d4fb8,
   panel: 0xffffff,
   panelEdge: 0x6e5662,
   labelStroke: 0xffffff,
@@ -80,13 +84,17 @@ export const PAUSE_DIM_ALPHA = 0.7; // stage-colored veil over the paused game
 export const PANEL_EDGE_WIDTH = 3;
 
 // Prompt tray chips, px. Held chips line up from the tray's left edge, the
-// current prompt sits in the center, and slipped letters queue to its right.
+// current prompt sits in the center, and to its right come the next-letter
+// preview and then slipped letters, in queue order. When a letter becomes
+// current it slides in from its spot on the right over slideMs.
 export const CHIP = {
   size: 68,
   currentSize: 88,
   gap: 14,
   edgeInset: 40,
   radius: 12,
+  nextEdgeWidth: 3,
+  slideMs: 140,
 } as const;
 
 // The outlined Shift arrow on capital chips, in the top-right corner. Size and
