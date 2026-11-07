@@ -110,13 +110,10 @@ export const LANE_COUNT = 7;
 export const LANE_MARKER_FRONT_Y = 600; // px; strips run from FIGURE_FLOOR_Y down to here
 export const LANE_MARKER_GAP = 12; // px between strips, at the figure's plane
 export const LANE_MARKER_EDGE_WIDTH = 2;
-// Walls 1-3 in PLAN.md §5: the hole spawns 1-2 lanes away from the figure.
-export const HOLE_DISTANCE: readonly [number, number] = [1, 2];
 
 export const WALL_START_SCALE = 0.35;
 export const WALL_HEIGHT = 380; // px at full scale
 export const WALL_EDGE_WIDTH = 4; // px at full scale
-export const WALL_TIME = 8.0; // s; walls 1-3 in PLAN.md §5
 export const WALL_EASE_POWER = 2; // scale follows t^n, so higher n rushes harder at the end
 
 export const WRONG_KEY_JUMP = 0.06; // added to t
@@ -125,11 +122,6 @@ export const WRONG_KEY_SHAKE_INTENSITY = 0.006; // fraction of the screen size
 export const WALL_FLASH_MS = 120;
 export const LOCK_RUSH_DURATION = 400; // ms
 export const PROMPT_APPEAR_DELAY = 120; // ms after the previous letter is held
-
-// Stand-in letters until M5's generator: each wall gets this many distinct
-// letters, this many of them uppercase so the Shift rule can be played.
-export const PLACEHOLDER_LETTER_COUNT = 3;
-export const PLACEHOLDER_SHIFT_LETTERS = 1;
 
 export const SHIFT_WALL_TELEGRAPH = 300; // ms
 export const SHIFT_WALL_T_RANGE: readonly [number, number] = [0.35, 0.6];
@@ -169,5 +161,95 @@ export const SPLASH = { drops: 14, dropSize: 10, minHeight: 60, maxHeight: 160, 
 export const RESTART_LOCKOUT = 1000; // ms
 
 export const MIN_WALL_TIME = 3.5; // s
+// PLAN.md §4: with an arrow and Shift on top, more keys than this at once
+// ghost on many keyboards.
 export const MAX_LETTERS = 5;
 export const MAX_LETTERS_SHIFT_WALL = 4;
+
+// Stretch score (PLAN.md §4) = the widest gap between two keys (key widths)
+// + rowSpread per extra keyboard row used
+// + crossReach per letter beyond HAND_CAPACITY on one side of the keyboard
+// + sameFinger per pair of keys on the same touch-typing finger.
+export const STRETCH_WEIGHTS = { rowSpread: 1.5, crossReach: 2, sameFinger: 2 } as const;
+export const HAND_CAPACITY = 3; // letters one hand holds before the other must reach across
+export const STRETCH_TRIES = 200; // random combos tried per wall before taking the closest
+export const ADJACENT_KEY_DISTANCE = 1.3; // key widths; nearer keys count as "right next to"
+
+// PLAN.md §5, one entry per band of walls. stretch ranges were set from the
+// score distribution of every possible combo: each range catches at least 7%
+// of random combos of its size, so STRETCH_TRIES essentially never misses.
+// From fromWall 13 on, wall time drops by WALL_TIME_DECAY per wall (never
+// below MIN_WALL_TIME) and the Shift Wall chance rises (M6 adds the slide).
+export interface DifficultyTier {
+  readonly fromWall: number;
+  readonly name: string;
+  readonly letters: number;
+  readonly stretch: readonly [number, number];
+  readonly allowAdjacent: boolean; // consecutive prompts may be neighboring keys
+  readonly wallTime: number; // s
+  readonly shiftLetters: readonly [number, number];
+  readonly holeDistance: readonly [number, number]; // lanes from the figure
+  readonly shiftWallChance: number;
+}
+
+export const DIFFICULTY_TIERS: readonly DifficultyTier[] = [
+  {
+    fromWall: 1,
+    name: 'Easy',
+    letters: 3,
+    stretch: [0, 5],
+    allowAdjacent: true,
+    wallTime: 8,
+    shiftLetters: [0, 0],
+    holeDistance: [1, 2],
+    shiftWallChance: 0,
+  },
+  {
+    fromWall: 4,
+    name: 'Medium',
+    letters: 4,
+    stretch: [6, 9],
+    allowAdjacent: false,
+    wallTime: 7,
+    shiftLetters: [0, 0],
+    holeDistance: [1, 3],
+    shiftWallChance: 0,
+  },
+  {
+    fromWall: 7,
+    name: 'Medium-high',
+    letters: 4,
+    stretch: [8.5, 11],
+    allowAdjacent: false,
+    wallTime: 6,
+    shiftLetters: [1, 1],
+    holeDistance: [1, 4],
+    shiftWallChance: 0,
+  },
+  {
+    fromWall: 10,
+    name: 'Hard',
+    letters: 5,
+    stretch: [11, 14],
+    allowAdjacent: false,
+    wallTime: 5.5,
+    shiftLetters: [1, 2],
+    holeDistance: [2, 5],
+    shiftWallChance: 0,
+  },
+  {
+    fromWall: 13,
+    name: 'Hard+',
+    letters: 5,
+    stretch: [12.5, 18],
+    allowAdjacent: false,
+    wallTime: 5.5,
+    shiftLetters: [1, 2],
+    holeDistance: [2, 6],
+    shiftWallChance: 0.5,
+  },
+];
+
+export const WALL_TIME_DECAY = 0.04; // Hard+: each wall is 4% shorter than the last
+export const SHIFT_WALL_CHANCE_STEP = 0.05; // Hard+: added per wall after the first
+export const SHIFT_WALL_CHANCE_MAX = 0.8;

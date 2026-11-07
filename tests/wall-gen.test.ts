@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { FIGURE_GRID, HOLE_DISTANCE } from '@/config';
+import { FIGURE_GRID } from '@/config';
 import { ALT_POSES, BLOCK_IDS, NEUTRAL_POSE, type BlockId } from '@/data/poses';
 import { cellsOf, generateWall, holeGrid, holeOutline, isOnePiece, isValidPose, poseOptions } from '@/logic/wall-gen';
 import { seeded } from './seeded';
 
 const SEEDS = Array.from({ length: 200 }, (_, i) => i + 1);
+const DISTANCE = [1, 2] as const;
 
 function subsets<T>(items: readonly T[]): T[][] {
   return items.reduce<T[][]>((all, item) => [...all, ...all.map((s) => [...s, item])], [[]]);
@@ -47,7 +48,7 @@ describe('generateWall', () => {
   it('changes one block per letter and leaves the rest neutral', () => {
     for (const seed of SEEDS) {
       const letters = ['a', 'S', 'd'];
-      const wall = generateWall(3, letters, seeded(seed));
+      const wall = generateWall(3, letters, DISTANCE, seeded(seed));
       const changed = letters.map((l) => wall.blockFor[l]!);
       expect(new Set(changed).size).toBe(letters.length);
       for (const id of BLOCK_IDS) {
@@ -59,34 +60,34 @@ describe('generateWall', () => {
 
   it('always produces a valid pose, up to five letters', () => {
     for (const seed of SEEDS) {
-      const wall = generateWall(3, ['q', 'w', 'e', 'r', 't'], seeded(seed));
+      const wall = generateWall(3, ['q', 'w', 'e', 'r', 't'], DISTANCE, seeded(seed));
       expect(isValidPose(wall.targets)).toBe(true);
     }
   });
 
   it('keeps the silhouette in one piece whenever the torso stays put', () => {
     for (const seed of SEEDS) {
-      const wall = generateWall(3, ['a', 'b', 'c'], seeded(seed));
+      const wall = generateWall(3, ['a', 'b', 'c'], DISTANCE, seeded(seed));
       if (!Object.values(wall.blockFor).includes('torso')) expect(isOnePiece(wall.targets)).toBe(true);
     }
   });
 
-  it('puts the hole HOLE_DISTANCE lanes from the figure', () => {
+  it('puts the hole the requested number of lanes from the figure', () => {
     for (const seed of SEEDS) {
-      const dist = Math.abs(generateWall(0, ['a'], seeded(seed)).holeLane - 0);
-      expect(dist).toBeGreaterThanOrEqual(HOLE_DISTANCE[0]);
-      expect(dist).toBeLessThanOrEqual(HOLE_DISTANCE[1]);
+      const dist = Math.abs(generateWall(0, ['a'], [2, 5], seeded(seed)).holeLane - 0);
+      expect(dist).toBeGreaterThanOrEqual(2);
+      expect(dist).toBeLessThanOrEqual(5);
     }
   });
 
   it('refuses more letters than there are blocks', () => {
-    expect(() => generateWall(3, ['a', 'b', 'c', 'd', 'e', 'f'])).toThrow();
+    expect(() => generateWall(3, ['a', 'b', 'c', 'd', 'e', 'f'], DISTANCE)).toThrow();
   });
 });
 
 describe('hole', () => {
   it('is exactly the union of every target block', () => {
-    const wall = generateWall(3, ['a', 'b', 'c'], seeded(7));
+    const wall = generateWall(3, ['a', 'b', 'c'], DISTANCE, seeded(7));
     const grid = holeGrid(wall.targets);
     const expected = new Set(BLOCK_IDS.flatMap((id) => cellsOf(wall.targets[id])));
     let count = 0;
