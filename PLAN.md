@@ -129,17 +129,21 @@ All numbers live in `src/config.ts`.
 | 1–3 | 3 | Easy (close together, one hand OK) | 10.0s | 0 | 1–2 | No |
 | 4–6 | 4 | Medium (hands start crossing) | 9.0s | 0 | 1–3 | No |
 | 7–9 | 4 | Medium-high | 8.0s | 1 | 1–4 | No |
-| 10–12 | 5 | Hard (full stretch, e.g. Q + P + Z) | 7.0s | 1–2 | 2–5 | No |
-| 13+ | 4 on Shift Wall rounds, 5 otherwise | Hard+ | −4% per wall from 7.0s, never under 3.5s | 1–2 | 2–6 | 50% of walls, rising to 80% |
+| 10–12 | 5 | Hard (full stretch, e.g. Q + P + Z) | 8.0s | 1–2 | 2–5 | No |
+| 13+ | 4 on Shift Wall rounds, 5 otherwise | Hard+ | −4% per wall from 8.0s, never under 3.5s | 1–2 | 2–6 | 50% of walls, rising to 80% |
 
-Lining up is in from wall 1. Early walls are slow enough that new players learn the whole mechanic at once. (Wall times were raised from 8 / 7 / 6 / 5.5s in the M7 tuning pass, after playtesting stalled at walls 7–8.) Walls 1–12 keep one finger per letter (§4), so their stretch ranges are set from those combos alone. Hard+ is the first tier with cramped same-finger grips.
+Lining up is in from wall 1. Early walls are slow enough that new players learn the whole mechanic at once. (Wall times were raised from 8 / 7 / 6 / 5.5s in the M7 tuning pass, after playtesting stalled at walls 7–8, and walls 10+ again from 7s when walls 12+ still played too hard.) Walls 1–12 keep one finger per letter (§4), so their stretch ranges are set from those combos alone. Hard+ is the first tier with cramped same-finger grips.
 
 ### Shift Wall details
-- Triggers at a random `t ∈ [0.35, 0.6]`, but only once at least one letter is held.
+- Triggers at a random `t ∈ [0.3, 0.5]`, but only once at least one letter is held. (Moved earlier from `[0.35, 0.6]` in the M7 tuning pass, to leave more time after the shift.)
 - **Warning first:** the wall flashes and an arrow appears on it for 0.3s before the hole slides.
-- **The wall holds still** for 0.6s from the warning: through the warning, the slide and a beat to react, then it carries on. (Added in the M7 tuning pass, because a shift that came while the wall kept approaching was over too fast to follow.)
+- **The wall holds still** for 1s from the warning: through the warning, the slide and time to line up again, then it carries on.
+- **It reads as a change:** while the wall holds, a big **SHIFT** callout with an arrow pointing the hole's way pops up above the wall. The lane marker under the hole's new lane gets an orange outline and chevrons until the player is lined up with it. As the hole slides, the screen gives a short sideways jolt the same way (skipped for reduced motion).
 - The hole slides 1–2 lanes, staying inside the stage.
 - New letters stop appearing until the player lines up again. Held letters stay held.
+- Shift Wall rounds score their 4 letters against a stretch range set for 4-letter combos. A range set for 5 letters would only accept the most cramped 4.
+
+(The hold, the callout, the target lane and the jolt were added in the M7 tuning pass. Before them, a shift was over too fast to follow and didn't read as a change: it fires while the wall is still far off, where the wall is small and barely moving.)
 
 ---
 
@@ -174,8 +178,8 @@ WRONG_KEY_JUMP = 0.03          // added to t (0.06 before the M7 tuning pass)
 LOCK_RUSH_DURATION = 400       // ms
 PROMPT_APPEAR_DELAY = 120      // ms after the previous letter is held
 SHIFT_WALL_TELEGRAPH = 300     // ms
-SHIFT_WALL_PAUSE = 600         // ms the wall holds still, from the warning (M7 tuning)
-SHIFT_WALL_T_RANGE = [0.35, 0.6]
+SHIFT_WALL_PAUSE = 1000        // ms the wall holds still, from the warning (M7 tuning)
+SHIFT_WALL_T_RANGE = [0.3, 0.5]
 PERFECT_T = 0.5
 GREAT_T = 0.75
 RESTART_LOCKOUT = 1000         // ms
