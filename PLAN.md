@@ -199,7 +199,7 @@ shape-shift/
 │  │  ├─ sequence.ts         # prompt / held / slip queue state machine
 │  │  ├─ letters.ts          # stretchScore + combo generator
 │  │  ├─ difficulty.ts       # wall # → params
-│  │  ├─ wallGen.ts          # poses → hole cells + lane
+│  │  ├─ wall-gen.ts         # poses → hole cells + lane
 │  │  └─ scoring.ts
 │  ├─ input/
 │  │  └─ KeyboardInput.ts    # native listeners → logic events
@@ -225,7 +225,7 @@ shape-shift/
 
 ### Week 1: grey prototype (is it fun with plain rectangles?)
 
-**M0: Scaffold**
+**M0: Scaffold** (done)
 - Vite + Phaser 4 + TS + Vitest, at 1280×720 FIT, with a Title → Play → GameOver flow.
 - ✅ `npm run dev` runs, `npm run build` creates a `dist/` that works when opened from a subfolder, and `npm test` passes.
 
@@ -243,7 +243,7 @@ shape-shift/
 - ✅ Unit tests cover: a normal run; a slip in the middle; a slip on the last letter; re-pressing a slipped letter early (wrong key); uppercase without Shift (wrong key); releasing Shift after an uppercase press (still held); blur.
 
 **M4: Pass/fail, scoring, game over**
-- Real hole made from the poses (`wallGen.ts`), blocks moving into their target poses when held, pose lock + rush, timing labels, streak multiplier, fail shove + splash placeholder, game-over screen, restart lockout and the "release all keys" rule.
+- Real hole made from the poses (`wall-gen.ts`), blocks moving into their target poses when held, pose lock + rush, timing labels, streak multiplier, fail shove + splash placeholder, game-over screen, restart lockout and the "release all keys" rule.
 - ✅ A full run is playable from start to game over and back again.
 
 **M5: Difficulty and letter generator (+ tests)**
