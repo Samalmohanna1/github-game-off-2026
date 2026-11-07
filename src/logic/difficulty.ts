@@ -45,9 +45,10 @@ export function shiftWallChanceFor(wall: number): number {
   return Math.min(SHIFT_WALL_CHANCE_MAX, tier.shiftWallChance + SHIFT_WALL_CHANCE_STEP * (wallsIntoLastTier(wall) - 1));
 }
 
-export function planWall(wall: number, random: Random = Math.random): WallPlan {
+// forceShiftWall is the dev server's ?shiftwall option.
+export function planWall(wall: number, random: Random = Math.random, forceShiftWall = false): WallPlan {
   const tier = tierFor(wall);
-  const shiftWall = random() < shiftWallChanceFor(wall);
+  const shiftWall = random() < shiftWallChanceFor(wall) || forceShiftWall;
   return {
     wall,
     tier: tier.name,

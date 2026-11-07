@@ -87,6 +87,10 @@ describe('config', () => {
     expect(C.SHIFT_ARROW.shaftThickness).toBeLessThan(C.SHIFT_ARROW.headWidth);
   });
 
+  it('holds the wall through the Shift Wall warning and slide, with time to spare', () => {
+    expect(C.SHIFT_WALL_PAUSE).toBeGreaterThan(C.SHIFT_WALL_TELEGRAPH + C.SHIFT_WALL_SLIDE_MS);
+  });
+
   it('slides the Shift Wall hole at least one lane', () => {
     expect(C.SHIFT_WALL_SLIDE[0]).toBeGreaterThanOrEqual(1);
   });

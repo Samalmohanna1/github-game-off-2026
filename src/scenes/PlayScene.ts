@@ -15,6 +15,7 @@ import {
 import { NEUTRAL_POSE } from '@/data/poses';
 import { KeyboardInput } from '@/input/KeyboardInput';
 import { advanceT, jumpT, wallScale } from '@/logic/approach';
+import { NO_DEV_OPTIONS, parseDevOptions, type DevOptions } from '@/logic/dev-options';
 import { planWall, type WallPlan } from '@/logic/difficulty';
 import { CENTER_LANE, cycleLane, isAligned, laneCenterX, moveLane } from '@/logic/lanes';
 import { generateLetters } from '@/logic/letters';
@@ -79,6 +80,9 @@ export class PlayScene extends Phaser.Scene {
   private capsWarning!: Phaser.GameObjects.Text;
   private pauseOverlay!: PauseOverlay;
   private debug!: DebugOverlay;
+  // The URL's playtest shortcuts, honored on the dev server only, so a
+  // published build always plays a normal run.
+  private readonly dev = import.meta.env.DEV ? parseDevOptions(window.location.search) : NO_DEV_OPTIONS;
 
   constructor() {
     super(SceneKeys.Play);
@@ -87,7 +91,7 @@ export class PlayScene extends Phaser.Scene {
   create(): void {
     this.figureLane = CENTER_LANE;
     this.sequence = new LetterSequence();
-    this.scoreKeeper = new ScoreKeeper();
+    this.scoreKeeper = new ScoreKeeper(this.dev.startWall);
 
     new Floor(this).setDepth(LAYER.floor);
     this.laneMarkers = new LaneMarkers(this).setDepth(LAYER.laneMarkers);
@@ -131,7 +135,7 @@ export class PlayScene extends Phaser.Scene {
     if (this.phase === 'approach') {
       this.sequence.tick(deltaMs);
       this.applyShift(this.shiftWall.update(this.t, this.sequence.heldCount, deltaMs));
-      this.setT(advanceT(this.t, deltaMs / 1000, this.plan.wallTime));
+      if (!this.shiftWall.holding) this.setT(advanceT(this.t, deltaMs / 1000, this.plan.wallTime));
     }
     this.tray.show(this.sequence.view());
   }
@@ -156,7 +160,7 @@ export class PlayScene extends Phaser.Scene {
   }
 
   private startWall(): void {
-    this.plan = planWall(this.scoreKeeper.wallNumber);
+    this.plan = planWall(this.scoreKeeper.wallNumber, Math.random, this.dev.forceShiftWall);
     const { letters, stretch } = generateLetters(this.plan);
     this.stretch = stretch;
     this.spec = generateWall(this.figureLane, letters, this.plan.holeDistance);
@@ -270,6 +274,7 @@ export class PlayScene extends Phaser.Scene {
       this.sequence.paused ? 'paused' : '',
       this.sequence.locked ? 'locked' : '',
       this.shiftWall.warning ? 'shift warning' : '',
+      this.shiftWall.holding ? 'wall holding' : '',
     ].filter((flag) => flag !== '');
     const aligned = isAligned(this.figureLane, this.holeLane);
     const [lo, hi] = this.plan.stretch;
@@ -285,6 +290,7 @@ export class PlayScene extends Phaser.Scene {
       ['stretch', `${this.stretch.toFixed(2)}  (tier ${lo}-${hi})`],
       ['shift wall', this.plan.shiftWall ? `yes, at t ${this.shiftWall.triggerT.toFixed(2)}` : 'no'],
       ['score', `${this.scoreKeeper.score}  streak ${this.scoreKeeper.streak}`],
+      ...(this.dev === NO_DEV_OPTIONS ? [] : [devRow(this.dev)]),
     ];
   }
 
@@ -297,4 +303,8 @@ export class PlayScene extends Phaser.Scene {
     };
     this.scene.start(SceneKeys.GameOver, result);
   }
+}
+
+function devRow({ startWall, forceShiftWall }: DevOptions): DebugRow {
+  return ['dev url', [`runs start at wall ${startWall}`, forceShiftWall ? 'every wall shifts' : ''].filter(Boolean).join(', ')];
 }

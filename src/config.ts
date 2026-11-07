@@ -147,6 +147,9 @@ export const SHIFT_WALL_TELEGRAPH = 300; // ms
 export const SHIFT_WALL_T_RANGE: readonly [number, number] = [0.35, 0.6];
 export const SHIFT_WALL_SLIDE: readonly [number, number] = [1, 2]; // lanes
 export const SHIFT_WALL_SLIDE_MS = 220; // visual only: the hole's lane changes at once
+// The wall stops approaching from the warning on, for the warning, the slide
+// and a beat to react, then carries on.
+export const SHIFT_WALL_PAUSE = 600; // ms
 // The warning arrow, px at full scale, centered over the hole in the band of
 // wall above it.
 export const SHIFT_ARROW = { length: 220, shaftThickness: 40, headLength: 90, headWidth: 120 } as const;

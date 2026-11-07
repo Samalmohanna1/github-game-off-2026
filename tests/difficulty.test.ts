@@ -122,6 +122,14 @@ describe('planWall', () => {
     for (let wall = 1; wall <= 12; wall++) expect(planWall(wall, seeded(wall)).shiftWall).toBe(false);
   });
 
+  it('makes any wall a Shift Wall when forced (the dev ?shiftwall option), with the letter cap', () => {
+    for (const wall of [1, 5, 12, 20]) {
+      const plan = planWall(wall, seeded(wall), true);
+      expect(plan.shiftWall).toBe(true);
+      expect(plan.letters).toBeLessThanOrEqual(MAX_LETTERS_SHIFT_WALL);
+    }
+  });
+
   it("picks the Shift letter count inside the tier's range", () => {
     for (let i = 1; i <= 200; i++) {
       const plan = planWall(11, seeded(i));

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { LANE_COUNT, PROMPT_APPEAR_DELAY, SHIFT_WALL_SLIDE, SHIFT_WALL_TELEGRAPH, SHIFT_WALL_T_RANGE } from '@/config';
+import {
+  LANE_COUNT,
+  PROMPT_APPEAR_DELAY,
+  SHIFT_WALL_PAUSE,
+  SHIFT_WALL_SLIDE,
+  SHIFT_WALL_TELEGRAPH,
+  SHIFT_WALL_T_RANGE,
+} from '@/config';
 import { isAligned, moveLane } from '@/logic/lanes';
 import { LetterSequence } from '@/logic/sequence';
 import { ShiftWall, pickSlideLane } from '@/logic/shift-wall';
@@ -51,6 +58,34 @@ describe('ShiftWall', () => {
     expect(slide).toEqual({ type: 'slide', toLane: warn.toLane });
     expect(shift.warning).toBe(false);
     expect(shift.update(1, 1, FRAME)).toBeNull();
+  });
+
+  it('holds the wall still for SHIFT_WALL_PAUSE from the warning, past the slide', () => {
+    const shift = new ShiftWall(true, 3, seeded(5));
+    expect(shift.holding).toBe(false);
+    shift.update(1, 1, FRAME);
+    expect(shift.holding).toBe(true);
+
+    let elapsed = 0;
+    let slidAt: number | null = null;
+    while (shift.holding) {
+      if (shift.update(1, 1, FRAME)?.type === 'slide') slidAt = elapsed;
+      elapsed += FRAME;
+    }
+    expect(slidAt).not.toBeNull();
+    expect(elapsed).toBeGreaterThan(slidAt!);
+    expect(elapsed).toBeGreaterThanOrEqual(SHIFT_WALL_PAUSE);
+    expect(elapsed).toBeLessThan(SHIFT_WALL_PAUSE + FRAME);
+  });
+
+  it('never holds an ordinary wall, or before the warning', () => {
+    const plain = new ShiftWall(false, 3, seeded(1));
+    plain.update(0.99, 3, FRAME);
+    expect(plain.holding).toBe(false);
+
+    const waiting = new ShiftWall(true, 3, seeded(1));
+    waiting.update(waiting.triggerT - 0.01, 2, FRAME);
+    expect(waiting.holding).toBe(false);
   });
 
   it('points its arrow toward the new lane', () => {
