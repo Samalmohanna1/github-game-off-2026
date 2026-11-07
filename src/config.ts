@@ -44,6 +44,7 @@ export const TEXT_COLORS = {
   accent: '#1d4fb8',
   danger: '#b3243a',
   onChip: '#ffffff',
+  warning: '#a86400', // the Shift Wall callout; matches COLORS.wallWarning
 } as const;
 
 export const FONT_FAMILY = 'Arial, Helvetica, sans-serif';
@@ -72,6 +73,7 @@ export const SCREEN_LAYOUT = {
   gameOverStatsLineGap: 0.08,
   gameOverPromptY: 0.85,
   capsWarningY: 0.07,
+  shiftCalloutY: 0.15, // above the wall while it is far enough away to shift
   pauseHeadingY: 0.44,
   pausePromptY: 0.56,
 } as const;
@@ -127,6 +129,9 @@ export const LANE_COUNT = 7;
 export const LANE_MARKER_FRONT_Y = 600; // px; strips run from FIGURE_FLOOR_Y down to here
 export const LANE_MARKER_GAP = 12; // px between strips, at the figure's plane
 export const LANE_MARKER_EDGE_WIDTH = 2;
+// The Shift Wall's target lane: an orange outline with chevrons pointing the
+// way the hole went, until the figure is lined up with it. px.
+export const LANE_TARGET = { edgeWidth: 5, chevronWidth: 12, chevronHeight: 22, chevronGap: 20, chevronLineWidth: 4 } as const;
 
 export const WALL_START_SCALE = 0.35;
 export const WALL_HEIGHT = 380; // px at full scale
@@ -144,12 +149,17 @@ export const PROMPT_APPEAR_DELAY = 120; // ms after the previous letter is held
 // is held, the wall flashes with an arrow for SHIFT_WALL_TELEGRAPH, then the
 // hole slides SHIFT_WALL_SLIDE lanes in the arrow's direction.
 export const SHIFT_WALL_TELEGRAPH = 300; // ms
-export const SHIFT_WALL_T_RANGE: readonly [number, number] = [0.35, 0.6];
+export const SHIFT_WALL_T_RANGE: readonly [number, number] = [0.3, 0.5];
 export const SHIFT_WALL_SLIDE: readonly [number, number] = [1, 2]; // lanes
 export const SHIFT_WALL_SLIDE_MS = 220; // visual only: the hole's lane changes at once
 // The wall stops approaching from the warning on, for the warning, the slide
-// and a beat to react, then carries on.
-export const SHIFT_WALL_PAUSE = 600; // ms
+// and time to line up again, then carries on. The SHIFT callout shows for as
+// long as the wall holds.
+export const SHIFT_WALL_PAUSE = 1000; // ms
+// A short sideways camera nudge in the slide's direction as the hole moves.
+export const SHIFT_JOLT = { distance: 16, ms: 90 } as const; // px, ms each way
+// The callout's arrow beside the SHIFT text, px.
+export const SHIFT_CALLOUT_ARROW = { gap: 24, length: 90, shaftThickness: 26, headLength: 44, headWidth: 64 } as const;
 // The warning arrow, px at full scale, centered over the hole in the band of
 // wall above it.
 export const SHIFT_ARROW = { length: 220, shaftThickness: 40, headLength: 90, headWidth: 120 } as const;
@@ -214,6 +224,9 @@ export interface DifficultyTier {
   readonly name: string;
   readonly letters: number;
   readonly stretch: readonly [number, number];
+  // For Shift Wall rounds, when MAX_LETTERS_SHIFT_WALL trims the letter count:
+  // the same share of combos, scored over the smaller combo size.
+  readonly shiftWallStretch?: readonly [number, number];
   readonly allowAdjacent: boolean; // consecutive prompts may be neighboring keys
   readonly allowSameFinger: boolean; // two letters may share a touch-typing finger
   readonly wallTime: number; // s
@@ -264,9 +277,10 @@ export const DIFFICULTY_TIERS: readonly DifficultyTier[] = [
     name: 'Hard',
     letters: 5,
     stretch: [9.5, 11],
+    shiftWallStretch: [7.5, 10],
     allowAdjacent: false,
     allowSameFinger: false,
-    wallTime: 7,
+    wallTime: 8,
     shiftLetters: [1, 2],
     holeDistance: [2, 5],
     shiftWallChance: 0,
@@ -276,9 +290,10 @@ export const DIFFICULTY_TIERS: readonly DifficultyTier[] = [
     name: 'Hard+',
     letters: 5,
     stretch: [12.5, 18],
+    shiftWallStretch: [10, 14],
     allowAdjacent: false,
     allowSameFinger: true,
-    wallTime: 7,
+    wallTime: 8,
     shiftLetters: [1, 2],
     holeDistance: [2, 6],
     shiftWallChance: 0.5,

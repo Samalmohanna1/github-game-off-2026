@@ -92,10 +92,10 @@ describe.each(DIFFICULTY_TIERS.map((tier) => [tier.name, tier] as const))('%s wa
     return { plan, combo: generateLetters(plan, random) };
   });
 
-  it("score inside the tier's stretch range", () => {
-    for (const { combo } of walls) {
-      expect(combo.stretch).toBeGreaterThanOrEqual(tier.stretch[0]);
-      expect(combo.stretch).toBeLessThanOrEqual(tier.stretch[1]);
+  it("score inside the planned stretch range (the tier's, or its Shift Wall one)", () => {
+    for (const { plan, combo } of walls) {
+      expect(combo.stretch).toBeGreaterThanOrEqual(plan.stretch[0]);
+      expect(combo.stretch).toBeLessThanOrEqual(plan.stretch[1]);
     }
   });
 

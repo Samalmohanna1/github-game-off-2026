@@ -91,6 +91,10 @@ describe('config', () => {
     expect(C.SHIFT_WALL_PAUSE).toBeGreaterThan(C.SHIFT_WALL_TELEGRAPH + C.SHIFT_WALL_SLIDE_MS);
   });
 
+  it('fits the target lane chevrons inside a lane marker', () => {
+    expect(C.LANE_TARGET.chevronHeight).toBeLessThan(C.LANE_MARKER_FRONT_Y - C.FIGURE_FLOOR_Y);
+  });
+
   it('slides the Shift Wall hole at least one lane', () => {
     expect(C.SHIFT_WALL_SLIDE[0]).toBeGreaterThanOrEqual(1);
   });
@@ -133,7 +137,7 @@ const css = (color: string) => parseInt(color.slice(1), 16);
 const TEXT_ON = {
   stage: ['ink', 'muted', 'accent', 'danger'],
   panel: ['ink', 'muted', 'accent', 'danger'],
-  labelStroke: ['ink', 'accent', 'danger'],
+  labelStroke: ['ink', 'accent', 'danger', 'warning'],
   chipNext: ['accent'],
   chipHeld: ['onChip'],
   chipCurrent: ['onChip'],

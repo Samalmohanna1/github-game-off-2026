@@ -122,6 +122,18 @@ describe('planWall', () => {
     for (let wall = 1; wall <= 12; wall++) expect(planWall(wall, seeded(wall)).shiftWall).toBe(false);
   });
 
+  it('gives Shift Wall rounds a stretch range for the trimmed letter count', () => {
+    for (const tier of DIFFICULTY_TIERS.filter((t) => t.letters > MAX_LETTERS_SHIFT_WALL)) {
+      expect(tier.shiftWallStretch).toBeDefined();
+      // Fewer letters score lower, so the range sits below the tier's own.
+      expect(tier.shiftWallStretch![0]).toBeLessThan(tier.stretch[0]);
+      expect(tier.shiftWallStretch![1]).toBeLessThan(tier.stretch[1]);
+      const plan = planWall(tier.fromWall, seeded(1), true);
+      expect(plan.stretch).toEqual(tier.shiftWallStretch);
+      expect(planWall(tier.fromWall, () => 0.99).stretch).toEqual(tier.stretch);
+    }
+  });
+
   it('makes any wall a Shift Wall when forced (the dev ?shiftwall option), with the letter cap', () => {
     for (const wall of [1, 5, 12, 20]) {
       const plan = planWall(wall, seeded(wall), true);

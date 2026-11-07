@@ -49,13 +49,15 @@ export function shiftWallChanceFor(wall: number): number {
 export function planWall(wall: number, random: Random = Math.random, forceShiftWall = false): WallPlan {
   const tier = tierFor(wall);
   const shiftWall = random() < shiftWallChanceFor(wall) || forceShiftWall;
+  // PLAN.md §4: at most 5 letters, and 4 on Shift Wall rounds, since an arrow
+  // and Shift go on top and many keyboards ghost past 7 keys.
+  const letters = Math.min(tier.letters, shiftWall ? MAX_LETTERS_SHIFT_WALL : MAX_LETTERS);
   return {
     wall,
     tier: tier.name,
-    // PLAN.md §4: at most 5 letters, and 4 on Shift Wall rounds, since an arrow
-    // and Shift go on top and many keyboards ghost past 7 keys.
-    letters: Math.min(tier.letters, shiftWall ? MAX_LETTERS_SHIFT_WALL : MAX_LETTERS),
-    stretch: tier.stretch,
+    letters,
+    // A range scored over 5 letters would only take the most cramped 4.
+    stretch: letters < tier.letters ? (tier.shiftWallStretch ?? tier.stretch) : tier.stretch,
     allowAdjacent: tier.allowAdjacent,
     allowSameFinger: tier.allowSameFinger,
     shiftLetters: randomInt(tier.shiftLetters[0], tier.shiftLetters[1], random),

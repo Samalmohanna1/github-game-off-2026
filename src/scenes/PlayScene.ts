@@ -8,6 +8,7 @@ import {
   LOCK_RUSH_DURATION,
   RUSH_END_SCALE,
   SCREEN_LAYOUT,
+  SHIFT_JOLT,
   STAGE_BOTTOM_Y,
   WRONG_KEY_SHAKE_INTENSITY,
   WRONG_KEY_SHAKE_MS,
@@ -29,6 +30,7 @@ import { Floor } from '@/objects/Floor';
 import { LaneMarkers } from '@/objects/LaneMarkers';
 import { PauseOverlay } from '@/objects/PauseOverlay';
 import { PromptTray } from '@/objects/PromptTray';
+import { ShiftCallout } from '@/objects/ShiftCallout';
 import { playSplash } from '@/objects/splash';
 import { TimingLabel } from '@/objects/TimingLabel';
 import { Wall } from '@/objects/Wall';
@@ -77,6 +79,7 @@ export class PlayScene extends Phaser.Scene {
   private laneMarkers!: LaneMarkers;
   private tray!: PromptTray;
   private label!: TimingLabel;
+  private callout!: ShiftCallout;
   private capsWarning!: Phaser.GameObjects.Text;
   private pauseOverlay!: PauseOverlay;
   private debug!: DebugOverlay;
@@ -98,6 +101,7 @@ export class PlayScene extends Phaser.Scene {
     this.wall = new Wall(this).setDepth(LAYER.wall);
     this.figure = new Figure(this, this.figureLane).setDepth(LAYER.figure);
     this.label = new TimingLabel(this).setDepth(LAYER.label);
+    this.callout = new ShiftCallout(this).setDepth(LAYER.label);
     this.tray = new PromptTray(this).setDepth(LAYER.tray);
     this.capsWarning = this.add
       .text(
@@ -137,19 +141,35 @@ export class PlayScene extends Phaser.Scene {
       this.applyShift(this.shiftWall.update(this.t, this.sequence.heldCount, deltaMs));
       if (!this.shiftWall.holding) this.setT(advanceT(this.t, deltaMs / 1000, this.plan.wallTime));
     }
+    this.callout.setVisible(this.phase === 'approach' && this.shiftWall.holding);
     this.tray.show(this.sequence.view());
   }
 
   // PLAN.md §2 step 4: held letters keep their blocks, but no new letter shows
-  // until the figure is lined up with the moved hole.
+  // until the figure is lined up with the moved hole. PLAN.md §5: the wall
+  // holds still behind a SHIFT callout, the target lane is marked, and the
+  // screen jolts the slide's way.
   private applyShift(event: ShiftWallEvent | null): void {
     if (event === null) return;
     if (event.type === 'warn') {
       this.wall.warn(event.dir);
+      this.callout.show(event.dir);
+      this.laneMarkers.setTarget({ lane: event.toLane, dir: event.dir });
       return;
     }
+    const dir = event.toLane > this.holeLane ? 1 : -1;
     this.holeLane = event.toLane;
     this.wall.slideHoleTo(event.toLane);
+    if (!prefersReducedMotion()) {
+      // Scrolling the camera against dir moves the scene toward it.
+      this.tweens.add({
+        targets: this.cameras.main,
+        scrollX: -dir * SHIFT_JOLT.distance,
+        duration: SHIFT_JOLT.ms,
+        ease: 'Quad.easeOut',
+        yoyo: true,
+      });
+    }
     this.refreshAlignment();
   }
 
@@ -169,6 +189,7 @@ export class PlayScene extends Phaser.Scene {
     this.wall.setHole(this.holeLane, holeGrid(this.spec.targets));
     this.wall.setAlpha(1).setDepth(LAYER.wall);
     this.figure.resetPose();
+    this.laneMarkers.setTarget(null);
     this.sequence.startWall(letters);
     this.phase = 'approach';
     this.setT(0);
@@ -207,6 +228,8 @@ export class PlayScene extends Phaser.Scene {
     const aligned = isAligned(this.figureLane, this.holeLane);
     this.sequence.setAligned(aligned);
     this.laneMarkers.setLit(aligned ? this.figureLane : null);
+    // The target stays through the warning, while the old lane still counts.
+    if (aligned && !this.shiftWall.warning) this.laneMarkers.setTarget(null);
     this.maybeLock();
   }
 
