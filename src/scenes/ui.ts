@@ -2,7 +2,7 @@ import type Phaser from 'phaser';
 import { GAME_WIDTH, PROMPT_PULSE_MS, PROMPT_PULSE_SCALE } from '@/config';
 import { textStyle } from '@/scenes/text-styles';
 
-function prefersReducedMotion(): boolean {
+export function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 

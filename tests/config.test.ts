@@ -71,6 +71,15 @@ describe('config', () => {
     expect(C.LANE_MARKER_FRONT_Y).toBeGreaterThan(C.FIGURE_FLOOR_Y);
     expect(C.LANE_MARKER_FRONT_Y).toBeLessThanOrEqual(C.STAGE_BOTTOM_Y);
   });
+
+  it('fits every chip inside the tray', () => {
+    expect(C.CHIP.size).toBeLessThan(C.TRAY_HEIGHT);
+    expect(C.CHIP.currentSize).toBeLessThan(C.TRAY_HEIGHT);
+  });
+
+  it('keeps the Shift mark inside its chip corner', () => {
+    expect(C.SHIFT_MARK.size + C.SHIFT_MARK.inset).toBeLessThan(0.5);
+  });
 });
 
 describe('graphics contrast', () => {
@@ -84,15 +93,41 @@ describe('graphics contrast', () => {
   it('keeps the figure readable in front of the wall', () => {
     expect(contrastRatio(C.COLORS.figure, C.COLORS.wall)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
+
+  it.each(['chipHeld', 'chipCurrent', 'chipSlipped'] as const)('%s chips stand out from the tray', (name) => {
+    expect(contrastRatio(C.COLORS[name], C.COLORS.tray)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  });
+
+  it.each(['chipHeld', 'chipCurrent', 'chipSlipped'] as const)('the Shift mark reads on %s chips', (name) => {
+    expect(contrastRatio(C.COLORS.chipShiftMark, C.COLORS[name])).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  });
 });
+
+const css = (color: string) => parseInt(color.slice(1), 16);
+
+// Every place each text color is drawn.
+const TEXT_ON = {
+  stage: ['ink', 'muted', 'accent', 'danger'],
+  panel: ['ink', 'muted', 'accent', 'danger'],
+  chipHeld: ['onChip'],
+  chipCurrent: ['onChip'],
+  chipSlipped: ['onChip'],
+} as const satisfies Partial<Record<keyof typeof C.COLORS, readonly (keyof typeof C.TEXT_COLORS)[]>>;
+
+const TEXT_PAIRS = Object.entries(TEXT_ON).flatMap(([bg, texts]) => texts.map((text) => [text, bg] as const));
 
 describe('text contrast', () => {
   it('keeps every font size at WCAG large-text size', () => {
     expect(Math.min(...Object.values(C.FONT_SIZES))).toBeGreaterThanOrEqual(LARGE_TEXT_PX);
   });
 
-  it.each(Object.entries(C.TEXT_COLORS))('%s text meets AAA on the stage', (_name, css) => {
-    const ratio = contrastRatio(parseInt(css.slice(1), 16), C.COLORS.stage);
+  it('checks every text color somewhere', () => {
+    const covered = new Set(TEXT_PAIRS.map(([text]) => text));
+    expect([...covered].sort()).toEqual(Object.keys(C.TEXT_COLORS).sort());
+  });
+
+  it.each(TEXT_PAIRS)('%s text meets AAA on %s', (text, bg) => {
+    const ratio = contrastRatio(css(C.TEXT_COLORS[text]), C.COLORS[bg as keyof typeof TEXT_ON]);
     expect(ratio).toBeGreaterThanOrEqual(AAA_LARGE_TEXT_RATIO);
   });
 

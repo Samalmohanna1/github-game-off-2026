@@ -27,12 +27,12 @@ Scenes, one per screen:
 |---|---|---|
 | `BootScene` | Final for Week 1 | Hands off to Title. Loads nothing until Week 2 art. |
 | `TitleScene` | Interim | Game name, one-line how-to, "Click to play". The click gives the page keyboard focus inside the itch.io iframe. Restyled in Week 2. |
-| `PlayScene` | Interim (M2) | Perspective floor, lane markers, the figure in its neutral pose, the empty prompt tray, and a wall that approaches over `WALL_TIME`. Each wall's placeholder hole spawns `HOLE_DISTANCE` lanes from the figure. ← / → slide the figure one lane per tap, and the marker under it lights when it's lined up. The approach loops into a new wall. A click ends the run. M3–M7 add the letters and rules. |
+| `PlayScene` | Interim (M3) | Perspective floor, lane markers, the figure in its neutral pose, and a wall that approaches over `WALL_TIME`. Each wall's placeholder hole spawns `HOLE_DISTANCE` lanes from the figure; ← / → slide the figure one lane per tap and the marker under it lights when it's lined up. While lined up, the tray prompts the wall's placeholder letters one at a time; holding, slips, wrong keys (jump, flash, shake) and the Shift rule follow PLAN.md §2. Capital chips carry a Shift mark, and a warning shows while Caps Lock is on. Losing focus pauses behind a "Click to resume" panel. The approach loops into a new wall. A click ends the run. M4 adds the real hole, pose lock, scoring and fail. |
 | `GameOverScene` | Interim | Walls cleared, score, best, wall reached, restart prompt. The restart lockout and "release every key" rule arrive in M4. |
 
 Shared scene helpers live in `src/scenes/` (`ui.ts`, `text-styles.ts`,
 `scene-keys.ts`). Game objects live in `src/objects/`: `Floor`, `LaneMarkers`,
-`Wall`, `Figure` and `PromptTray`. Keyboard input lives in `src/input/`:
+`Wall`, `Figure`, `PromptTray` and `PauseOverlay`. Keyboard input lives in `src/input/`:
 `KeyboardInput` (native listeners, one per Play scene) and
 `preventPageScroll()` (game-wide, from `main.ts`).
 
@@ -108,18 +108,21 @@ src/
   data/                    # PURE: static game data
     poses.ts               # block ids + neutral pose on the figure grid
   input/
-    KeyboardInput.ts       # native keydown -> lane moves (repeats ignored)
+    KeyboardInput.ts       # native key/blur events -> moves, letters, pause, Caps Lock
     prevent-page-scroll.ts # arrows/Space never scroll the host page
   logic/                   # PURE: no Phaser imports
-    approach.ts            # t clock, ease-in, wall scale
+    approach.ts            # t clock, wrong-key jump, ease-in, wall scale
     lanes.ts               # lane moves, alignment, hole lane, lane x
+    letters.ts             # placeholder letters; uppercase never back to back
     perspective.ts         # vanishing point, project(), floor edges
+    sequence.ts            # prompt / held / slip queue state machine
   objects/
     Floor.ts               # the two perspective floor lines
     LaneMarkers.ts         # floor strip per lane; lit = lined up
-    Wall.ts                # wall with placeholder hole, scaled to depth
+    Wall.ts                # wall with placeholder hole; flashes on wrong keys
     Figure.ts              # five blocks in the neutral pose; slides lanes
-    PromptTray.ts          # white tray area along the bottom
+    PromptTray.ts          # tray with held / current / slipped letter chips
+    PauseOverlay.ts        # "Click to resume" panel shown on blur
   scenes/
     BootScene.ts           # hands off to Title
     TitleScene.ts          # "Click to play" (gets keyboard focus)
@@ -132,15 +135,17 @@ tests/
   approach.test.ts         # t advance, ease-in, wall scale
   config.test.ts           # config invariants + text and graphics contrast
   lanes.test.ts            # lane moves, clamping, hole lane, lane geometry
+  letters.test.ts          # distinct letters, uppercase count and spacing
   perspective.test.ts      # projection and floor geometry
   poses.test.ts            # neutral pose fits the grid, no overlaps
   purity.test.ts           # pure modules never import Phaser
+  sequence.test.ts         # PLAN.md §2 input rules, incl. the M3 cases
 ```
 
 The rest of the planned layout from PLAN.md §9 arrives with its milestones:
-`src/data/keyboard.ts` and the other `src/logic/` modules (`sequence`,
-`letters`, `difficulty`, `wall-gen`, `scoring`). Add each to this tree when it
-lands.
+`src/data/keyboard.ts`, the other `src/logic/` modules (`difficulty`,
+`wall-gen`, `scoring`), and `stretchScore` plus the real combo generator in
+`letters.ts` (M5). Add each to this tree when it lands.
 
 Where things go: rules, and the pure math they depend on (the `t` clock,
 perspective) → `src/logic/`. Static game data such as the keyboard map and
@@ -268,27 +273,36 @@ playtest covers.
   inventing inline values. `config.ts` is the single re-skin point. Week 2 art
   replaces the shapes but keeps the same pose data and tokens.
 - **Typography:** Week 1 uses the system sans stack in `FONT_FAMILY`, normal or
-  bold only. Game-show lettering for the wall and tray comes in Week 2.
+  bold only. Prompt letters use `CHIP_FONT_FAMILY` (Verdana, Tahoma), whose
+  capital I has crossbars and can't be mistaken for a lowercase l; any future
+  prompt font must keep I and l distinct. Game-show lettering for the wall and
+  tray comes in Week 2.
 - **Contrast: WCAG AAA preferred, AA required.** Aim for AAA — **7:1 normal
   text, 4.5:1 large text** (≥24px, or ≥18.66px bold). A color between AA and
   AAA may ship, but no text goes below **AA — 4.5:1 normal, 3:1 large**.
   Meaningful non-text graphics (the wall and its hole, floor lines, tray edge,
   lit vs unlit lane marker; held, current and slipped chips) need 3:1.
   **Verify pairs, don't eyeball them**: `tests/config.test.ts` measures every
-  `TEXT_COLORS` entry and every meaningful graphic color against the stage,
-  and keeps every font size at 24px or more. Text that fades or flashes must
-  still meet AA at its faintest frame. Record every pair below AAA, with its
-  measured ratio, in the list below.
+  meaningful graphic color against what it sits on, measures each text color
+  against every background it is drawn on (`TEXT_ON` in that test; add new
+  pairs there), and keeps every font size at 24px or more. Text that fades or
+  flashes must still meet AA at its faintest frame, and text over a translucent
+  veil sits on an opaque panel. Record every pair below AAA, with its measured
+  ratio, in the list below.
   - Pairs below AAA: none.
 - **Keyboard first.** The game is played entirely on the keyboard, except the
   title's "Click to play", which PLAN.md §2 requires so the itch.io iframe gets
-  keyboard focus. Game over restarts on any key or a click.
+  keyboard focus. Game over restarts on any key or a click. During play, a
+  warning shows while Caps Lock is on (PLAN.md §2).
 - **Don't rely on color alone.** Held, current and slipped letters also differ
-  by position in the tray (left, center, right; PLAN.md §3).
+  by position in the tray (left, center, right; PLAN.md §3). Don't rely on case
+  alone either: capital chips carry a drawn Shift mark (`SHIFT_MARK`).
 - **Desktop only.** The game needs a physical keyboard. It renders at 1280×720
   and scales to fit; there is no mobile or touch layout.
-- **Motion.** Honor `prefers-reduced-motion` for decorative motion; the pulsing
-  prompts stay still under it.
+- **Motion.** Honor `prefers-reduced-motion`: the pulsing prompts stay still
+  and the wrong-key camera shake is skipped under it (`prefersReducedMotion()`
+  in `src/scenes/ui.ts`). Feedback that carries meaning keeps a still
+  alternative, such as the wall flash.
 - **Performance budget.** One bundle (Phaser plus game code), no third-party
   scripts, no network requests at runtime. The best score is the only thing
   stored, in `localStorage`, wrapped in try/catch (PLAN.md §6).
@@ -415,20 +429,33 @@ Work through **PLAN.md §10** one milestone at a time.
   (`src/data/poses.ts`, which has the neutral pose so far; alt poses arrive in
   M4).
 - **Prompt** — the letter currently asked for, shown as the blue chip in the
-  center of the tray. Letters appear one at a time.
+  center of the tray. Letters appear one at a time: the next one shows
+  `PROMPT_APPEAR_DELAY` after the previous hold, and only while lined up and
+  not paused. Upcoming fresh letters stay hidden.
 - **Prompt tray** — the white strip along the bottom: held letters (green,
-  left), the current prompt (blue, center), slipped or queued letters (red,
-  right).
+  left, in the order held), the current prompt (blue, center), and slipped
+  letters waiting their turn (red, right, in queue order). Capital letters
+  carry a ⇧ Shift mark in the chip's top-right corner.
+- **Caps Lock warning** — a line under the placeholder hint while Caps Lock is
+  on. The state is read from every key event with `getModifierState`.
 - **Held** — a prompted letter that was pressed correctly and is still down;
-  its block sits in the target pose. Held keys are tracked by `event.code`.
+  its block sits in the target pose (from M4). Held keys are tracked by
+  `event.code`.
 - **Slip** — letting go of a held letter before the pose locks. Its block
-  snaps back to neutral and the letter goes to the end of the queue.
-- **Queue** — the letters still to be prompted, including slipped ones
-  (planned: `src/logic/sequence.ts`).
+  snaps back to neutral (from M4) and the letter goes to the end of the queue.
+- **Queue** — the letters still to be prompted, including slipped ones; its
+  head is the current prompt (`LetterSequence` in `src/logic/sequence.ts`).
 - **Wrong key** — any letter that isn't the current prompt and isn't held,
-  including a slipped letter pressed early, any letter while not lined up, and
-  an uppercase prompt pressed without Shift. The wall jumps forward by
-  `WRONG_KEY_JUMP`.
+  including a slipped letter pressed early, any letter while no prompt is
+  showing (not lined up, or during the appear delay), and an uppercase prompt
+  pressed without Shift. The wall jumps forward by `WRONG_KEY_JUMP` and
+  flashes, and the camera shakes unless the player prefers reduced motion.
+  Letters pressed with Ctrl, Cmd or Alt are shortcuts and are ignored.
+- **Stale key** — a letter still held from the previous wall. It is ignored
+  until released, so it can't slip or count on the new wall.
+- **Placeholder letters** — until M5's generator, each wall gets
+  `PLACEHOLDER_LETTER_COUNT` random distinct letters, `PLACEHOLDER_SHIFT_LETTERS`
+  of them uppercase (`randomLetters()` in `src/logic/letters.ts`).
 - **Pose lock** — every letter held while lined up. The pose freezes, the wall
   rushes past (`LOCK_RUSH_DURATION`), and input is ignored until the next wall.
 - **Shift Wall** — from wall 13, the hole slides 1–2 lanes partway through the

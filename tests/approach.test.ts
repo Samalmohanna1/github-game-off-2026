@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { WALL_START_SCALE } from '@/config';
-import { advanceT, easeIn, wallScale } from '@/logic/approach';
+import { WALL_START_SCALE, WRONG_KEY_JUMP } from '@/config';
+import { advanceT, easeIn, jumpT, wallScale } from '@/logic/approach';
 
 const WALL_TIME = 8;
 const SAMPLES = Array.from({ length: 21 }, (_, i) => i / 20);
@@ -26,6 +26,16 @@ describe('advanceT', () => {
     for (let i = 0; i < 120; i++) at30 = advanceT(at30, 1 / 30, WALL_TIME);
     expect(at60).toBeCloseTo(0.5, 9);
     expect(at30).toBeCloseTo(at60, 9);
+  });
+});
+
+describe('jumpT', () => {
+  it('pushes the wall forward by WRONG_KEY_JUMP', () => {
+    expect(jumpT(0.2)).toBeCloseTo(0.2 + WRONG_KEY_JUMP);
+  });
+
+  it('never goes past 1', () => {
+    expect(jumpT(1 - WRONG_KEY_JUMP / 2)).toBe(1);
   });
 });
 

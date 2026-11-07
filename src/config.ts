@@ -15,23 +15,36 @@ export const COLORS = {
   laneMarkerLit: 0x1f8a4c,
   figure: 0x241c29,
   figureEdge: 0xf7dde3,
+  wallFlash: 0xd6374a,
+  chipHeld: 0x1a7a43,
+  chipCurrent: 0x1d4fb8,
+  chipSlipped: 0xb3243a,
+  chipShiftMark: 0xffffff,
+  panel: 0xffffff,
+  panelEdge: 0x6e5662,
 } as const;
 
-// CSS strings because Phaser text styles take CSS colors. Every pair must
-// stay at or above 4.5:1 against COLORS.stage (tests/config.test.ts).
+// CSS strings because Phaser text styles take CSS colors. ink, muted, accent
+// and danger sit on the stage or a white panel; onChip sits on the chip
+// colors. Every pair must reach 4.5:1 (tests/config.test.ts).
 export const TEXT_COLORS = {
   ink: '#3b2a33',
   muted: '#6e5662',
   accent: '#1d4fb8',
   danger: '#b3243a',
+  onChip: '#ffffff',
 } as const;
 
 export const FONT_FAMILY = 'Arial, Helvetica, sans-serif';
+// Prompt letters need a capital I that can't be mistaken for a lowercase l;
+// Verdana and Tahoma give the I crossbars, Arial does not.
+export const CHIP_FONT_FAMILY = 'Verdana, Tahoma, sans-serif';
 
 // px. Nothing goes below 24 so all text counts as "large" for WCAG contrast.
 export const FONT_SIZES = {
   title: 112,
   heading: 80,
+  chip: 42,
   body: 34,
   small: 24,
 } as const;
@@ -46,7 +59,28 @@ export const SCREEN_LAYOUT = {
   gameOverStatsLineGap: 0.08,
   gameOverPromptY: 0.85,
   playHintY: 0.07,
+  capsWarningY: 0.15,
+  pauseHeadingY: 0.44,
+  pausePromptY: 0.56,
 } as const;
+
+export const PAUSE_PANEL = { width: 560, height: 220 } as const; // px
+export const PAUSE_DIM_ALPHA = 0.7; // stage-colored veil over the paused game
+export const PANEL_EDGE_WIDTH = 3;
+
+// Prompt tray chips, px. Held chips line up from the tray's left edge, the
+// current prompt sits in the center, and slipped letters queue to its right.
+export const CHIP = {
+  size: 68,
+  currentSize: 88,
+  gap: 14,
+  edgeInset: 40,
+  radius: 12,
+} as const;
+
+// The outlined Shift arrow on capital chips, in the top-right corner. Size and
+// inset are fractions of the chip, sized to clear even wide capitals (W, M).
+export const SHIFT_MARK = { size: 0.25, inset: 0.07, lineWidth: 2 } as const;
 
 // Prompts pulse in size, not alpha, so their contrast never drops.
 export const PROMPT_PULSE_SCALE = 1.06;
@@ -84,8 +118,16 @@ export const WALL_TIME = 8.0; // s; walls 1-3 in PLAN.md §5
 export const WALL_EASE_POWER = 2; // scale follows t^n, so higher n rushes harder at the end
 
 export const WRONG_KEY_JUMP = 0.06; // added to t
+export const WRONG_KEY_SHAKE_MS = 160;
+export const WRONG_KEY_SHAKE_INTENSITY = 0.006; // fraction of the screen size
+export const WALL_FLASH_MS = 120;
 export const LOCK_RUSH_DURATION = 400; // ms
 export const PROMPT_APPEAR_DELAY = 120; // ms after the previous letter is held
+
+// Stand-in letters until M5's generator: each wall gets this many distinct
+// letters, this many of them uppercase so the Shift rule can be played.
+export const PLACEHOLDER_LETTER_COUNT = 3;
+export const PLACEHOLDER_SHIFT_LETTERS = 1;
 
 export const SHIFT_WALL_TELEGRAPH = 300; // ms
 export const SHIFT_WALL_T_RANGE: readonly [number, number] = [0.35, 0.6];

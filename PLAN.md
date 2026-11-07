@@ -59,6 +59,7 @@ SPAWN → ALIGN → POSE → (SHIFT WALL?) → RESOLVE → next wall | GAME OVER
 - Use **`event.key`** to check which letter it is and its case **at press time**.
 - Use **`event.code`** (e.g. `KeyA`) to track held keys. That way, letting go of Shift doesn't look like a different key being released.
 - Ignore `event.repeat`.
+- If Caps Lock is on (`event.getModifierState('CapsLock')` on any key event), show a "Caps Lock is on" warning during play. The rules above don't change, but with Caps Lock on, Shift + letter can produce a lowercase `event.key`.
 - Call `preventDefault()` on arrow keys and Space, so they don't scroll the page.
 - The game will run inside an iframe (itch.io), so the title screen needs **"Click to play"** to get keyboard focus.
 
@@ -73,6 +74,7 @@ SPAWN → ALIGN → POSE → (SHIFT WALL?) → RESOLVE → next wall | GAME OVER
   - **Held** letters as green chips, lined up from the left.
   - The **current** prompt as a blue chip in the center.
   - **Slipped/queued** letters as red chips on the right.
+  - **Capital** letters also carry a Shift mark (⇧) on their chip, because case alone is hard to read for letters like o/O, s/S and x/X.
 
 ### Lanes
 - `LANE_COUNT = 7` lanes across the stage.
@@ -237,7 +239,7 @@ shape-shift/
 - A 5-block figure in neutral pose, ← / → lane movement (one lane per tap, held keys don't repeat), lane markers, and the hole at a random lane.
 - ✅ The marker lights up only when the figure's lane = the hole's lane, and the figure can't leave the stage.
 
-**M3: Letter sequence (`logic/sequence.ts` + tests)**
+**M3: Letter sequence (`logic/sequence.ts` + tests)** (done)
 - One-at-a-time prompts, holding, slip → back of queue, wrong-key jump, Shift-at-press rule, lowercase accepting either case, pause on blur.
 - Letters only appear while lined up.
 - ✅ Unit tests cover: a normal run; a slip in the middle; a slip on the last letter; re-pressing a slipped letter early (wrong key); uppercase without Shift (wrong key); releasing Shift after an uppercase press (still held); blur.
