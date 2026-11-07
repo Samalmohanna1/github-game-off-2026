@@ -24,6 +24,10 @@ export const COLORS = {
   panelEdge: 0x6e5662,
   labelStroke: 0xffffff,
   splash: 0x3d8fd6,
+  // Shift Wall warning. It's as bright as the wrong-key flash, so the arrow is
+  // what tells the two apart, not the color.
+  wallWarning: 0xa86400,
+  shiftArrow: 0xffffff,
 } as const;
 
 // CSS strings because Phaser text styles take CSS colors. ink, muted, accent
@@ -123,8 +127,16 @@ export const WALL_FLASH_MS = 120;
 export const LOCK_RUSH_DURATION = 400; // ms
 export const PROMPT_APPEAR_DELAY = 120; // ms after the previous letter is held
 
+// Shift Wall (PLAN.md §5): at a random t in SHIFT_WALL_T_RANGE, once a letter
+// is held, the wall flashes with an arrow for SHIFT_WALL_TELEGRAPH, then the
+// hole slides SHIFT_WALL_SLIDE lanes in the arrow's direction.
 export const SHIFT_WALL_TELEGRAPH = 300; // ms
 export const SHIFT_WALL_T_RANGE: readonly [number, number] = [0.35, 0.6];
+export const SHIFT_WALL_SLIDE: readonly [number, number] = [1, 2]; // lanes
+export const SHIFT_WALL_SLIDE_MS = 220; // visual only: the hole's lane changes at once
+// The warning arrow, px at full scale, centered over the hole in the band of
+// wall above it.
+export const SHIFT_ARROW = { length: 220, shaftThickness: 40, headLength: 90, headWidth: 120 } as const;
 
 // Scoring (PLAN.md §6).
 export const PERFECT_T = 0.5;

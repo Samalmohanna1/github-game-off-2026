@@ -252,7 +252,7 @@ shape-shift/
 - `stretchScore`, picking letters by tier, letter ordering, uppercase letters never back to back, the tier table.
 - ✅ Tests confirm each tier's combos fall in its score range, letters never repeat in a combo, uppercase never comes back to back, and the letter caps are never exceeded.
 
-**M6: Shift Wall**
+**M6: Shift Wall** (done)
 - The warning, the hole sliding, letters pausing until lined up again, and the 4-letter cap.
 - ✅ Holding 3 letters while tapping an arrow to line up again works, and the next letter appears right away.
 
