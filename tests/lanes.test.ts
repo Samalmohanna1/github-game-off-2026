@@ -3,6 +3,7 @@ import { DIFFICULTY_TIERS, FIGURE_WIDTH, LANE_COUNT, LANE_MARKER_GAP } from '@/c
 import {
   CENTER_LANE,
   LANE_WIDTH,
+  cycleLane,
   holeLaneCandidates,
   isAligned,
   laneCenterX,
@@ -24,6 +25,23 @@ describe('moveLane', () => {
   it('never leaves the stage', () => {
     expect(moveLane(0, -1)).toBe(0);
     expect(moveLane(LAST_LANE, 1)).toBe(LAST_LANE);
+  });
+});
+
+describe('cycleLane', () => {
+  it('moves one lane right', () => {
+    expect(cycleLane(CENTER_LANE)).toBe(CENTER_LANE + 1);
+  });
+
+  it('wraps from the last lane to the first', () => {
+    expect(cycleLane(LAST_LANE)).toBe(0);
+  });
+
+  it('reaches every lane and comes back in LANE_COUNT presses', () => {
+    const visited = [CENTER_LANE];
+    for (let i = 0; i < LANE_COUNT; i++) visited.push(cycleLane(visited.at(-1)!));
+    expect(new Set(visited).size).toBe(LANE_COUNT);
+    expect(visited.at(-1)).toBe(CENTER_LANE);
   });
 });
 

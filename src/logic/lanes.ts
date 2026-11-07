@@ -9,6 +9,12 @@ export function moveLane(lane: number, dir: -1 | 1): number {
   return Math.min(LANE_COUNT - 1, Math.max(0, lane + dir));
 }
 
+// Space: one lane right, wrapping from the last lane back to the first, so a
+// thumb can reach any lane without the hands leaving the letters.
+export function cycleLane(lane: number): number {
+  return (lane + 1) % LANE_COUNT;
+}
+
 export function isAligned(figureLane: number, holeLane: number): boolean {
   return figureLane === holeLane;
 }
