@@ -62,6 +62,16 @@ export class LetterSequence {
     return this.held.length;
   }
 
+  // For the debug overlay: every letter still to prompt, including ones not
+  // shown yet, and each held letter with its key code.
+  get queued(): readonly string[] {
+    return [...this.queue];
+  }
+
+  get heldKeys(): readonly { readonly letter: string; readonly code: string }[] {
+    return this.held.map((h) => ({ ...h }));
+  }
+
   get current(): string | null {
     const next = this.queue[0];
     if (next === undefined || !this.aligned || this.isPaused || this.delayLeft > 0) return null;

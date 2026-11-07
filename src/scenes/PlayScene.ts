@@ -18,10 +18,11 @@ import { advanceT, jumpT, wallScale } from '@/logic/approach';
 import { planWall, type WallPlan } from '@/logic/difficulty';
 import { CENTER_LANE, isAligned, laneCenterX, moveLane } from '@/logic/lanes';
 import { generateLetters } from '@/logic/letters';
-import { ScoreKeeper } from '@/logic/scoring';
+import { ScoreKeeper, gradeFor } from '@/logic/scoring';
 import { LetterSequence, type SequenceEffect } from '@/logic/sequence';
 import { ShiftWall, type ShiftWallEvent } from '@/logic/shift-wall';
 import { generateWall, holeGrid, type WallSpec } from '@/logic/wall-gen';
+import { DebugOverlay, type DebugRow } from '@/objects/DebugOverlay';
 import { Figure } from '@/objects/Figure';
 import { Floor } from '@/objects/Floor';
 import { LaneMarkers } from '@/objects/LaneMarkers';
@@ -47,7 +48,11 @@ const LAYER = {
   tray: 7,
   hud: 8,
   pause: 9,
+  debug: 10,
 } as const;
+
+// Kept in the game registry so the overlay stays on across walls and restarts.
+const DEBUG_VISIBLE = 'debugOverlayVisible';
 
 // approach: the wall is coming and the player can act. rush: the pose locked
 // and the wall is passing. failing: the wall reached the figure first.
@@ -61,6 +66,7 @@ export class PlayScene extends Phaser.Scene {
   private holeLane = CENTER_LANE;
   private plan!: WallPlan;
   private spec!: WallSpec;
+  private stretch = 0;
   private shiftWall!: ShiftWall;
   private sequence!: LetterSequence;
   private scoreKeeper!: ScoreKeeper;
@@ -72,6 +78,7 @@ export class PlayScene extends Phaser.Scene {
   private label!: TimingLabel;
   private capsWarning!: Phaser.GameObjects.Text;
   private pauseOverlay!: PauseOverlay;
+  private debug!: DebugOverlay;
 
   constructor() {
     super(SceneKeys.Play);
@@ -99,6 +106,7 @@ export class PlayScene extends Phaser.Scene {
       .setDepth(LAYER.hud)
       .setVisible(false);
     this.pauseOverlay = new PauseOverlay(this).setDepth(LAYER.pause);
+    this.debug = new DebugOverlay(this).setDepth(LAYER.debug).setVisible(this.registry.get(DEBUG_VISIBLE) === true);
 
     this.input.on('pointerdown', () => {
       if (this.sequence.paused) this.resume();
@@ -109,6 +117,7 @@ export class PlayScene extends Phaser.Scene {
       onKeyUp: (code) => this.apply(this.sequence.release(code)),
       onBlur: () => this.pause(),
       onCapsLock: (on) => this.capsWarning.setVisible(on),
+      onToggleDebug: () => this.toggleDebug(),
     });
     this.events.once('shutdown', () => this.keyboard.destroy());
 
@@ -116,6 +125,7 @@ export class PlayScene extends Phaser.Scene {
   }
 
   update(_time: number, deltaMs: number): void {
+    if (this.debug.visible) this.debug.show(this.debugRows());
     if (this.sequence.paused) return;
     if (this.phase === 'approach') {
       this.sequence.tick(deltaMs);
@@ -146,7 +156,8 @@ export class PlayScene extends Phaser.Scene {
 
   private startWall(): void {
     this.plan = planWall(this.scoreKeeper.wallNumber);
-    const { letters } = generateLetters(this.plan);
+    const { letters, stretch } = generateLetters(this.plan);
+    this.stretch = stretch;
     this.spec = generateWall(this.figureLane, letters, this.plan.holeDistance);
     this.holeLane = this.spec.holeLane;
     this.shiftWall = new ShiftWall(this.plan.shiftWall, this.holeLane);
@@ -240,6 +251,37 @@ export class PlayScene extends Phaser.Scene {
     window.focus();
     this.sequence.resume();
     this.pauseOverlay.setVisible(false);
+  }
+
+  private toggleDebug(): void {
+    const visible = !this.debug.visible;
+    this.debug.setVisible(visible);
+    this.registry.set(DEBUG_VISIBLE, visible);
+  }
+
+  // PLAN.md §8's list, plus the tier, wall time and score for tuning.
+  private debugRows(): DebugRow[] {
+    const flags = [
+      this.phase,
+      this.sequence.paused ? 'paused' : '',
+      this.sequence.locked ? 'locked' : '',
+      this.shiftWall.warning ? 'shift warning' : '',
+    ].filter((flag) => flag !== '');
+    const aligned = isAligned(this.figureLane, this.holeLane);
+    const [lo, hi] = this.plan.stretch;
+    const list = (items: readonly string[]) => (items.length > 0 ? items.join(' ') : '-');
+    return [
+      ['state', flags.join(', ')],
+      ['wall', `#${this.plan.wall}  ${this.plan.tier}  ${this.plan.wallTime.toFixed(2)} s`],
+      ['t', `${this.t.toFixed(3)}  (${gradeFor(this.t)} if locked now)`],
+      ['lanes', `figure ${this.figureLane}  hole ${this.holeLane}  ${aligned ? 'lined up' : 'not lined up'}`],
+      ['prompt', this.sequence.current ?? '-'],
+      ['queue', list(this.sequence.queued)],
+      ['held', list(this.sequence.heldKeys.map((h) => `${h.letter}:${h.code}`))],
+      ['stretch', `${this.stretch.toFixed(2)}  (tier ${lo}-${hi})`],
+      ['shift wall', this.plan.shiftWall ? `yes, at t ${this.shiftWall.triggerT.toFixed(2)}` : 'no'],
+      ['score', `${this.scoreKeeper.score}  streak ${this.scoreKeeper.streak}`],
+    ];
   }
 
   private endRun(): void {

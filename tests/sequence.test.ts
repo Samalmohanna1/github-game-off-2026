@@ -219,6 +219,15 @@ describe('blur', () => {
   });
 });
 
+describe('debug view', () => {
+  it('lists every queued letter and each held letter with its key code', () => {
+    const seq = lineUp(['a', 'S', 'd']);
+    hold(seq, 'a');
+    expect(seq.queued).toEqual(['S', 'd']);
+    expect(seq.heldKeys).toEqual([{ letter: 'a', code: 'KeyA' }]);
+  });
+});
+
 describe('pose lock', () => {
   it('ignores every press and release until the next wall', () => {
     const seq = lineUp(['a', 's']);

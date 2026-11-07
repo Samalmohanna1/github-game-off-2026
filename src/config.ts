@@ -46,6 +46,8 @@ export const FONT_FAMILY = 'Arial, Helvetica, sans-serif';
 // Prompt letters need a capital I that can't be mistaken for a lowercase l;
 // Verdana and Tahoma give the I crossbars, Arial does not.
 export const CHIP_FONT_FAMILY = 'Verdana, Tahoma, sans-serif';
+// Monospace so the debug overlay's columns line up.
+export const DEBUG_FONT_FAMILY = 'Consolas, Menlo, "Courier New", monospace';
 
 // px. Nothing goes below 24 so all text counts as "large" for WCAG contrast.
 export const FONT_SIZES = {
@@ -69,6 +71,9 @@ export const SCREEN_LAYOUT = {
   pauseHeadingY: 0.44,
   pausePromptY: 0.56,
 } as const;
+
+// Debug overlay (PLAN.md §8), toggled with F2: top-left corner, px.
+export const DEBUG_OVERLAY = { x: 12, y: 12, padding: 10 } as const;
 
 export const PAUSE_PANEL = { width: 560, height: 220 } as const; // px
 export const PAUSE_DIM_ALPHA = 0.7; // stage-colored veil over the paused game
