@@ -58,6 +58,10 @@ export class LetterSequence {
     return this.queue.length === 0;
   }
 
+  get heldCount(): number {
+    return this.held.length;
+  }
+
   get current(): string | null {
     const next = this.queue[0];
     if (next === undefined || !this.aligned || this.isPaused || this.delayLeft > 0) return null;

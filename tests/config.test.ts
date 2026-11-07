@@ -80,6 +80,16 @@ describe('config', () => {
   it('keeps the Shift mark inside its chip corner', () => {
     expect(C.SHIFT_MARK.size + C.SHIFT_MARK.inset).toBeLessThan(0.5);
   });
+
+  it('fits the Shift Wall arrow in the band of wall above the hole', () => {
+    expect(C.SHIFT_ARROW.headWidth).toBeLessThan(C.WALL_HEIGHT - C.FIGURE_HEIGHT);
+    expect(C.SHIFT_ARROW.headLength).toBeLessThan(C.SHIFT_ARROW.length);
+    expect(C.SHIFT_ARROW.shaftThickness).toBeLessThan(C.SHIFT_ARROW.headWidth);
+  });
+
+  it('slides the Shift Wall hole at least one lane', () => {
+    expect(C.SHIFT_WALL_SLIDE[0]).toBeGreaterThanOrEqual(1);
+  });
 });
 
 describe('graphics contrast', () => {
@@ -92,6 +102,11 @@ describe('graphics contrast', () => {
 
   it('keeps the figure readable in front of the wall', () => {
     expect(contrastRatio(C.COLORS.figure, C.COLORS.wall)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  });
+
+  it('keeps the Shift Wall warning readable: wall on the stage, arrow on the wall', () => {
+    expect(contrastRatio(C.COLORS.wallWarning, C.COLORS.stage)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(contrastRatio(C.COLORS.shiftArrow, C.COLORS.wallWarning)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
   it.each(['chipHeld', 'chipCurrent', 'chipSlipped'] as const)('%s chips stand out from the tray', (name) => {

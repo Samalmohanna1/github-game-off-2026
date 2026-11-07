@@ -20,6 +20,7 @@ import { CENTER_LANE, isAligned, laneCenterX, moveLane } from '@/logic/lanes';
 import { generateLetters } from '@/logic/letters';
 import { ScoreKeeper } from '@/logic/scoring';
 import { LetterSequence, type SequenceEffect } from '@/logic/sequence';
+import { ShiftWall, type ShiftWallEvent } from '@/logic/shift-wall';
 import { generateWall, holeGrid, type WallSpec } from '@/logic/wall-gen';
 import { Figure } from '@/objects/Figure';
 import { Floor } from '@/objects/Floor';
@@ -56,8 +57,11 @@ export class PlayScene extends Phaser.Scene {
   private phase: Phase = 'approach';
   private t = 0;
   private figureLane = CENTER_LANE;
+  // Starts as spec.holeLane and moves if this wall is a Shift Wall.
+  private holeLane = CENTER_LANE;
   private plan!: WallPlan;
   private spec!: WallSpec;
+  private shiftWall!: ShiftWall;
   private sequence!: LetterSequence;
   private scoreKeeper!: ScoreKeeper;
   private keyboard!: KeyboardInput;
@@ -115,9 +119,23 @@ export class PlayScene extends Phaser.Scene {
     if (this.sequence.paused) return;
     if (this.phase === 'approach') {
       this.sequence.tick(deltaMs);
+      this.applyShift(this.shiftWall.update(this.t, this.sequence.heldCount, deltaMs));
       this.setT(advanceT(this.t, deltaMs / 1000, this.plan.wallTime));
     }
     this.tray.show(this.sequence.view());
+  }
+
+  // PLAN.md §2 step 4: held letters keep their blocks, but no new letter shows
+  // until the figure is lined up with the moved hole.
+  private applyShift(event: ShiftWallEvent | null): void {
+    if (event === null) return;
+    if (event.type === 'warn') {
+      this.wall.warn(event.dir);
+      return;
+    }
+    this.holeLane = event.toLane;
+    this.wall.slideHoleTo(event.toLane);
+    this.refreshAlignment();
   }
 
   private setT(t: number): void {
@@ -130,7 +148,9 @@ export class PlayScene extends Phaser.Scene {
     this.plan = planWall(this.scoreKeeper.wallNumber);
     const { letters } = generateLetters(this.plan);
     this.spec = generateWall(this.figureLane, letters, this.plan.holeDistance);
-    this.wall.setHole(this.spec.holeLane, holeGrid(this.spec.targets));
+    this.holeLane = this.spec.holeLane;
+    this.shiftWall = new ShiftWall(this.plan.shiftWall, this.holeLane);
+    this.wall.setHole(this.holeLane, holeGrid(this.spec.targets));
     this.wall.setAlpha(1).setDepth(LAYER.wall);
     this.figure.resetPose();
     this.sequence.startWall(letters);
@@ -165,7 +185,7 @@ export class PlayScene extends Phaser.Scene {
   }
 
   private refreshAlignment(): void {
-    const aligned = isAligned(this.figureLane, this.spec.holeLane);
+    const aligned = isAligned(this.figureLane, this.holeLane);
     this.sequence.setAligned(aligned);
     this.laneMarkers.setLit(aligned ? this.figureLane : null);
     this.maybeLock();
@@ -175,7 +195,7 @@ export class PlayScene extends Phaser.Scene {
   // state, never from pixels.
   private maybeLock(): void {
     if (this.phase !== 'approach' || !this.sequence.complete) return;
-    if (!isAligned(this.figureLane, this.spec.holeLane)) return;
+    if (!isAligned(this.figureLane, this.holeLane)) return;
 
     this.phase = 'rush';
     this.sequence.lock();
