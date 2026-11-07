@@ -56,6 +56,7 @@ export function planWall(wall: number, random: Random = Math.random): WallPlan {
     letters: Math.min(tier.letters, shiftWall ? MAX_LETTERS_SHIFT_WALL : MAX_LETTERS),
     stretch: tier.stretch,
     allowAdjacent: tier.allowAdjacent,
+    allowSameFinger: tier.allowSameFinger,
     shiftLetters: randomInt(tier.shiftLetters[0], tier.shiftLetters[1], random),
     wallTime: wallTimeFor(wall),
     holeDistance: tier.holeDistance,

@@ -201,8 +201,9 @@ export const STRETCH_TRIES = 200; // random combos tried per wall before taking 
 export const ADJACENT_KEY_DISTANCE = 1.3; // key widths; nearer keys count as "right next to"
 
 // PLAN.md §5, one entry per band of walls. stretch ranges were set from the
-// score distribution of every possible combo: each range catches at least 7%
-// of random combos of its size, so STRETCH_TRIES essentially never misses.
+// score distribution of every combo the tier can draw (one finger per letter
+// before Hard+): each range catches at least 7% of them, so STRETCH_TRIES
+// essentially never misses.
 // From fromWall 13 on, wall time drops by WALL_TIME_DECAY per wall (never
 // below MIN_WALL_TIME) and the Shift Wall chance rises (M6 adds the slide).
 export interface DifficultyTier {
@@ -211,6 +212,7 @@ export interface DifficultyTier {
   readonly letters: number;
   readonly stretch: readonly [number, number];
   readonly allowAdjacent: boolean; // consecutive prompts may be neighboring keys
+  readonly allowSameFinger: boolean; // two letters may share a touch-typing finger
   readonly wallTime: number; // s
   readonly shiftLetters: readonly [number, number];
   readonly holeDistance: readonly [number, number]; // lanes from the figure
@@ -224,6 +226,7 @@ export const DIFFICULTY_TIERS: readonly DifficultyTier[] = [
     letters: 3,
     stretch: [0, 5],
     allowAdjacent: true,
+    allowSameFinger: false,
     wallTime: 10,
     shiftLetters: [0, 0],
     holeDistance: [1, 2],
@@ -233,8 +236,9 @@ export const DIFFICULTY_TIERS: readonly DifficultyTier[] = [
     fromWall: 4,
     name: 'Medium',
     letters: 4,
-    stretch: [6, 9],
+    stretch: [6, 8.5],
     allowAdjacent: false,
+    allowSameFinger: false,
     wallTime: 9,
     shiftLetters: [0, 0],
     holeDistance: [1, 3],
@@ -244,8 +248,9 @@ export const DIFFICULTY_TIERS: readonly DifficultyTier[] = [
     fromWall: 7,
     name: 'Medium-high',
     letters: 4,
-    stretch: [8.5, 11],
+    stretch: [7.5, 10],
     allowAdjacent: false,
+    allowSameFinger: false,
     wallTime: 8,
     shiftLetters: [1, 1],
     holeDistance: [1, 4],
@@ -255,8 +260,9 @@ export const DIFFICULTY_TIERS: readonly DifficultyTier[] = [
     fromWall: 10,
     name: 'Hard',
     letters: 5,
-    stretch: [11, 14],
+    stretch: [9.5, 11],
     allowAdjacent: false,
+    allowSameFinger: false,
     wallTime: 7,
     shiftLetters: [1, 2],
     holeDistance: [2, 5],
@@ -268,6 +274,7 @@ export const DIFFICULTY_TIERS: readonly DifficultyTier[] = [
     letters: 5,
     stretch: [12.5, 18],
     allowAdjacent: false,
+    allowSameFinger: true,
     wallTime: 7,
     shiftLetters: [1, 2],
     holeDistance: [2, 6],

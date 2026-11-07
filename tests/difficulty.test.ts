@@ -39,6 +39,10 @@ describe('the tier table (PLAN.md §5)', () => {
     expect(DIFFICULTY_TIERS.map((t) => t.allowAdjacent)).toEqual([true, false, false, false, false]);
   });
 
+  it('keeps one finger per letter until wall 13', () => {
+    expect(DIFFICULTY_TIERS.map((t) => t.allowSameFinger)).toEqual([false, false, false, false, true]);
+  });
+
   it('never asks for more than MAX_LETTERS', () => {
     for (const tier of DIFFICULTY_TIERS) expect(tier.letters).toBeLessThanOrEqual(MAX_LETTERS);
   });

@@ -1,5 +1,5 @@
 import { ADJACENT_KEY_DISTANCE, HAND_CAPACITY, MAX_LETTERS, STRETCH_TRIES, STRETCH_WEIGHTS } from '@/config';
-import { KEYBOARD, type KeyPosition } from '@/data/keyboard';
+import { KEYBOARD, type Finger, type KeyPosition } from '@/data/keyboard';
 import { pick, shuffled, type Random } from '@/logic/random';
 
 const ALPHABET = [...'abcdefghijklmnopqrstuvwxyz'];
@@ -9,6 +9,7 @@ export interface LetterRules {
   readonly letters: number;
   readonly stretch: readonly [number, number];
   readonly allowAdjacent: boolean;
+  readonly allowSameFinger: boolean;
   readonly shiftLetters: number;
 }
 
@@ -32,6 +33,10 @@ export function keyDistance(a: string, b: string): number {
 
 export function isAdjacent(a: string, b: string): boolean {
   return keyDistance(a, b) <= ADJACENT_KEY_DISTANCE;
+}
+
+export function onSeparateFingers(letters: readonly string[]): boolean {
+  return new Set(letters.map((letter) => keyOf(letter).finger)).size === letters.length;
 }
 
 // PLAN.md §4; the weights are in STRETCH_WEIGHTS. Case is ignored: Shift's
@@ -92,6 +97,24 @@ export function uppercasePositions(count: number, upper: number, random: Random)
   return picked.sort((a, b) => a - b).map((slot, i) => slot + i);
 }
 
+// Random distinct letters. Unless the tier allows it, each sits on its own
+// finger: two keys under one finger (C + D, J + M) force a cramped grip, while
+// spread alone is easy because each hand takes one side.
+function drawCombo(rules: LetterRules, random: Random): string[] {
+  const pool = shuffled(ALPHABET, random);
+  if (rules.allowSameFinger) return pool.slice(0, rules.letters);
+  const combo: string[] = [];
+  const fingers = new Set<Finger>();
+  for (const letter of pool) {
+    if (combo.length === rules.letters) break;
+    const { finger } = keyOf(letter);
+    if (fingers.has(finger)) continue;
+    fingers.add(finger);
+    combo.push(letter);
+  }
+  return combo;
+}
+
 function gapToRange(score: number, [lo, hi]: readonly [number, number]): number {
   return score < lo ? lo - score : score > hi ? score - hi : 0;
 }
@@ -104,7 +127,7 @@ export function generateLetters(rules: LetterRules, random: Random = Math.random
   let closest: { combo: string[]; stretch: number; gap: number } | null = null;
   let chosen: string[] | null = null;
   for (let i = 0; i < STRETCH_TRIES && chosen === null; i++) {
-    const combo = shuffled(ALPHABET, random).slice(0, rules.letters);
+    const combo = drawCombo(rules, random);
     const stretch = stretchScore(combo);
     const gap = gapToRange(stretch, rules.stretch);
     if (closest === null || gap < closest.gap) closest = { combo, stretch, gap };
