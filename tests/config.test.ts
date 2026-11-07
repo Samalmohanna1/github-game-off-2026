@@ -64,13 +64,25 @@ describe('config', () => {
   });
 
   it('makes the wall taller than the figure grid, so a hole fits', () => {
-    expect(C.FIGURE_GRID.rows * C.CELL_SIZE).toBeLessThan(C.WALL_HEIGHT);
+    expect(C.FIGURE_HEIGHT).toBeLessThan(C.WALL_HEIGHT);
+  });
+
+  it('keeps the lane markers on the floor, above the tray', () => {
+    expect(C.LANE_MARKER_FRONT_Y).toBeGreaterThan(C.FIGURE_FLOOR_Y);
+    expect(C.LANE_MARKER_FRONT_Y).toBeLessThanOrEqual(C.STAGE_BOTTOM_Y);
   });
 });
 
 describe('graphics contrast', () => {
-  it.each(['wall', 'floorLine', 'trayEdge'] as const)('%s stands out from the stage', (name) => {
-    expect(contrastRatio(C.COLORS[name], C.COLORS.stage)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  it.each(['wall', 'floorLine', 'trayEdge', 'laneMarker', 'laneMarkerLit', 'figure'] as const)(
+    '%s stands out from the stage',
+    (name) => {
+      expect(contrastRatio(C.COLORS[name], C.COLORS.stage)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    },
+  );
+
+  it('keeps the figure readable in front of the wall', () => {
+    expect(contrastRatio(C.COLORS.figure, C.COLORS.wall)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 });
 

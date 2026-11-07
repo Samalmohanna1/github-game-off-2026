@@ -1,8 +1,9 @@
 export const GAME_WIDTH = 1280;
 export const GAME_HEIGHT = 720;
 
-// Non-text graphics that carry meaning (wall and hole, floor, tray edge) must
-// stay at or above 3:1 against COLORS.stage (tests/config.test.ts).
+// Non-text graphics that carry meaning (wall and hole, floor, tray edge, lane
+// markers, figure) must stay at or above 3:1 against COLORS.stage, and the
+// figure also against the wall it passes in front of (tests/config.test.ts).
 export const COLORS = {
   stage: 0xf7dde3,
   floorLine: 0x6e5662,
@@ -10,6 +11,10 @@ export const COLORS = {
   wallEdge: 0x3b4656,
   tray: 0xffffff,
   trayEdge: 0x6e5662,
+  laneMarker: 0x6e5662,
+  laneMarkerLit: 0x1f8a4c,
+  figure: 0x241c29,
+  figureEdge: 0xf7dde3,
 } as const;
 
 // CSS strings because Phaser text styles take CSS colors. Every pair must
@@ -60,8 +65,17 @@ export const TRAY_EDGE_WIDTH = 3;
 // The figure's pose grid (PLAN.md §3).
 export const FIGURE_GRID = { cols: 6, rows: 8 } as const;
 export const CELL_SIZE = 24; // px at full scale
+export const FIGURE_WIDTH = FIGURE_GRID.cols * CELL_SIZE;
+export const FIGURE_HEIGHT = FIGURE_GRID.rows * CELL_SIZE;
+export const FIGURE_EDGE_WIDTH = 2; // px; the gap line that separates the blocks
+export const FIGURE_SLIDE_MS = 90; // one lane, visual only: the lane changes instantly
 
 export const LANE_COUNT = 7;
+export const LANE_MARKER_FRONT_Y = 600; // px; strips run from FIGURE_FLOOR_Y down to here
+export const LANE_MARKER_GAP = 12; // px between strips, at the figure's plane
+export const LANE_MARKER_EDGE_WIDTH = 2;
+// Walls 1-3 in PLAN.md §5: the hole spawns 1-2 lanes away from the figure.
+export const HOLE_DISTANCE: readonly [number, number] = [1, 2];
 
 export const WALL_START_SCALE = 0.35;
 export const WALL_HEIGHT = 380; // px at full scale

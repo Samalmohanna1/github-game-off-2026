@@ -16,8 +16,13 @@ export function project(p: Point, scale: number): Point {
   };
 }
 
+// The depth whose floor line sits at screen height y.
+export function scaleAtFloorY(y: number): number {
+  return (y - HORIZON_Y) / (FIGURE_FLOOR_Y - HORIZON_Y);
+}
+
 // The nearest visible plane: its floor line is the bottom edge of the stage.
-export const STAGE_FRONT_SCALE = (STAGE_BOTTOM_Y - HORIZON_Y) / (FIGURE_FLOOR_Y - HORIZON_Y);
+export const STAGE_FRONT_SCALE = scaleAtFloorY(STAGE_BOTTOM_Y);
 
 // Sized so the floor's edges meet the stage's bottom corners at STAGE_FRONT_SCALE.
 export const FLOOR_HALF_WIDTH = GAME_WIDTH / 2 / STAGE_FRONT_SCALE;
