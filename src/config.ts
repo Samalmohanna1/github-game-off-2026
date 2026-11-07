@@ -22,11 +22,14 @@ export const COLORS = {
   chipShiftMark: 0xffffff,
   panel: 0xffffff,
   panelEdge: 0x6e5662,
+  labelStroke: 0xffffff,
+  splash: 0x3d8fd6,
 } as const;
 
 // CSS strings because Phaser text styles take CSS colors. ink, muted, accent
-// and danger sit on the stage or a white panel; onChip sits on the chip
-// colors. Every pair must reach 4.5:1 (tests/config.test.ts).
+// and danger sit on the stage, a white panel, or a timing label's white
+// stroke; onChip sits on the chip colors. Every pair must reach 4.5:1
+// (tests/config.test.ts).
 export const TEXT_COLORS = {
   ink: '#3b2a33',
   muted: '#6e5662',
@@ -58,8 +61,7 @@ export const SCREEN_LAYOUT = {
   gameOverStatsTopY: 0.38,
   gameOverStatsLineGap: 0.08,
   gameOverPromptY: 0.85,
-  playHintY: 0.07,
-  capsWarningY: 0.15,
+  capsWarningY: 0.07,
   pauseHeadingY: 0.44,
   pausePromptY: 0.56,
 } as const;
@@ -132,8 +134,37 @@ export const PLACEHOLDER_SHIFT_LETTERS = 1;
 export const SHIFT_WALL_TELEGRAPH = 300; // ms
 export const SHIFT_WALL_T_RANGE: readonly [number, number] = [0.35, 0.6];
 
+// Scoring (PLAN.md §6).
 export const PERFECT_T = 0.5;
 export const GREAT_T = 0.75;
+export const WALL_CLEAR_POINTS = 100;
+export const GRADE_BONUS = { perfect: 150, great: 75, closeCall: 25 } as const;
+export const STREAK_STEP = 0.5; // multiplier added per PERFECT already in the streak
+export const MAX_MULTIPLIER = 3;
+export const BEST_SCORE_KEY = 'shape-shift.best';
+
+// Pose lock: the wall rushes from its current depth to this scale over
+// LOCK_RUSH_DURATION, passing in front of the figure and fading as it goes.
+export const RUSH_END_SCALE = 1.8;
+
+// The timing label over the figure, px and ms.
+export const LABEL_Y = 300;
+export const LABEL_POP_FROM = 0.5; // starting scale of the pop
+export const LABEL_POP_MS = 180;
+export const LABEL_HOLD_MS = 700;
+export const LABEL_STROKE_WIDTH = 10;
+export const LABEL_EDGE_MARGIN = 20;
+
+// Fail (PLAN.md §7): the figure is shoved toward the camera and falls into
+// the pool below the stage. Splash is a Week 1 placeholder of blue squares.
+export const FAIL_SHOVE_MS = 450;
+export const FAIL_FALL_DISTANCE = 220; // px
+export const FAIL_SPIN_DEG = 70;
+export const FAIL_SHOVE_SCALE = 1.2;
+export const FAIL_SHAKE_MS = 300;
+export const FAIL_SHAKE_INTENSITY = 0.012;
+export const FAIL_TO_GAME_OVER_MS = 1400; // from the fail to the game-over screen
+export const SPLASH = { drops: 14, dropSize: 10, minHeight: 60, maxHeight: 160, spread: 220, ms: 420 } as const;
 
 export const RESTART_LOCKOUT = 1000; // ms
 

@@ -219,6 +219,37 @@ describe('blur', () => {
   });
 });
 
+describe('pose lock', () => {
+  it('ignores every press and release until the next wall', () => {
+    const seq = lineUp(['a', 's']);
+    hold(seq, 'a');
+    hold(seq, 's');
+    seq.lock();
+    expect(seq.locked).toBe(true);
+    expect(seq.release('KeyA')).toBeNull();
+    expect(seq.press('z', 'KeyZ')).toBeNull();
+    expect(seq.view().held).toEqual(['a', 's']);
+  });
+
+  it('does not slip a locked pose on blur', () => {
+    const seq = lineUp(['a']);
+    hold(seq, 'a');
+    seq.lock();
+    expect(seq.blur()).toEqual([]);
+  });
+
+  it('unlocks for the next wall and ignores keys still held from the locked one', () => {
+    const seq = lineUp(['a', 's']);
+    hold(seq, 'a');
+    hold(seq, 's');
+    seq.lock();
+    seq.startWall(['q']);
+    expect(seq.locked).toBe(false);
+    expect(seq.release('KeyS')).toBeNull();
+    expect(seq.press('q', 'KeyQ')).toEqual({ type: 'held', letter: 'q' });
+  });
+});
+
 describe('a new wall', () => {
   it('ignores keys still held from the last wall until they are released', () => {
     const seq = lineUp(['a', 's']);

@@ -18,3 +18,30 @@ export const NEUTRAL_POSE: Readonly<Record<BlockId, CellRect>> = {
   armR: { col: 4, row: 2, cols: 1, rows: 3 },
   legs: { col: 2, row: 5, cols: 2, rows: 3 },
 };
+
+// Some alts clash (a head shifted left overlaps a raised left arm), so
+// wall-gen only uses combinations with no overlap, and prefers ones whose
+// silhouette is a single piece.
+export const ALT_POSES: Readonly<Record<BlockId, readonly CellRect[]>> = {
+  head: [
+    { col: 1, row: 0, cols: 2, rows: 2 }, // shifted left
+    { col: 3, row: 0, cols: 2, rows: 2 }, // shifted right
+  ],
+  torso: [
+    { col: 2, row: 2, cols: 1, rows: 3 }, // turned, left half
+    { col: 3, row: 2, cols: 1, rows: 3 }, // turned, right half
+  ],
+  armL: [
+    { col: 1, row: 0, cols: 1, rows: 3 }, // raised
+    { col: 0, row: 2, cols: 2, rows: 1 }, // out
+  ],
+  armR: [
+    { col: 4, row: 0, cols: 1, rows: 3 }, // raised
+    { col: 4, row: 2, cols: 2, rows: 1 }, // out
+  ],
+  legs: [
+    { col: 1, row: 5, cols: 2, rows: 3 }, // offset left
+    { col: 3, row: 5, cols: 2, rows: 3 }, // offset right
+    { col: 2, row: 5, cols: 1, rows: 3 }, // narrowed
+  ],
+};

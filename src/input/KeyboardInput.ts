@@ -9,7 +9,12 @@ export interface KeyboardHandlers {
 // Native window listeners rather than Phaser key objects, as PLAN.md §2
 // requires, so event.key / event.code / event.repeat behave as specced.
 export class KeyboardInput {
+  // Every key physically down, by event.code, so the game-over screen can wait
+  // for them all to be released (PLAN.md §7).
+  private readonly down = new Set<string>();
+
   private readonly onKeyDown = (event: KeyboardEvent): void => {
+    this.down.add(event.code);
     // Caps Lock's state is only readable from an input event, so every key reports it.
     this.handlers.onCapsLock(event.getModifierState('CapsLock'));
     if (event.repeat) return;
@@ -21,11 +26,14 @@ export class KeyboardInput {
   };
 
   private readonly onKeyUp = (event: KeyboardEvent): void => {
+    this.down.delete(event.code);
     this.handlers.onCapsLock(event.getModifierState('CapsLock'));
     this.handlers.onKeyUp(event.code);
   };
 
   private readonly onBlur = (): void => {
+    // Keyups that happen while unfocused never arrive.
+    this.down.clear();
     this.handlers.onBlur();
   };
 
@@ -33,6 +41,10 @@ export class KeyboardInput {
     window.addEventListener('keydown', this.onKeyDown);
     window.addEventListener('keyup', this.onKeyUp);
     window.addEventListener('blur', this.onBlur);
+  }
+
+  heldCodes(): string[] {
+    return [...this.down];
   }
 
   destroy(): void {

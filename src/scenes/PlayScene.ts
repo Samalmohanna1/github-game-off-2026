@@ -1,40 +1,72 @@
 import Phaser from 'phaser';
 import {
+  FAIL_SHAKE_INTENSITY,
+  FAIL_SHAKE_MS,
+  FAIL_TO_GAME_OVER_MS,
   GAME_HEIGHT,
   GAME_WIDTH,
-  HOLE_DISTANCE,
+  LOCK_RUSH_DURATION,
   PLACEHOLDER_LETTER_COUNT,
   PLACEHOLDER_SHIFT_LETTERS,
+  RUSH_END_SCALE,
   SCREEN_LAYOUT,
+  STAGE_BOTTOM_Y,
   WALL_TIME,
   WRONG_KEY_SHAKE_INTENSITY,
   WRONG_KEY_SHAKE_MS,
 } from '@/config';
+import { NEUTRAL_POSE } from '@/data/poses';
 import { KeyboardInput } from '@/input/KeyboardInput';
 import { advanceT, jumpT, wallScale } from '@/logic/approach';
-import { CENTER_LANE, isAligned, moveLane, pickHoleLane } from '@/logic/lanes';
+import { CENTER_LANE, isAligned, laneCenterX, moveLane } from '@/logic/lanes';
 import { randomLetters } from '@/logic/letters';
+import { ScoreKeeper } from '@/logic/scoring';
 import { LetterSequence, type SequenceEffect } from '@/logic/sequence';
+import { generateWall, holeGrid, type WallSpec } from '@/logic/wall-gen';
 import { Figure } from '@/objects/Figure';
 import { Floor } from '@/objects/Floor';
 import { LaneMarkers } from '@/objects/LaneMarkers';
 import { PauseOverlay } from '@/objects/PauseOverlay';
 import { PromptTray } from '@/objects/PromptTray';
+import { playSplash } from '@/objects/splash';
+import { TimingLabel } from '@/objects/TimingLabel';
 import { Wall } from '@/objects/Wall';
 import { SceneKeys, type RunResult } from '@/scenes/scene-keys';
 import { textStyle } from '@/scenes/text-styles';
 import { prefersReducedMotion } from '@/scenes/ui';
 
+// Draw order. The wall moves from behind the figure to in front of it once it
+// rushes past the figure's plane.
+const LAYER = {
+  floor: 0,
+  laneMarkers: 1,
+  wall: 2,
+  figure: 3,
+  wallPassed: 4,
+  splash: 5,
+  label: 6,
+  tray: 7,
+  hud: 8,
+  pause: 9,
+} as const;
+
+// approach: the wall is coming and the player can act. rush: the pose locked
+// and the wall is passing. failing: the wall reached the figure first.
+type Phase = 'approach' | 'rush' | 'failing';
+
 export class PlayScene extends Phaser.Scene {
-  private ended = false;
+  private phase: Phase = 'approach';
   private t = 0;
   private figureLane = CENTER_LANE;
-  private holeLane = CENTER_LANE;
+  private spec!: WallSpec;
   private sequence!: LetterSequence;
+  private scoreKeeper!: ScoreKeeper;
+  private keyboard!: KeyboardInput;
   private wall!: Wall;
   private figure!: Figure;
   private laneMarkers!: LaneMarkers;
   private tray!: PromptTray;
+  private label!: TimingLabel;
   private capsWarning!: Phaser.GameObjects.Text;
   private pauseOverlay!: PauseOverlay;
 
@@ -43,18 +75,16 @@ export class PlayScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.ended = false;
     this.figureLane = CENTER_LANE;
     this.sequence = new LetterSequence();
+    this.scoreKeeper = new ScoreKeeper();
 
-    new Floor(this);
-    this.laneMarkers = new LaneMarkers(this);
-    this.wall = new Wall(this);
-    this.figure = new Figure(this, this.figureLane);
-    this.tray = new PromptTray(this);
-    this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT * SCREEN_LAYOUT.playHintY, 'Placeholder: click to end the run', textStyle('small', 'muted'))
-      .setOrigin(0.5);
+    new Floor(this).setDepth(LAYER.floor);
+    this.laneMarkers = new LaneMarkers(this).setDepth(LAYER.laneMarkers);
+    this.wall = new Wall(this).setDepth(LAYER.wall);
+    this.figure = new Figure(this, this.figureLane).setDepth(LAYER.figure);
+    this.label = new TimingLabel(this).setDepth(LAYER.label);
+    this.tray = new PromptTray(this).setDepth(LAYER.tray);
     this.capsWarning = this.add
       .text(
         GAME_WIDTH / 2,
@@ -63,52 +93,70 @@ export class PlayScene extends Phaser.Scene {
         textStyle('body', 'danger', true),
       )
       .setOrigin(0.5)
+      .setDepth(LAYER.hud)
       .setVisible(false);
-    this.pauseOverlay = new PauseOverlay(this);
-    this.startWall();
+    this.pauseOverlay = new PauseOverlay(this).setDepth(LAYER.pause);
 
-    this.input.on('pointerdown', () => (this.sequence.paused ? this.resume() : this.endRun()));
-    const keyboard = new KeyboardInput({
+    this.input.on('pointerdown', () => {
+      if (this.sequence.paused) this.resume();
+    });
+    this.keyboard = new KeyboardInput({
       onMove: (dir) => this.moveFigure(dir),
       onKeyDown: (key, code) => this.apply(this.sequence.press(key, code)),
       onKeyUp: (code) => this.apply(this.sequence.release(code)),
       onBlur: () => this.pause(),
       onCapsLock: (on) => this.capsWarning.setVisible(on),
     });
-    this.events.once('shutdown', () => keyboard.destroy());
+    this.events.once('shutdown', () => this.keyboard.destroy());
+
+    this.startWall();
   }
 
   update(_time: number, deltaMs: number): void {
     if (this.sequence.paused) return;
-    this.sequence.tick(deltaMs);
-    this.setT(advanceT(this.t, deltaMs / 1000, WALL_TIME));
+    if (this.phase === 'approach') {
+      this.sequence.tick(deltaMs);
+      this.setT(advanceT(this.t, deltaMs / 1000, WALL_TIME));
+    }
     this.tray.show(this.sequence.view());
   }
 
   private setT(t: number): void {
     this.t = t;
-    // Until M4 the approach loops into the next wall; from M4, t = 1 is a fail.
-    if (this.t >= 1) this.startWall();
-    this.wall.setScale(wallScale(this.t));
+    this.wall.setScale(wallScale(t));
+    if (t >= 1) this.fail();
   }
 
   private startWall(): void {
-    this.t = 0;
-    this.holeLane = pickHoleLane(this.figureLane, HOLE_DISTANCE);
-    this.wall.setHoleLane(this.holeLane);
-    this.sequence.startWall(randomLetters(PLACEHOLDER_LETTER_COUNT, PLACEHOLDER_SHIFT_LETTERS));
+    const letters = randomLetters(PLACEHOLDER_LETTER_COUNT, PLACEHOLDER_SHIFT_LETTERS);
+    this.spec = generateWall(this.figureLane, letters);
+    this.wall.setHole(this.spec.holeLane, holeGrid(this.spec.targets));
+    this.wall.setAlpha(1).setDepth(LAYER.wall);
+    this.figure.resetPose();
+    this.sequence.startWall(letters);
+    this.phase = 'approach';
+    this.setT(0);
     this.refreshAlignment();
+    // A blur during the rush was ignored, so catch it here.
+    if (!document.hasFocus()) this.pause();
   }
 
   private apply(effect: SequenceEffect | null): void {
-    if (effect?.type !== 'wrongKey') return;
-    this.setT(jumpT(this.t));
-    this.wall.flash();
-    if (!prefersReducedMotion()) this.cameras.main.shake(WRONG_KEY_SHAKE_MS, WRONG_KEY_SHAKE_INTENSITY);
+    if (effect === null || this.phase !== 'approach') return;
+    if (effect.type === 'wrongKey') {
+      this.wall.flash();
+      if (!prefersReducedMotion()) this.cameras.main.shake(WRONG_KEY_SHAKE_MS, WRONG_KEY_SHAKE_INTENSITY);
+      this.setT(jumpT(this.t));
+      return;
+    }
+    const block = this.spec.blockFor[effect.letter];
+    if (block === undefined) return;
+    this.figure.setBlockPose(block, effect.type === 'held' ? this.spec.targets[block] : NEUTRAL_POSE[block]);
+    this.maybeLock();
   }
 
   private moveFigure(dir: -1 | 1): void {
-    if (this.sequence.paused) return;
+    if (this.phase !== 'approach' || this.sequence.paused) return;
     const lane = moveLane(this.figureLane, dir);
     if (lane === this.figureLane) return;
     this.figureLane = lane;
@@ -117,14 +165,53 @@ export class PlayScene extends Phaser.Scene {
   }
 
   private refreshAlignment(): void {
-    const aligned = isAligned(this.figureLane, this.holeLane);
+    const aligned = isAligned(this.figureLane, this.spec.holeLane);
     this.sequence.setAligned(aligned);
     this.laneMarkers.setLit(aligned ? this.figureLane : null);
+    this.maybeLock();
+  }
+
+  // PLAN.md §3: pass = lined up and every letter held, decided from game
+  // state, never from pixels.
+  private maybeLock(): void {
+    if (this.phase !== 'approach' || !this.sequence.complete) return;
+    if (!isAligned(this.figureLane, this.spec.holeLane)) return;
+
+    this.phase = 'rush';
+    this.sequence.lock();
+    this.label.show(this.scoreKeeper.clearWall(this.t), laneCenterX(this.figureLane));
+    this.tweens.addCounter({
+      from: wallScale(this.t),
+      to: RUSH_END_SCALE,
+      duration: LOCK_RUSH_DURATION,
+      ease: 'Quad.easeIn',
+      onUpdate: (tween) => this.rushWall(tween.getValue() ?? RUSH_END_SCALE),
+      onComplete: () => this.startWall(),
+    });
+  }
+
+  private rushWall(scale: number): void {
+    this.wall.setScale(scale);
+    // Past the figure's plane the wall is in front of it, fading toward the camera.
+    if (scale >= 1) {
+      this.wall.setDepth(LAYER.wallPassed).setAlpha(1 - (scale - 1) / (RUSH_END_SCALE - 1));
+    }
+  }
+
+  private fail(): void {
+    if (this.phase === 'failing') return;
+    this.phase = 'failing';
+    this.sequence.lock();
+    this.figure.shove(() => {
+      playSplash(this, this.figure.x, STAGE_BOTTOM_Y, LAYER.splash);
+      if (!prefersReducedMotion()) this.cameras.main.shake(FAIL_SHAKE_MS, FAIL_SHAKE_INTENSITY);
+    });
+    this.time.delayedCall(FAIL_TO_GAME_OVER_MS, () => this.endRun());
   }
 
   private pause(): void {
-    if (this.ended || this.sequence.paused) return;
-    this.sequence.blur();
+    if (this.phase !== 'approach' || this.sequence.paused) return;
+    for (const effect of this.sequence.blur()) this.apply(effect);
     this.tray.show(this.sequence.view());
     this.pauseOverlay.setVisible(true);
   }
@@ -136,9 +223,12 @@ export class PlayScene extends Phaser.Scene {
   }
 
   private endRun(): void {
-    if (this.ended) return;
-    this.ended = true;
-    const result: RunResult = { wallsCleared: 0, score: 0, best: 0, endedOnWall: 1 };
+    const result: RunResult = {
+      wallsCleared: this.scoreKeeper.wallsCleared,
+      score: this.scoreKeeper.score,
+      endedOnWall: this.scoreKeeper.wallNumber,
+      keysDown: this.keyboard.heldCodes(),
+    };
     this.scene.start(SceneKeys.GameOver, result);
   }
 }

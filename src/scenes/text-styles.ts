@@ -4,6 +4,10 @@ import { FONT_FAMILY, FONT_SIZES, TEXT_COLORS } from '@/config';
 type Size = keyof typeof FONT_SIZES;
 type Color = keyof typeof TEXT_COLORS;
 
+export function toCss(color: number): string {
+  return `#${color.toString(16).padStart(6, '0')}`;
+}
+
 export function textStyle(
   size: Size,
   color: Color = 'ink',

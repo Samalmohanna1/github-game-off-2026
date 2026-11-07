@@ -44,9 +44,14 @@ export class LetterSequence {
   private aligned = false;
   private delayLeft = 0;
   private isPaused = false;
+  private isLocked = false;
 
   get paused(): boolean {
     return this.isPaused;
+  }
+
+  get locked(): boolean {
+    return this.isLocked;
   }
 
   get complete(): boolean {
@@ -65,6 +70,13 @@ export class LetterSequence {
     this.held = [];
     this.slippedLetters.clear();
     this.delayLeft = 0;
+    this.isLocked = false;
+  }
+
+  // PLAN.md §2: once the pose locks, input is ignored until the next wall, and
+  // the keys still held become stale when that wall starts.
+  lock(): void {
+    this.isLocked = true;
   }
 
   setAligned(aligned: boolean): void {
@@ -77,7 +89,7 @@ export class LetterSequence {
   }
 
   press(key: string, code: string): SequenceEffect | null {
-    if (this.isPaused || !isLetterKey(key)) return null;
+    if (this.isPaused || this.isLocked || !isLetterKey(key)) return null;
     // A keydown proves the key was released, even if its keyup never arrived.
     this.stale.delete(code);
     if (this.held.some((h) => h.code === code)) return null;
@@ -93,7 +105,7 @@ export class LetterSequence {
   }
 
   release(code: string): SequenceEffect | null {
-    if (this.stale.delete(code)) return null;
+    if (this.stale.delete(code) || this.isLocked) return null;
     const index = this.held.findIndex((h) => h.code === code);
     const slipped = this.held[index];
     if (slipped === undefined) return null;
@@ -101,10 +113,11 @@ export class LetterSequence {
     return this.slip(slipped);
   }
 
-  // PLAN.md §2: losing focus pauses the game and every held letter slips.
+  // PLAN.md §2: losing focus pauses the game and every held letter slips,
+  // unless the pose has already locked.
   blur(): SequenceEffect[] {
     if (this.isPaused) return [];
-    const effects = this.held.map((h) => this.slip(h));
+    const effects = this.isLocked ? [] : this.held.map((h) => this.slip(h));
     this.held = [];
     // Keyups that happen while unfocused never arrive.
     this.stale.clear();

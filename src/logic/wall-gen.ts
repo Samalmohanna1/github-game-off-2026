@@ -1,0 +1,143 @@
+import { FIGURE_GRID, HOLE_DISTANCE } from '@/config';
+import { ALT_POSES, BLOCK_IDS, NEUTRAL_POSE, type BlockId, type CellRect } from '@/data/poses';
+import { pickHoleLane } from '@/logic/lanes';
+
+export type Pose = Readonly<Record<BlockId, CellRect>>;
+
+export interface WallSpec {
+  readonly holeLane: number;
+  // Every block's target: an alt for the blocks this wall changes, neutral for
+  // the rest. The hole is their union (PLAN.md §3).
+  readonly targets: Pose;
+  // The block each letter moves; letters are case-sensitive, as prompted.
+  readonly blockFor: Readonly<Record<string, BlockId>>;
+}
+
+// A cell-unit line on the pose grid: x is a column edge, y is a row edge.
+export interface Segment {
+  readonly x1: number;
+  readonly y1: number;
+  readonly x2: number;
+  readonly y2: number;
+}
+
+export type HoleGrid = readonly (readonly boolean[])[];
+
+const cellKey = (col: number, row: number) => `${col},${row}`;
+
+export function cellsOf(r: CellRect): string[] {
+  const cells: string[] = [];
+  for (let col = r.col; col < r.col + r.cols; col++) {
+    for (let row = r.row; row < r.row + r.rows; row++) cells.push(cellKey(col, row));
+  }
+  return cells;
+}
+
+function inGrid(r: CellRect): boolean {
+  return r.col >= 0 && r.row >= 0 && r.col + r.cols <= FIGURE_GRID.cols && r.row + r.rows <= FIGURE_GRID.rows;
+}
+
+function isConnected(cells: ReadonlySet<string>): boolean {
+  const [start] = cells;
+  if (start === undefined) return true;
+  const seen = new Set([start]);
+  const queue = [start];
+  for (let next = queue.pop(); next !== undefined; next = queue.pop()) {
+    const [col, row] = next.split(',').map(Number) as [number, number];
+    for (const n of [cellKey(col + 1, row), cellKey(col - 1, row), cellKey(col, row + 1), cellKey(col, row - 1)]) {
+      if (cells.has(n) && !seen.has(n)) {
+        seen.add(n);
+        queue.push(n);
+      }
+    }
+  }
+  return seen.size === cells.size;
+}
+
+// A pose is usable when every block is on the grid and no two blocks overlap.
+export function isValidPose(pose: Pose): boolean {
+  const cells = new Set<string>();
+  for (const id of BLOCK_IDS) {
+    if (!inGrid(pose[id])) return false;
+    for (const cell of cellsOf(pose[id])) {
+      if (cells.has(cell)) return false;
+      cells.add(cell);
+    }
+  }
+  return true;
+}
+
+export function isOnePiece(pose: Pose): boolean {
+  return isConnected(new Set(BLOCK_IDS.flatMap((id) => cellsOf(pose[id]))));
+}
+
+// Every valid pose in which exactly the `changed` blocks take one of their alts.
+export function poseOptions(changed: readonly BlockId[]): Pose[] {
+  let poses: Pose[] = [NEUTRAL_POSE];
+  for (const id of changed) {
+    poses = poses.flatMap((pose) => ALT_POSES[id].map((alt) => ({ ...pose, [id]: alt })));
+  }
+  return poses.filter(isValidPose);
+}
+
+function shuffled<T>(items: readonly T[], random: () => number): T[] {
+  const out = [...items];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [out[i], out[j]] = [out[j]!, out[i]!];
+  }
+  return out;
+}
+
+export function generateWall(
+  figureLane: number,
+  letters: readonly string[],
+  random: () => number = Math.random,
+): WallSpec {
+  if (letters.length > BLOCK_IDS.length) {
+    throw new Error(`${letters.length} letters but only ${BLOCK_IDS.length} blocks`);
+  }
+  const changed = shuffled(BLOCK_IDS, random).slice(0, letters.length);
+  // Prefer a one-piece silhouette. The torso sits between both arms, so turning
+  // it always parts it from one arm; those walls fall back to a hole with a gap.
+  const valid = poseOptions(changed);
+  const onePiece = valid.filter(isOnePiece);
+  const options = onePiece.length > 0 ? onePiece : valid;
+  const targets = options[Math.floor(random() * options.length)];
+  if (targets === undefined) throw new Error(`No valid pose changes ${changed.join(', ')}`);
+
+  const blockFor: Record<string, BlockId> = {};
+  letters.forEach((letter, i) => (blockFor[letter] = changed[i]!));
+  return { holeLane: pickHoleLane(figureLane, HOLE_DISTANCE, random), targets, blockFor };
+}
+
+// grid[row][col] is true where the hole is.
+export function holeGrid(pose: Pose): HoleGrid {
+  const grid = Array.from({ length: FIGURE_GRID.rows }, () => Array<boolean>(FIGURE_GRID.cols).fill(false));
+  for (const id of BLOCK_IDS) {
+    const r = pose[id];
+    for (let row = r.row; row < r.row + r.rows; row++) {
+      for (let col = r.col; col < r.col + r.cols; col++) grid[row]![col] = true;
+    }
+  }
+  return grid;
+}
+
+// The hole's edge against the wall, as unit segments. The bottom row opens
+// onto the floor, so it has no bottom edge.
+export function holeOutline(grid: HoleGrid): Segment[] {
+  const isHole = (row: number, col: number) => grid[row]?.[col] === true;
+  const segments: Segment[] = [];
+  grid.forEach((cells, row) =>
+    cells.forEach((hole, col) => {
+      if (!hole) return;
+      if (!isHole(row - 1, col)) segments.push({ x1: col, y1: row, x2: col + 1, y2: row });
+      if (row < grid.length - 1 && !isHole(row + 1, col)) {
+        segments.push({ x1: col, y1: row + 1, x2: col + 1, y2: row + 1 });
+      }
+      if (!isHole(row, col - 1)) segments.push({ x1: col, y1: row, x2: col, y2: row + 1 });
+      if (!isHole(row, col + 1)) segments.push({ x1: col + 1, y1: row, x2: col + 1, y2: row + 1 });
+    }),
+  );
+  return segments;
+}
