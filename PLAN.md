@@ -59,6 +59,7 @@ SPAWN → ALIGN → POSE → (SHIFT WALL?) → RESOLVE → next wall | GAME OVER
 - Use **`event.key`** to check which letter it is and its case **at press time**.
 - Use **`event.code`** (e.g. `KeyA`) to track held keys. That way, letting go of Shift doesn't look like a different key being released.
 - Ignore `event.repeat`.
+- If Caps Lock is on (`event.getModifierState('CapsLock')` on any key event), show a "Caps Lock is on" warning during play. The rules above don't change, but with Caps Lock on, Shift + letter can produce a lowercase `event.key`.
 - Call `preventDefault()` on arrow keys and Space, so they don't scroll the page.
 - The game will run inside an iframe (itch.io), so the title screen needs **"Click to play"** to get keyboard focus.
 
@@ -73,6 +74,7 @@ SPAWN → ALIGN → POSE → (SHIFT WALL?) → RESOLVE → next wall | GAME OVER
   - **Held** letters as green chips, lined up from the left.
   - The **current** prompt as a blue chip in the center.
   - **Slipped/queued** letters as red chips on the right.
+  - **Capital** letters also carry a Shift mark (⇧) on their chip, because case alone is hard to read for letters like o/O, s/S and x/X.
 
 ### Lanes
 - `LANE_COUNT = 7` lanes across the stage.

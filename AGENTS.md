@@ -27,7 +27,7 @@ Scenes, one per screen:
 |---|---|---|
 | `BootScene` | Final for Week 1 | Hands off to Title. Loads nothing until Week 2 art. |
 | `TitleScene` | Interim | Game name, one-line how-to, "Click to play". The click gives the page keyboard focus inside the itch.io iframe. Restyled in Week 2. |
-| `PlayScene` | Interim (M3) | Perspective floor, lane markers, the figure in its neutral pose, and a wall that approaches over `WALL_TIME`. Each wall's placeholder hole spawns `HOLE_DISTANCE` lanes from the figure; ← / → slide the figure one lane per tap and the marker under it lights when it's lined up. While lined up, the tray prompts the wall's placeholder letters one at a time; holding, slips, wrong keys (jump, flash, shake) and the Shift rule follow PLAN.md §2. Losing focus pauses behind a "Click to resume" panel. The approach loops into a new wall. A click ends the run. M4 adds the real hole, pose lock, scoring and fail. |
+| `PlayScene` | Interim (M3) | Perspective floor, lane markers, the figure in its neutral pose, and a wall that approaches over `WALL_TIME`. Each wall's placeholder hole spawns `HOLE_DISTANCE` lanes from the figure; ← / → slide the figure one lane per tap and the marker under it lights when it's lined up. While lined up, the tray prompts the wall's placeholder letters one at a time; holding, slips, wrong keys (jump, flash, shake) and the Shift rule follow PLAN.md §2. Capital chips carry a Shift mark, and a warning shows while Caps Lock is on. Losing focus pauses behind a "Click to resume" panel. The approach loops into a new wall. A click ends the run. M4 adds the real hole, pose lock, scoring and fail. |
 | `GameOverScene` | Interim | Walls cleared, score, best, wall reached, restart prompt. The restart lockout and "release every key" rule arrive in M4. |
 
 Shared scene helpers live in `src/scenes/` (`ui.ts`, `text-styles.ts`,
@@ -108,7 +108,7 @@ src/
   data/                    # PURE: static game data
     poses.ts               # block ids + neutral pose on the figure grid
   input/
-    KeyboardInput.ts       # native keydown/keyup/blur -> moves, letters, pause
+    KeyboardInput.ts       # native key/blur events -> moves, letters, pause, Caps Lock
     prevent-page-scroll.ts # arrows/Space never scroll the host page
   logic/                   # PURE: no Phaser imports
     approach.ts            # t clock, wrong-key jump, ease-in, wall scale
@@ -292,9 +292,11 @@ playtest covers.
   - Pairs below AAA: none.
 - **Keyboard first.** The game is played entirely on the keyboard, except the
   title's "Click to play", which PLAN.md §2 requires so the itch.io iframe gets
-  keyboard focus. Game over restarts on any key or a click.
+  keyboard focus. Game over restarts on any key or a click. During play, a
+  warning shows while Caps Lock is on (PLAN.md §2).
 - **Don't rely on color alone.** Held, current and slipped letters also differ
-  by position in the tray (left, center, right; PLAN.md §3).
+  by position in the tray (left, center, right; PLAN.md §3). Don't rely on case
+  alone either: capital chips carry a drawn Shift mark (`SHIFT_MARK`).
 - **Desktop only.** The game needs a physical keyboard. It renders at 1280×720
   and scales to fit; there is no mobile or touch layout.
 - **Motion.** Honor `prefers-reduced-motion`: the pulsing prompts stay still
@@ -432,7 +434,10 @@ Work through **PLAN.md §10** one milestone at a time.
   not paused. Upcoming fresh letters stay hidden.
 - **Prompt tray** — the white strip along the bottom: held letters (green,
   left, in the order held), the current prompt (blue, center), and slipped
-  letters waiting their turn (red, right, in queue order).
+  letters waiting their turn (red, right, in queue order). Capital letters
+  carry a ⇧ Shift mark in the chip's top-right corner.
+- **Caps Lock warning** — a line under the placeholder hint while Caps Lock is
+  on. The state is read from every key event with `getModifierState`.
 - **Held** — a prompted letter that was pressed correctly and is still down;
   its block sits in the target pose (from M4). Held keys are tracked by
   `event.code`.
