@@ -237,7 +237,7 @@ shape-shift/
 - A 5-block figure in neutral pose, ← / → lane movement (one lane per tap, held keys don't repeat), lane markers, and the hole at a random lane.
 - ✅ The marker lights up only when the figure's lane = the hole's lane, and the figure can't leave the stage.
 
-**M3: Letter sequence (`logic/sequence.ts` + tests)**
+**M3: Letter sequence (`logic/sequence.ts` + tests)** (done)
 - One-at-a-time prompts, holding, slip → back of queue, wrong-key jump, Shift-at-press rule, lowercase accepting either case, pause on blur.
 - Letters only appear while lined up.
 - ✅ Unit tests cover: a normal run; a slip in the middle; a slip on the last letter; re-pressing a slipped letter early (wrong key); uppercase without Shift (wrong key); releasing Shift after an uppercase press (still held); blur.
