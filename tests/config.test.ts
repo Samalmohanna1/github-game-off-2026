@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import * as C from '@/config';
 
-// WCAG "large text" is >= 24px; AAA for large text is 4.5:1 (AGENTS.md).
+// WCAG "large text" is >= 24px; AAA for large text is 4.5:1, and meaningful
+// non-text graphics need 3:1 (AGENTS.md).
 const LARGE_TEXT_PX = 24;
 const AAA_LARGE_TEXT_RATIO = 4.5;
+const NON_TEXT_RATIO = 3;
 
 function relativeLuminance(rgb: number): number {
   const channels = [(rgb >> 16) & 0xff, (rgb >> 8) & 0xff, rgb & 0xff].map((c) => {
@@ -54,6 +56,21 @@ describe('config', () => {
   it('keeps a wrong key costly but survivable', () => {
     expect(C.WRONG_KEY_JUMP).toBeGreaterThan(0);
     expect(C.WRONG_KEY_JUMP).toBeLessThan(C.PERFECT_T);
+  });
+
+  it('puts the figure floor between the horizon and the tray', () => {
+    expect(C.HORIZON_Y).toBeLessThan(C.FIGURE_FLOOR_Y);
+    expect(C.FIGURE_FLOOR_Y).toBeLessThan(C.STAGE_BOTTOM_Y);
+  });
+
+  it('makes the wall taller than the figure grid, so a hole fits', () => {
+    expect(C.FIGURE_GRID.rows * C.CELL_SIZE).toBeLessThan(C.WALL_HEIGHT);
+  });
+});
+
+describe('graphics contrast', () => {
+  it.each(['wall', 'floorLine', 'trayEdge'] as const)('%s stands out from the stage', (name) => {
+    expect(contrastRatio(C.COLORS[name], C.COLORS.stage)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 });
 
