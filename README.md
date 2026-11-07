@@ -31,6 +31,9 @@ npm install
 | `npm run build` | Type check, then production build to `dist/` |
 | `npm run preview` | Serve the built `dist/` locally |
 
+During play, **F2** toggles a debug overlay with the wall's state, timing,
+lanes, letters and stretch score. Tuning values live in `src/config.ts`.
+
 ## Deploy (itch.io)
 
 1. `npm run build`

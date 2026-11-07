@@ -27,12 +27,12 @@ Scenes, one per screen:
 |---|---|---|
 | `BootScene` | Final for Week 1 | Hands off to Title. Loads nothing until Week 2 art. |
 | `TitleScene` | Interim | Game name, one-line how-to, "Click to play". The click gives the page keyboard focus inside the itch.io iframe. Restyled in Week 2. |
-| `PlayScene` | Interim (M6) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). ← / → line the figure up; the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 13+), the wall turns orange with an arrow, then the hole slides 1–2 lanes; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: the wall rushes past, a PERFECT / GREAT / CLOSE CALL label pops over the figure, and the next wall starts. If the wall arrives first, it shoves the figure into a placeholder splash and the run ends. Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses behind a "Click to resume" panel. |
+| `PlayScene` | Interim (M7) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). ← / → line the figure up; the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 13+), the wall turns orange with an arrow, then the hole slides 1–2 lanes; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: the wall rushes past, a PERFECT / GREAT / CLOSE CALL label pops over the figure, and the next wall starts. If the wall arrives first, it shoves the figure into a placeholder splash and the run ends. Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses behind a "Click to resume" panel. F2 toggles the debug overlay. |
 | `GameOverScene` | Interim | Walls cleared, score, best (saved in `localStorage`) and the wall reached. Restart follows PLAN.md §7: input is ignored for `RESTART_LOCKOUT`, then every key must be up ("Let go of every key" shows meanwhile) before a key or click restarts. |
 
 Shared scene helpers live in `src/scenes/` (`ui.ts`, `text-styles.ts`,
 `scene-keys.ts`). Game objects live in `src/objects/`: `Floor`, `LaneMarkers`,
-`Wall`, `Figure`, `PromptTray`, `TimingLabel`, `PauseOverlay` and the
+`Wall`, `Figure`, `PromptTray`, `TimingLabel`, `PauseOverlay`, `DebugOverlay` and the
 `playSplash()` placeholder. The best score lives in `src/storage/`. Keyboard input lives in `src/input/`:
 `KeyboardInput` (native listeners, one per Play scene) and
 `preventPageScroll()` (game-wide, from `main.ts`).
@@ -132,6 +132,7 @@ src/
     PromptTray.ts          # tray with held / current / slipped letter chips
     PauseOverlay.ts        # "Click to resume" panel shown on blur
     TimingLabel.ts         # PERFECT / GREAT / CLOSE CALL + points pop-up
+    DebugOverlay.ts        # F2 panel: state, t, lanes, prompt, queue, held, stretch
     splash.ts              # placeholder pool splash of blue squares
   scenes/
     BootScene.ts           # hands off to Title
@@ -162,8 +163,8 @@ tests/
   wall-gen.test.ts         # valid poses for every block set, hole + outline
 ```
 
-Everything in PLAN.md §9's layout now exists. Add new files to this tree when
-they land (M7's debug overlay).
+Everything in PLAN.md §9's layout now exists, plus the F2 debug overlay. Add
+new files to this tree when they land.
 
 Where things go: rules, and the pure math they depend on (the `t` clock,
 perspective) → `src/logic/`. Static game data such as the keyboard map and
@@ -516,6 +517,13 @@ Work through **PLAN.md §10** one milestone at a time.
   is why a wall asks for at most 5 letters, and 4 on Shift Walls.
 - **Sticky Keys** — the Windows pop-up after 5 quick Shift presses. It is why
   two uppercase letters never come back to back.
+- **Debug overlay** — F2 during play toggles a panel in the top-left corner
+  (`DebugOverlay`). It shows the phase and flags, the wall #, tier and wall
+  time, `t` and the grade a lock would get now, figure vs hole lane, the
+  current prompt, the whole queue (including letters not shown yet), held
+  letters with their key codes, the stretch score against the tier range, the
+  Shift Wall trigger, and the score and streak. F2 never counts as a wrong key,
+  and the overlay stays on across walls and restarts.
 
 ## Copy & terminology
 
