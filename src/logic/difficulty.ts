@@ -1,0 +1,64 @@
+import {
+  DIFFICULTY_TIERS,
+  MAX_LETTERS,
+  MAX_LETTERS_SHIFT_WALL,
+  MIN_WALL_TIME,
+  SHIFT_WALL_CHANCE_MAX,
+  SHIFT_WALL_CHANCE_STEP,
+  WALL_TIME_DECAY,
+  type DifficultyTier,
+} from '@/config';
+import type { LetterRules } from '@/logic/letters';
+import { randomInt, type Random } from '@/logic/random';
+
+// Everything one wall needs from the difficulty curve (PLAN.md §5).
+export interface WallPlan extends LetterRules {
+  readonly wall: number;
+  readonly tier: string;
+  readonly wallTime: number; // s
+  readonly holeDistance: readonly [number, number];
+  readonly shiftWall: boolean;
+}
+
+const LAST_TIER = DIFFICULTY_TIERS[DIFFICULTY_TIERS.length - 1]!;
+
+export function tierFor(wall: number): DifficultyTier {
+  return [...DIFFICULTY_TIERS].reverse().find((tier) => wall >= tier.fromWall) ?? DIFFICULTY_TIERS[0]!;
+}
+
+// Walls into the open-ended last tier: 1 on its first wall, 0 before it.
+function wallsIntoLastTier(wall: number): number {
+  return Math.max(0, wall - LAST_TIER.fromWall + 1);
+}
+
+// The last tier shortens every wall by WALL_TIME_DECAY from the one before,
+// starting from the previous tier's time and never below MIN_WALL_TIME.
+export function wallTimeFor(wall: number): number {
+  const tier = tierFor(wall);
+  if (tier !== LAST_TIER) return tier.wallTime;
+  return Math.max(MIN_WALL_TIME, tier.wallTime * (1 - WALL_TIME_DECAY) ** wallsIntoLastTier(wall));
+}
+
+export function shiftWallChanceFor(wall: number): number {
+  const tier = tierFor(wall);
+  if (tier !== LAST_TIER) return tier.shiftWallChance;
+  return Math.min(SHIFT_WALL_CHANCE_MAX, tier.shiftWallChance + SHIFT_WALL_CHANCE_STEP * (wallsIntoLastTier(wall) - 1));
+}
+
+export function planWall(wall: number, random: Random = Math.random): WallPlan {
+  const tier = tierFor(wall);
+  const shiftWall = random() < shiftWallChanceFor(wall);
+  return {
+    wall,
+    tier: tier.name,
+    // PLAN.md §4: at most 5 letters, and 4 on Shift Wall rounds, since an arrow
+    // and Shift go on top and many keyboards ghost past 7 keys.
+    letters: Math.min(tier.letters, shiftWall ? MAX_LETTERS_SHIFT_WALL : MAX_LETTERS),
+    stretch: tier.stretch,
+    allowAdjacent: tier.allowAdjacent,
+    shiftLetters: randomInt(tier.shiftLetters[0], tier.shiftLetters[1], random),
+    wallTime: wallTimeFor(wall),
+    holeDistance: tier.holeDistance,
+    shiftWall,
+  };
+}

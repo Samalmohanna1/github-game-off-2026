@@ -27,7 +27,7 @@ Scenes, one per screen:
 |---|---|---|
 | `BootScene` | Final for Week 1 | Hands off to Title. Loads nothing until Week 2 art. |
 | `TitleScene` | Interim | Game name, one-line how-to, "Click to play". The click gives the page keyboard focus inside the itch.io iframe. Restyled in Week 2. |
-| `PlayScene` | Interim (M4) | The full Week 1 loop. A wall approaches over `WALL_TIME` with a hole cut from the poses (`wall-gen.ts`) `HOLE_DISTANCE` lanes from the figure. ← / → line the figure up; the tray then prompts the wall's placeholder letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. All letters held while lined up locks the pose: the wall rushes past, a PERFECT / GREAT / CLOSE CALL label pops over the figure, and the next wall starts. If the wall arrives first, it shoves the figure into a placeholder splash and the run ends. Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses behind a "Click to resume" panel. |
+| `PlayScene` | Interim (M5) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance). A wall approaches with a hole cut from the poses (`wall-gen.ts`). ← / → line the figure up; the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. All letters held while lined up locks the pose: the wall rushes past, a PERFECT / GREAT / CLOSE CALL label pops over the figure, and the next wall starts. If the wall arrives first, it shoves the figure into a placeholder splash and the run ends. Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses behind a "Click to resume" panel. |
 | `GameOverScene` | Interim | Walls cleared, score, best (saved in `localStorage`) and the wall reached. Restart follows PLAN.md §7: input is ignored for `RESTART_LOCKOUT`, then every key must be up ("Let go of every key" shows meanwhile) before a key or click restarts. |
 
 Shared scene helpers live in `src/scenes/` (`ui.ts`, `text-styles.ts`,
@@ -107,6 +107,7 @@ src/
   main.ts                  # Phaser game config + scene list
   config.ts                # every tunable number (PLAN.md §8)
   data/                    # PURE: static game data
+    keyboard.ts            # QWERTY row/x (with stagger), hand, finger per letter
     poses.ts               # block ids, neutral pose and alt poses on the grid
   input/
     KeyboardInput.ts       # native key/blur events -> moves, letters, pause, Caps Lock
@@ -114,7 +115,9 @@ src/
   logic/                   # PURE: no Phaser imports
     approach.ts            # t clock, wrong-key jump, ease-in, wall scale
     lanes.ts               # lane moves, alignment, hole lane, lane x
-    letters.ts             # placeholder letters; uppercase never back to back
+    difficulty.ts          # wall # -> tier, wall time, Shift Wall roll, WallPlan
+    letters.ts             # stretchScore, combo generator, ordering, capitals
+    random.ts              # injectable random helpers (shuffle, pick, int)
     perspective.ts         # vanishing point, project(), floor edges
     restart.ts             # game-over lockout + "release every key" gate
     scoring.ts             # grades, wall points, PERFECT streak multiplier
@@ -143,8 +146,10 @@ tests/
   approach.test.ts         # t advance, wrong-key jump, ease-in, wall scale
   best-score.test.ts       # best score kept; corrupt or blocked storage
   config.test.ts           # config invariants + text and graphics contrast
+  difficulty.test.ts       # tier table, wall time decay, Shift Wall chance, caps
+  keyboard.test.ts         # all 26 letters, hand split, stagger, fingers
   lanes.test.ts            # lane moves, clamping, hole lane, lane geometry
-  letters.test.ts          # distinct letters, uppercase count and spacing
+  letters.test.ts          # stretchScore; per tier: range, no repeats, capitals, caps
   perspective.test.ts      # projection and floor geometry
   poses.test.ts            # neutral pose fits the grid, no overlaps
   purity.test.ts           # pure modules never import Phaser
@@ -155,9 +160,8 @@ tests/
   wall-gen.test.ts         # valid poses for every block set, hole + outline
 ```
 
-The rest of the planned layout from PLAN.md §9 arrives with its milestones:
-`src/data/keyboard.ts`, `src/logic/difficulty.ts`, and `stretchScore` plus the
-real combo generator in `letters.ts` (M5). Add each to this tree when it lands.
+Everything in PLAN.md §9's layout now exists. Add new files to this tree when
+they land (M6's Shift Wall, M7's debug overlay).
 
 Where things go: rules, and the pure math they depend on (the `t` clock,
 perspective) → `src/logic/`. Static game data such as the keyboard map and
@@ -422,17 +426,17 @@ Work through **PLAN.md §10** one milestone at a time.
   lights up green (filled, not just outlined) when the player is lined up.
 - **Lined up** (aligned) — the figure's lane equals the hole's lane
   (`isAligned()`). Letters only appear while lined up.
-- **Hole distance** — how many lanes from the figure a new wall's hole spawns.
-  It is never 0, so every wall needs lining up. A single `HOLE_DISTANCE`
-  (1–2, walls 1–3) until M5's tiers (PLAN.md §5).
+- **Hole distance** — how many lanes from the figure a new wall's hole spawns,
+  set per tier (`holeDistance` in `DIFFICULTY_TIERS`, PLAN.md §5). It is never
+  0, so every wall needs lining up.
 - **`t`** (progress) — the wall's approach from 0 (far away) to 1 (at the
   figure). `t` is linear in time; an ease-in (`WALL_EASE_POWER`) shapes only
   the wall's scale, so it seems to speed up. Timing thresholds and
   `WRONG_KEY_JUMP` are fractions of the wall time. Reaching 1 before the pose
   locks is a fail (`src/logic/approach.ts`).
-- **Wall time** — seconds a wall takes to go from `t` = 0 to 1. It is a single
-  `WALL_TIME` until M5 brings the difficulty tiers, after which it shrinks as
-  the difficulty rises, never below `MIN_WALL_TIME`.
+- **Wall time** — seconds a wall takes to go from `t` = 0 to 1. Each tier sets
+  it; from wall 13 it drops `WALL_TIME_DECAY` (4%) per wall, never below
+  `MIN_WALL_TIME` (`wallTimeFor()` in `src/logic/difficulty.ts`).
 - **Vanishing point** — where the floor lines meet, at
   (`GAME_WIDTH / 2`, `HORIZON_Y`). Every depth is a scale toward it
   (`src/logic/perspective.ts`).
@@ -469,9 +473,6 @@ Work through **PLAN.md §10** one milestone at a time.
   Letters pressed with Ctrl, Cmd or Alt are shortcuts and are ignored.
 - **Stale key** — a letter still held from the previous wall. It is ignored
   until released, so it can't slip or count on the new wall.
-- **Placeholder letters** — until M5's generator, each wall gets
-  `PLACEHOLDER_LETTER_COUNT` random distinct letters, `PLACEHOLDER_SHIFT_LETTERS`
-  of them uppercase (`randomLetters()` in `src/logic/letters.ts`).
 - **Pose lock** — every letter held while lined up. The pose freezes, the wall
   rushes past (`LOCK_RUSH_DURATION`, scaling to `RUSH_END_SCALE` and moving in
   front of the figure once past it), and input is ignored until the next wall.
@@ -483,13 +484,20 @@ Work through **PLAN.md §10** one milestone at a time.
   restarts (`src/logic/restart.ts`).
 - **Shift Wall** — from wall 13, the hole slides 1–2 lanes partway through the
   approach after a `SHIFT_WALL_TELEGRAPH` warning. New letters pause until the
-  player lines up again.
-- **Stretch score** — how awkward a letter combo is to hold: key spread, row
-  spread, a cross-hand penalty and a same-column penalty (planned:
-  `stretchScore()` in `src/logic/letters.ts`).
+  player lines up again. The chance starts at 50% on wall 13 and rises
+  `SHIFT_WALL_CHANCE_STEP` per wall to `SHIFT_WALL_CHANCE_MAX`. Shift Wall
+  rounds ask for at most `MAX_LETTERS_SHIFT_WALL` letters. M5 rolls the rounds
+  (`WallPlan.shiftWall`); the slide itself arrives in M6.
+- **Stretch score** — how awkward a letter combo is to hold
+  (`stretchScore()` in `src/logic/letters.ts`): the widest gap between two
+  keys in key widths, plus `STRETCH_WEIGHTS` points per extra keyboard row, per
+  letter beyond `HAND_CAPACITY` on one side, and per pair on the same finger.
+  For scale: a-s-d is 2, f-g-h is 4, Q-P-Z is 12.5.
 - **Tier** — a band of walls with its own letter count, stretch-score range,
-  wall time and Shift letters (PLAN.md §5; `DIFFICULTY_TIERS` in config from
-  M5).
+  neighbor rule, wall time, Shift letters, hole distance and Shift Wall chance
+  (`DIFFICULTY_TIERS` in config, PLAN.md §5). Each wall's letters are random
+  distinct combos, retried until the score lands in the tier's range (and, from
+  wall 4, until they can be ordered with no neighboring keys back to back).
 - **PERFECT / GREAT / CLOSE CALL** — the timing grade at pose lock:
   `t ≤ PERFECT_T`, `t ≤ GREAT_T`, or later. A wall scores
   `WALL_CLEAR_POINTS` plus the grade's bonus (`src/logic/scoring.ts`).

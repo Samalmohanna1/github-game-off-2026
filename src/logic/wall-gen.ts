@@ -1,6 +1,7 @@
-import { FIGURE_GRID, HOLE_DISTANCE } from '@/config';
+import { FIGURE_GRID } from '@/config';
 import { ALT_POSES, BLOCK_IDS, NEUTRAL_POSE, type BlockId, type CellRect } from '@/data/poses';
 import { pickHoleLane } from '@/logic/lanes';
+import { pick, shuffled, type Random } from '@/logic/random';
 
 export type Pose = Readonly<Record<BlockId, CellRect>>;
 
@@ -80,19 +81,11 @@ export function poseOptions(changed: readonly BlockId[]): Pose[] {
   return poses.filter(isValidPose);
 }
 
-function shuffled<T>(items: readonly T[], random: () => number): T[] {
-  const out = [...items];
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1));
-    [out[i], out[j]] = [out[j]!, out[i]!];
-  }
-  return out;
-}
-
 export function generateWall(
   figureLane: number,
   letters: readonly string[],
-  random: () => number = Math.random,
+  holeDistance: readonly [number, number],
+  random: Random = Math.random,
 ): WallSpec {
   if (letters.length > BLOCK_IDS.length) {
     throw new Error(`${letters.length} letters but only ${BLOCK_IDS.length} blocks`);
@@ -102,13 +95,12 @@ export function generateWall(
   // it always parts it from one arm; those walls fall back to a hole with a gap.
   const valid = poseOptions(changed);
   const onePiece = valid.filter(isOnePiece);
-  const options = onePiece.length > 0 ? onePiece : valid;
-  const targets = options[Math.floor(random() * options.length)];
+  const targets = pick(onePiece.length > 0 ? onePiece : valid, random);
   if (targets === undefined) throw new Error(`No valid pose changes ${changed.join(', ')}`);
 
   const blockFor: Record<string, BlockId> = {};
   letters.forEach((letter, i) => (blockFor[letter] = changed[i]!));
-  return { holeLane: pickHoleLane(figureLane, HOLE_DISTANCE, random), targets, blockFor };
+  return { holeLane: pickHoleLane(figureLane, holeDistance, random), targets, blockFor };
 }
 
 // grid[row][col] is true where the hole is.

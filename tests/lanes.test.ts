@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FIGURE_WIDTH, HOLE_DISTANCE, LANE_COUNT, LANE_MARKER_GAP } from '@/config';
+import { DIFFICULTY_TIERS, FIGURE_WIDTH, LANE_COUNT, LANE_MARKER_GAP } from '@/config';
 import {
   CENTER_LANE,
   LANE_WIDTH,
@@ -67,21 +67,24 @@ describe('hole lane', () => {
     expect(pickHoleLane(CENTER_LANE, [1, 2], () => 0.999)).toBe(5);
   });
 
-  it('always lands in range and on the stage, from every lane', () => {
-    for (const figureLane of ALL_LANES) {
-      for (let i = 0; i < 20; i++) {
-        const hole = pickHoleLane(figureLane, HOLE_DISTANCE, () => i / 20);
-        const dist = Math.abs(hole - figureLane);
-        expect(hole).toBeGreaterThanOrEqual(0);
-        expect(hole).toBeLessThanOrEqual(LAST_LANE);
-        expect(dist).toBeGreaterThanOrEqual(HOLE_DISTANCE[0]);
-        expect(dist).toBeLessThanOrEqual(HOLE_DISTANCE[1]);
+  it.each(DIFFICULTY_TIERS.map((tier) => [tier.name, tier.holeDistance] as const))(
+    '%s: always lands in range and on the stage, from every lane',
+    (_name, distance) => {
+      for (const figureLane of ALL_LANES) {
+        for (let i = 0; i < 20; i++) {
+          const hole = pickHoleLane(figureLane, distance, () => i / 20);
+          const dist = Math.abs(hole - figureLane);
+          expect(hole).toBeGreaterThanOrEqual(0);
+          expect(hole).toBeLessThanOrEqual(LAST_LANE);
+          expect(dist).toBeGreaterThanOrEqual(distance[0]);
+          expect(dist).toBeLessThanOrEqual(distance[1]);
+        }
       }
-    }
-  });
+    },
+  );
 
-  it('never spawns the hole in the figure lane while the minimum distance is above 0', () => {
-    expect(HOLE_DISTANCE[0]).toBeGreaterThan(0);
+  it('never spawns the hole in the figure lane, so every wall needs lining up', () => {
+    for (const tier of DIFFICULTY_TIERS) expect(tier.holeDistance[0]).toBeGreaterThan(0);
   });
 
   it('throws when no lane is far enough away', () => {

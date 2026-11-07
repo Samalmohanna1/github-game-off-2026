@@ -1,5 +1,6 @@
 import { LANE_COUNT } from '@/config';
 import { FLOOR_HALF_WIDTH, VANISHING_POINT } from '@/logic/perspective';
+import { pick, type Random } from '@/logic/random';
 
 export const CENTER_LANE = Math.floor(LANE_COUNT / 2);
 export const LANE_WIDTH = (2 * FLOOR_HALF_WIDTH) / LANE_COUNT; // px at the figure's plane
@@ -34,10 +35,9 @@ export function holeLaneCandidates(figureLane: number, [minDist, maxDist]: reado
 export function pickHoleLane(
   figureLane: number,
   distance: readonly [number, number],
-  random: () => number = Math.random,
+  random: Random = Math.random,
 ): number {
-  const candidates = holeLaneCandidates(figureLane, distance);
-  const lane = candidates[Math.floor(random() * candidates.length)];
+  const lane = pick(holeLaneCandidates(figureLane, distance), random);
   if (lane === undefined) {
     throw new Error(`No lane is ${distance[0]}-${distance[1]} lanes from lane ${figureLane}`);
   }

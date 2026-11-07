@@ -6,20 +6,18 @@ import {
   GAME_HEIGHT,
   GAME_WIDTH,
   LOCK_RUSH_DURATION,
-  PLACEHOLDER_LETTER_COUNT,
-  PLACEHOLDER_SHIFT_LETTERS,
   RUSH_END_SCALE,
   SCREEN_LAYOUT,
   STAGE_BOTTOM_Y,
-  WALL_TIME,
   WRONG_KEY_SHAKE_INTENSITY,
   WRONG_KEY_SHAKE_MS,
 } from '@/config';
 import { NEUTRAL_POSE } from '@/data/poses';
 import { KeyboardInput } from '@/input/KeyboardInput';
 import { advanceT, jumpT, wallScale } from '@/logic/approach';
+import { planWall, type WallPlan } from '@/logic/difficulty';
 import { CENTER_LANE, isAligned, laneCenterX, moveLane } from '@/logic/lanes';
-import { randomLetters } from '@/logic/letters';
+import { generateLetters } from '@/logic/letters';
 import { ScoreKeeper } from '@/logic/scoring';
 import { LetterSequence, type SequenceEffect } from '@/logic/sequence';
 import { generateWall, holeGrid, type WallSpec } from '@/logic/wall-gen';
@@ -58,6 +56,7 @@ export class PlayScene extends Phaser.Scene {
   private phase: Phase = 'approach';
   private t = 0;
   private figureLane = CENTER_LANE;
+  private plan!: WallPlan;
   private spec!: WallSpec;
   private sequence!: LetterSequence;
   private scoreKeeper!: ScoreKeeper;
@@ -116,7 +115,7 @@ export class PlayScene extends Phaser.Scene {
     if (this.sequence.paused) return;
     if (this.phase === 'approach') {
       this.sequence.tick(deltaMs);
-      this.setT(advanceT(this.t, deltaMs / 1000, WALL_TIME));
+      this.setT(advanceT(this.t, deltaMs / 1000, this.plan.wallTime));
     }
     this.tray.show(this.sequence.view());
   }
@@ -128,8 +127,9 @@ export class PlayScene extends Phaser.Scene {
   }
 
   private startWall(): void {
-    const letters = randomLetters(PLACEHOLDER_LETTER_COUNT, PLACEHOLDER_SHIFT_LETTERS);
-    this.spec = generateWall(this.figureLane, letters);
+    this.plan = planWall(this.scoreKeeper.wallNumber);
+    const { letters } = generateLetters(this.plan);
+    this.spec = generateWall(this.figureLane, letters, this.plan.holeDistance);
     this.wall.setHole(this.spec.holeLane, holeGrid(this.spec.targets));
     this.wall.setAlpha(1).setDepth(LAYER.wall);
     this.figure.resetPose();

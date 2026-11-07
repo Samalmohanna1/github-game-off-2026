@@ -248,7 +248,7 @@ shape-shift/
 - Real hole made from the poses (`wall-gen.ts`), blocks moving into their target poses when held, pose lock + rush, timing labels, streak multiplier, fail shove + splash placeholder, game-over screen, restart lockout and the "release all keys" rule.
 - ✅ A full run is playable from start to game over and back again.
 
-**M5: Difficulty and letter generator (+ tests)**
+**M5: Difficulty and letter generator (+ tests)** (done)
 - `stretchScore`, picking letters by tier, letter ordering, uppercase letters never back to back, the tier table.
 - ✅ Tests confirm each tier's combos fall in its score range, letters never repeat in a combo, uppercase never comes back to back, and the letter caps are never exceeded.
 
