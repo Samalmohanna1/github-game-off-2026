@@ -27,12 +27,14 @@ Scenes, one per screen:
 |---|---|---|
 | `BootScene` | Final for Week 1 | Hands off to Title. Loads nothing until Week 2 art. |
 | `TitleScene` | Interim | Game name, one-line how-to, "Click to play". The click gives the page keyboard focus inside the itch.io iframe. Restyled in Week 2. |
-| `PlayScene` | Interim (M1) | Perspective floor, a wall that approaches over `WALL_TIME` and loops, a centered placeholder hole and the empty prompt tray. Any key or click ends the run. M2–M7 add the figure, lanes, letters and rules. |
+| `PlayScene` | Interim (M2) | Perspective floor, lane markers, the figure in its neutral pose, the empty prompt tray, and a wall that approaches over `WALL_TIME`. Each wall's placeholder hole spawns `HOLE_DISTANCE` lanes from the figure. ← / → slide the figure one lane per tap, and the marker under it lights when it's lined up. The approach loops into a new wall. A click ends the run. M3–M7 add the letters and rules. |
 | `GameOverScene` | Interim | Walls cleared, score, best, wall reached, restart prompt. The restart lockout and "release every key" rule arrive in M4. |
 
 Shared scene helpers live in `src/scenes/` (`ui.ts`, `text-styles.ts`,
-`scene-keys.ts`). Game objects live in `src/objects/`: `Floor`, `Wall` and
-`PromptTray` so far, with `Figure` and `LaneMarkers` arriving in M2.
+`scene-keys.ts`). Game objects live in `src/objects/`: `Floor`, `LaneMarkers`,
+`Wall`, `Figure` and `PromptTray`. Keyboard input lives in `src/input/`:
+`KeyboardInput` (native listeners, one per Play scene) and
+`preventPageScroll()` (game-wide, from `main.ts`).
 
 The stage uses a single vanishing point, so a depth is just a scale toward it
 (`project()` in `src/logic/perspective.ts`). Scale 1 is the figure's plane.
@@ -83,7 +85,7 @@ the doc is **part of that change, not a follow-up**.
   `keydown` / `keyup` listeners on `window`, not Phaser key objects.
   `event.key` decides the letter and its case at press time, `event.code`
   tracks which keys are held, `event.repeat` is ignored, and arrows and Space
-  get `preventDefault()`.
+  get `preventDefault()` on every screen (`src/input/prevent-page-scroll.ts`).
 - **Art:** Phaser shapes, rectangles and Graphics only until Week 2. No SVGs or
   image assets before then. Week 2 swaps in one SVG per body part and keeps the
   same five parts and pose data (PLAN.md §1).
@@ -103,12 +105,20 @@ README.md                  # setup, commands, deploy
 src/
   main.ts                  # Phaser game config + scene list
   config.ts                # every tunable number (PLAN.md §8)
+  data/                    # PURE: static game data
+    poses.ts               # block ids + neutral pose on the figure grid
+  input/
+    KeyboardInput.ts       # native keydown -> lane moves (repeats ignored)
+    prevent-page-scroll.ts # arrows/Space never scroll the host page
   logic/                   # PURE: no Phaser imports
     approach.ts            # t clock, ease-in, wall scale
+    lanes.ts               # lane moves, alignment, hole lane, lane x
     perspective.ts         # vanishing point, project(), floor edges
   objects/
     Floor.ts               # the two perspective floor lines
+    LaneMarkers.ts         # floor strip per lane; lit = lined up
     Wall.ts                # wall with placeholder hole, scaled to depth
+    Figure.ts              # five blocks in the neutral pose; slides lanes
     PromptTray.ts          # white tray area along the bottom
   scenes/
     BootScene.ts           # hands off to Title
@@ -121,13 +131,16 @@ src/
 tests/
   approach.test.ts         # t advance, ease-in, wall scale
   config.test.ts           # config invariants + text and graphics contrast
+  lanes.test.ts            # lane moves, clamping, hole lane, lane geometry
   perspective.test.ts      # projection and floor geometry
+  poses.test.ts            # neutral pose fits the grid, no overlaps
   purity.test.ts           # pure modules never import Phaser
 ```
 
 The rest of the planned layout from PLAN.md §9 arrives with its milestones:
-`src/data/` (QWERTY map, poses), `src/input/KeyboardInput.ts`, and the other
-`src/logic/` modules and game objects. Add each to this tree when it lands.
+`src/data/keyboard.ts` and the other `src/logic/` modules (`sequence`,
+`letters`, `difficulty`, `wall-gen`, `scoring`). Add each to this tree when it
+lands.
 
 Where things go: rules, and the pure math they depend on (the `t` clock,
 perspective) → `src/logic/`. Static game data such as the keyboard map and
@@ -373,11 +386,15 @@ Work through **PLAN.md §10** one milestone at a time.
 - **Hole** — the cut-out in the wall: the union of every block's target
   rectangle, placed at the hole's lane (planned: `src/logic/wall-gen.ts`).
 - **Lane** — one of `LANE_COUNT` (7) columns across the stage. The figure and
-  the hole each sit in one lane. The figure keeps its lane between walls.
+  the hole each sit in one lane. The figure starts a run in the center lane and
+  keeps its lane between walls (`src/logic/lanes.ts`).
 - **Lane marker** — the floor strip under each lane. The one under the figure
-  lights up green when the player is lined up.
-- **Lined up** (aligned) — the figure's lane equals the hole's lane. Letters
-  only appear while lined up.
+  lights up green (filled, not just outlined) when the player is lined up.
+- **Lined up** (aligned) — the figure's lane equals the hole's lane
+  (`isAligned()`). Letters only appear while lined up.
+- **Hole distance** — how many lanes from the figure a new wall's hole spawns.
+  It is never 0, so every wall needs lining up. A single `HOLE_DISTANCE`
+  (1–2, walls 1–3) until M5's tiers (PLAN.md §5).
 - **`t`** (progress) — the wall's approach from 0 (far away) to 1 (at the
   figure). `t` is linear in time; an ease-in (`WALL_EASE_POWER`) shapes only
   the wall's scale, so it seems to speed up. Timing thresholds and
@@ -395,7 +412,8 @@ Work through **PLAN.md §10** one milestone at a time.
   `legs`.
 - **Pose** — a block's rectangle(s) in grid cells. Each block has a neutral
   pose and alt poses; the **target pose** is the alt pose a wall asks for
-  (planned: `src/data/poses.ts`).
+  (`src/data/poses.ts`, which has the neutral pose so far; alt poses arrive in
+  M4).
 - **Prompt** — the letter currently asked for, shown as the blue chip in the
   center of the tray. Letters appear one at a time.
 - **Prompt tray** — the white strip along the bottom: held letters (green,
@@ -439,7 +457,7 @@ Work through **PLAN.md §10** one milestone at a time.
   the voice.
 - Write for a first-time player with no prior context.
 - Placeholder copy stays clearly placeholder until the real screen is built
-  (the M0 Play screen says "Placeholder:"). Don't invent authoritative-looking
+  (the Play screen's "Placeholder: click to end the run"). Don't invent authoritative-looking
   facts (counts, dates, names) beyond what PLAN.md states.
 - A letter's case is gameplay, not style: uppercase means "hold Shift". Never
   change the case of a prompt letter for display.
