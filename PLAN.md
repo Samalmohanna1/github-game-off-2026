@@ -32,7 +32,7 @@ SPAWN → ALIGN → POSE → (SHIFT WALL?) → RESOLVE → next wall | GAME OVER
 ```
 
 1. **SPAWN.** A wall appears far away, with its hole at a random lane. It starts moving toward the camera immediately. The hole's shape is visible from the start.
-2. **ALIGN.** The player taps **← / →** to slide the whole figure one lane per tap. **No letters appear until the figure's lane matches the hole's lane.** When they match, the lane marker under the figure lights up.
+2. **ALIGN.** The player taps **← / →** to slide the whole figure one lane per tap, or **Space** to step one lane right, wrapping from the last lane back to the first. Space lets a thumb line up without the hands leaving the letters (added in the M7 tuning pass). **No letters appear until the figure's lane matches the hole's lane.** When they match, the lane marker under the figure lights up.
 3. **POSE.** Letters appear **one at a time** in the prompt tray. Holding the current letter moves its body block into the target pose, and the letter turns green. The next letter appears once the current one is held. While lined up, that next letter waits on the right as a hollow preview chip and slides to the center when it becomes current, so the player can get a finger ready (added in the M7 tuning pass).
 4. **SHIFT WALL** (walls 13+). Partway through the approach, the hole slides 1–2 lanes. Held letters keep their blocks in place, but **new letters stop appearing until the player lines up again**, which they have to do while still holding letters.
 5. **RESOLVE.**
@@ -50,7 +50,7 @@ SPAWN → ALIGN → POSE → (SHIFT WALL?) → RESOLVE → next wall | GAME OVER
 | A held letter is released before the pose locks (**slip**) | The block goes limp (back to neutral), the letter turns red, and it moves to the **end of the queue**. It can only be pressed again when it comes back around as the current prompt. |
 | Any letter key that isn't the current prompt and isn't held | **Wrong key:** the wall jumps forward (`WRONG_KEY_JUMP`), the camera shakes and the wall flashes. This includes pressing a slipped letter before its turn comes back. |
 | Letter pressed during ALIGN (no prompt showing) | Counts as a **wrong key**. |
-| Arrow keys, Shift, and all other non-letter keys | Never count as wrong keys. Arrows move the figure, and the rest are ignored. |
+| Arrow keys, Space, Shift, and all other non-letter keys | Never count as wrong keys. Arrows and Space move the figure, and the rest are ignored. |
 | Pose locked | Input is ignored until the next wall. Keys still held from this wall are ignored until they're released. |
 | Window loses focus (`blur`) | Pause the game and show "Click to resume". Every held letter counts as slipped. |
 
@@ -115,7 +115,7 @@ The goal is combos that make hands cross and fingers stretch, starting easy and 
 - Each difficulty tier has a `[minScore, maxScore]` range. Generate random combos without repeated letters and **reject** any outside the range (about 200 tries max, then take the closest).
 - **Order** the letters so that each new one isn't right next to the last one. Next to each other is fine on walls 1–3.
 - **Uppercase:** turn the tier's number of Shift letters into uppercase. **Never put two uppercase letters back to back.** (Windows opens a Sticky Keys pop-up if Shift is pressed 5 times quickly.)
-- **Key limit:** never ask for more than **5 letters**, and use at most **4** on Shift Wall rounds. With an arrow key and Shift on top, that's up to 7 keys pressed at once. Many keyboards can't register that many keys together ("key ghosting").
+- **Key limit:** never ask for more than **5 letters**, and use at most **4** on Shift Wall rounds. With an arrow key (or Space) and Shift on top, that's up to 7 keys pressed at once. Many keyboards can't register that many keys together ("key ghosting").
 
 ---
 

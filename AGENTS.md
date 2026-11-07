@@ -12,7 +12,7 @@ when in doubt; keep shared instructions here and keep CLAUDE.md as a pointer.
 SHAPE SHIFT is a browser game for GitHub Game Off 2026, whose theme is
 **SHIFT**. It is a keyboard take on Japan's "Human Tetris". A wall with a hole
 cut in it comes toward the player. They slide a block figure under the hole
-with ← / →, then hold a growing set of letter keys (Shift for capitals) to pose
+with ← / → (or Space, which steps right and wraps around), then hold a growing set of letter keys (Shift for capitals) to pose
 the figure so it fits through. If it doesn't fit, the wall shoves the figure
 into the pool. It ships on itch.io as an HTML5 game, played on a desktop
 keyboard.
@@ -27,7 +27,7 @@ Scenes, one per screen:
 |---|---|---|
 | `BootScene` | Final for Week 1 | Hands off to Title. Loads nothing until Week 2 art. |
 | `TitleScene` | Interim | Game name, one-line how-to, "Click to play". The click gives the page keyboard focus inside the itch.io iframe. Restyled in Week 2. |
-| `PlayScene` | Interim (M7) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). ← / → line the figure up; the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 13+), the wall turns orange with an arrow, then the hole slides 1–2 lanes; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: the wall rushes past, a PERFECT / GREAT / CLOSE CALL label pops over the figure, and the next wall starts. If the wall arrives first, it shoves the figure into a placeholder splash and the run ends. Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses behind a "Click to resume" panel. F2 toggles the debug overlay. |
+| `PlayScene` | Interim (M7) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). ← / → line the figure up, and so does Space, one lane right with a wrap from the last lane to the first; the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 13+), the wall turns orange with an arrow, then the hole slides 1–2 lanes; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: the wall rushes past, a PERFECT / GREAT / CLOSE CALL label pops over the figure, and the next wall starts. If the wall arrives first, it shoves the figure into a placeholder splash and the run ends. Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses behind a "Click to resume" panel. F2 toggles the debug overlay. |
 | `GameOverScene` | Interim | Walls cleared, score, best (saved in `localStorage`) and the wall reached. Restart follows PLAN.md §7: input is ignored for `RESTART_LOCKOUT`, then every key must be up ("Let go of every key" shows meanwhile) before a key or click restarts. |
 
 Shared scene helpers live in `src/scenes/` (`ui.ts`, `text-styles.ts`,
@@ -114,7 +114,7 @@ src/
     prevent-page-scroll.ts # arrows/Space never scroll the host page
   logic/                   # PURE: no Phaser imports
     approach.ts            # t clock, wrong-key jump, ease-in, wall scale
-    lanes.ts               # lane moves, alignment, hole lane, lane x
+    lanes.ts               # lane moves (arrows clamp, Space wraps), alignment, hole lane, lane x
     difficulty.ts          # wall # -> tier, wall time, Shift Wall roll, WallPlan
     letters.ts             # stretchScore, combo generator, ordering, capitals
     random.ts              # injectable random helpers (shuffle, pick, int)
@@ -428,7 +428,9 @@ Work through **PLAN.md §10** one milestone at a time.
   those walls can have a small gap.
 - **Lane** — one of `LANE_COUNT` (7) columns across the stage. The figure and
   the hole each sit in one lane. The figure starts a run in the center lane and
-  keeps its lane between walls (`src/logic/lanes.ts`).
+  keeps its lane between walls (`src/logic/lanes.ts`). ← / → stop at the
+  edges (`moveLane()`); Space steps right and wraps from the last lane to the
+  first (`cycleLane()`), and the figure jumps rather than gliding back across.
 - **Lane marker** — the floor strip under each lane. The one under the figure
   lights up green (filled, not just outlined) when the player is lined up.
 - **Lined up** (aligned) — the figure's lane equals the hole's lane
