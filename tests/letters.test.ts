@@ -88,7 +88,7 @@ describe('uppercasePositions', () => {
 describe.each(DIFFICULTY_TIERS.map((tier) => [tier.name, tier] as const))('%s walls', (_name, tier) => {
   const walls = SEEDS.map((seed) => {
     const random = seeded(seed);
-    const plan = planWall(tier.fromWall + (seed % 3), random);
+    const plan = planWall(tier.fromWall + (seed % 2), random);
     return { plan, combo: generateLetters(plan, random) };
   });
 

@@ -213,12 +213,14 @@ export const HAND_CAPACITY = 3; // letters one hand holds before the other must 
 export const STRETCH_TRIES = 200; // random combos tried per wall before taking the closest
 export const ADJACENT_KEY_DISTANCE = 1.3; // key widths; nearer keys count as "right next to"
 
-// PLAN.md §5, one entry per band of walls. stretch ranges were set from the
-// score distribution of every combo the tier can draw (one finger per letter
-// before Hard+): each range catches at least 7% of them, so STRETCH_TRIES
-// essentially never misses.
-// From fromWall 13 on, wall time drops by WALL_TIME_DECAY per wall (never
-// below MIN_WALL_TIME) and the Shift Wall chance rises (M6 adds the slide).
+// PLAN.md §5, one entry per band of walls. Each band adds one new demand (a
+// letter, a wider stretch, a capital, Shift Walls or shared fingers) while the
+// wall time eases down, so the curve climbs steadily instead of in cliffs.
+// stretch ranges were set from the score distribution of every combo the tier
+// can draw (one finger per letter before the last tier): each range catches at
+// least 7% of them, so STRETCH_TRIES essentially never misses.
+// In the last tier, wall time drops by WALL_TIME_DECAY per wall (never below
+// MIN_WALL_TIME) and the Shift Wall chance rises by SHIFT_WALL_CHANCE_STEP.
 export interface DifficultyTier {
   readonly fromWall: number;
   readonly name: string;
@@ -250,9 +252,21 @@ export const DIFFICULTY_TIERS: readonly DifficultyTier[] = [
   },
   {
     fromWall: 4,
-    name: 'Medium',
+    name: 'Four letters',
     letters: 4,
     stretch: [6, 8.5],
+    allowAdjacent: false,
+    allowSameFinger: false,
+    wallTime: 9.5,
+    shiftLetters: [0, 0],
+    holeDistance: [1, 3],
+    shiftWallChance: 0,
+  },
+  {
+    fromWall: 6,
+    name: 'Wider stretch',
+    letters: 4,
+    stretch: [7.5, 10],
     allowAdjacent: false,
     allowSameFinger: false,
     wallTime: 9,
@@ -261,20 +275,45 @@ export const DIFFICULTY_TIERS: readonly DifficultyTier[] = [
     shiftWallChance: 0,
   },
   {
-    fromWall: 7,
-    name: 'Medium-high',
+    fromWall: 8,
+    name: 'Capitals',
     letters: 4,
     stretch: [7.5, 10],
     allowAdjacent: false,
     allowSameFinger: false,
-    wallTime: 8,
+    wallTime: 9,
     shiftLetters: [1, 1],
-    holeDistance: [1, 4],
+    holeDistance: [1, 3],
     shiftWallChance: 0,
   },
   {
     fromWall: 10,
-    name: 'Hard',
+    name: 'Shift Walls',
+    letters: 4,
+    stretch: [7.5, 10],
+    allowAdjacent: false,
+    allowSameFinger: false,
+    wallTime: 8.5,
+    shiftLetters: [1, 1],
+    holeDistance: [1, 4],
+    shiftWallChance: 0.3,
+  },
+  {
+    fromWall: 12,
+    name: 'Five letters',
+    letters: 5,
+    stretch: [9.5, 11],
+    shiftWallStretch: [7.5, 10],
+    allowAdjacent: false,
+    allowSameFinger: false,
+    wallTime: 8.5,
+    shiftLetters: [1, 1],
+    holeDistance: [1, 4],
+    shiftWallChance: 0.35,
+  },
+  {
+    fromWall: 14,
+    name: 'Two capitals',
     letters: 5,
     stretch: [9.5, 11],
     shiftWallStretch: [7.5, 10],
@@ -283,23 +322,23 @@ export const DIFFICULTY_TIERS: readonly DifficultyTier[] = [
     wallTime: 8,
     shiftLetters: [1, 2],
     holeDistance: [2, 5],
-    shiftWallChance: 0,
+    shiftWallChance: 0.4,
   },
   {
-    fromWall: 13,
-    name: 'Hard+',
+    fromWall: 16,
+    name: 'Shared fingers',
     letters: 5,
-    stretch: [12.5, 18],
-    shiftWallStretch: [10, 14],
+    stretch: [11, 14.5],
+    shiftWallStretch: [9, 11.5],
     allowAdjacent: false,
     allowSameFinger: true,
     wallTime: 8,
     shiftLetters: [1, 2],
     holeDistance: [2, 6],
-    shiftWallChance: 0.5,
+    shiftWallChance: 0.45,
   },
 ];
 
-export const WALL_TIME_DECAY = 0.04; // Hard+: each wall is 4% shorter than the last
-export const SHIFT_WALL_CHANCE_STEP = 0.05; // Hard+: added per wall after the first
+export const WALL_TIME_DECAY = 0.04; // last tier: each wall is 4% shorter than the last
+export const SHIFT_WALL_CHANCE_STEP = 0.05; // last tier: added per wall after the first
 export const SHIFT_WALL_CHANCE_MAX = 0.8;

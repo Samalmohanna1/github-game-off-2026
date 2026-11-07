@@ -23,10 +23,30 @@ describe('the tier table (PLAN.md §5)', () => {
     expect(DIFFICULTY_TIERS.map((t) => [t.fromWall, t.letters, t.shiftLetters])).toEqual([
       [1, 3, [0, 0]],
       [4, 4, [0, 0]],
-      [7, 4, [1, 1]],
-      [10, 5, [1, 2]],
-      [13, 5, [1, 2]],
+      [6, 4, [0, 0]],
+      [8, 4, [1, 1]],
+      [10, 4, [1, 1]],
+      [12, 5, [1, 1]],
+      [14, 5, [1, 2]],
+      [16, 5, [1, 2]],
     ]);
+  });
+
+  it('adds at most one new demand per tier, so the curve has no cliffs', () => {
+    DIFFICULTY_TIERS.slice(1).forEach((tier, i) => {
+      const prev = DIFFICULTY_TIERS[i]!;
+      // More letters or shared fingers score higher on their own, so a wider
+      // stretch range only counts as a demand when neither changes.
+      const sameScoring = tier.letters === prev.letters && tier.allowSameFinger === prev.allowSameFinger;
+      const added = [
+        tier.letters > prev.letters,
+        sameScoring && tier.stretch[0] > prev.stretch[0],
+        tier.shiftLetters[1] > prev.shiftLetters[1],
+        tier.shiftWallChance > 0 && prev.shiftWallChance === 0,
+        tier.allowSameFinger && !prev.allowSameFinger,
+      ].filter(Boolean);
+      expect(added.length, tier.name).toBeLessThanOrEqual(1);
+    });
   });
 
   it('never gives a later tier a longer wall time', () => {
@@ -36,21 +56,26 @@ describe('the tier table (PLAN.md §5)', () => {
   });
 
   it('only lets letters sit next to each other on walls 1-3', () => {
-    expect(DIFFICULTY_TIERS.map((t) => t.allowAdjacent)).toEqual([true, false, false, false, false]);
+    expect(DIFFICULTY_TIERS.map((t) => t.allowAdjacent)).toEqual([true, ...DIFFICULTY_TIERS.slice(1).map(() => false)]);
   });
 
-  it('keeps one finger per letter until wall 13', () => {
-    expect(DIFFICULTY_TIERS.map((t) => t.allowSameFinger)).toEqual([false, false, false, false, true]);
+  it('keeps one finger per letter until the last tier', () => {
+    expect(DIFFICULTY_TIERS.map((t) => t.allowSameFinger)).toEqual([...DIFFICULTY_TIERS.slice(1).map(() => false), true]);
   });
 
   it('never asks for more than MAX_LETTERS', () => {
     for (const tier of DIFFICULTY_TIERS) expect(tier.letters).toBeLessThanOrEqual(MAX_LETTERS);
   });
 
-  it('gets harder: stretch ranges rise tier by tier', () => {
+  it('never gets easier: stretch ranges, capitals, hole distance and Shift Wall chance never drop', () => {
     DIFFICULTY_TIERS.slice(1).forEach((tier, i) => {
-      expect(tier.stretch[0]).toBeGreaterThan(DIFFICULTY_TIERS[i]!.stretch[0]);
-      expect(tier.stretch[1]).toBeGreaterThan(DIFFICULTY_TIERS[i]!.stretch[1]);
+      const prev = DIFFICULTY_TIERS[i]!;
+      expect(tier.letters).toBeGreaterThanOrEqual(prev.letters);
+      expect(tier.stretch[0]).toBeGreaterThanOrEqual(prev.stretch[0]);
+      expect(tier.stretch[1]).toBeGreaterThanOrEqual(prev.stretch[1]);
+      expect(tier.shiftLetters[1]).toBeGreaterThanOrEqual(prev.shiftLetters[1]);
+      expect(tier.holeDistance[1]).toBeGreaterThanOrEqual(prev.holeDistance[1]);
+      expect(tier.shiftWallChance).toBeGreaterThanOrEqual(prev.shiftWallChance);
     });
   });
 
@@ -63,33 +88,36 @@ describe('the tier table (PLAN.md §5)', () => {
 
 describe('tierFor', () => {
   it('maps walls to their band', () => {
-    expect([1, 3, 4, 6, 7, 9, 10, 12, 13, 99].map((w) => tierFor(w).name)).toEqual([
+    expect([1, 3, 4, 5, 6, 8, 10, 12, 14, 15, 16, 99].map((w) => tierFor(w).name)).toEqual([
       'Easy',
       'Easy',
-      'Medium',
-      'Medium',
-      'Medium-high',
-      'Medium-high',
-      'Hard',
-      'Hard',
-      'Hard+',
-      'Hard+',
+      'Four letters',
+      'Four letters',
+      'Wider stretch',
+      'Capitals',
+      'Shift Walls',
+      'Five letters',
+      'Two capitals',
+      'Two capitals',
+      'Shared fingers',
+      'Shared fingers',
     ]);
   });
 });
 
 describe('wallTimeFor', () => {
-  it('uses each tier time up to wall 12', () => {
-    for (const tier of DIFFICULTY_TIERS.slice(0, -1)) {
+  it('uses each tier time before the last tier', () => {
+    DIFFICULTY_TIERS.slice(0, -1).forEach((tier, i) => {
+      const lastWall = DIFFICULTY_TIERS[i + 1]!.fromWall - 1;
       expect(wallTimeFor(tier.fromWall)).toBe(tier.wallTime);
-      expect(wallTimeFor(tier.fromWall + 2)).toBe(tier.wallTime);
-    }
+      expect(wallTimeFor(lastWall)).toBe(tier.wallTime);
+    });
   });
 
-  it('drops by WALL_TIME_DECAY per wall from wall 13', () => {
-    const hardPlus = DIFFICULTY_TIERS[DIFFICULTY_TIERS.length - 1]!;
-    expect(wallTimeFor(13)).toBeCloseTo(hardPlus.wallTime * (1 - WALL_TIME_DECAY));
-    expect(wallTimeFor(14)).toBeCloseTo(wallTimeFor(13) * (1 - WALL_TIME_DECAY));
+  it('drops by WALL_TIME_DECAY per wall in the last tier', () => {
+    const last = DIFFICULTY_TIERS[DIFFICULTY_TIERS.length - 1]!;
+    expect(wallTimeFor(last.fromWall)).toBeCloseTo(last.wallTime * (1 - WALL_TIME_DECAY));
+    expect(wallTimeFor(last.fromWall + 1)).toBeCloseTo(wallTimeFor(last.fromWall) * (1 - WALL_TIME_DECAY));
   });
 
   it('never goes under MIN_WALL_TIME and never gets longer', () => {
@@ -102,11 +130,12 @@ describe('wallTimeFor', () => {
 });
 
 describe('shiftWallChanceFor', () => {
-  it('is 0 before wall 13, 50% at wall 13, rising to a cap of 80%', () => {
-    expect(shiftWallChanceFor(12)).toBe(0);
-    expect(shiftWallChanceFor(13)).toBeCloseTo(0.5);
-    expect(shiftWallChanceFor(14)).toBeGreaterThan(shiftWallChanceFor(13));
+  it('is 0 before wall 10, 30% at wall 10, rising to a cap of 80%', () => {
+    expect(shiftWallChanceFor(9)).toBe(0);
+    expect(shiftWallChanceFor(10)).toBeCloseTo(0.3);
+    expect(shiftWallChanceFor(17)).toBeGreaterThan(shiftWallChanceFor(16));
     expect(shiftWallChanceFor(100)).toBeCloseTo(SHIFT_WALL_CHANCE_MAX);
+    for (let wall = 2; wall < 100; wall++) expect(shiftWallChanceFor(wall)).toBeGreaterThanOrEqual(shiftWallChanceFor(wall - 1));
   });
 });
 
@@ -118,8 +147,8 @@ describe('planWall', () => {
     for (const plan of plans) expect(plan.letters).toBe(plan.shiftWall ? MAX_LETTERS_SHIFT_WALL : 5);
   });
 
-  it("never makes a Shift Wall before wall 13", () => {
-    for (let wall = 1; wall <= 12; wall++) expect(planWall(wall, seeded(wall)).shiftWall).toBe(false);
+  it('never makes a Shift Wall before wall 10', () => {
+    for (let wall = 1; wall <= 9; wall++) expect(planWall(wall, seeded(wall)).shiftWall).toBe(false);
   });
 
   it('gives Shift Wall rounds a stretch range for the trimmed letter count', () => {
@@ -144,7 +173,7 @@ describe('planWall', () => {
 
   it("picks the Shift letter count inside the tier's range", () => {
     for (let i = 1; i <= 200; i++) {
-      const plan = planWall(11, seeded(i));
+      const plan = planWall(14, seeded(i));
       expect(plan.shiftLetters).toBeGreaterThanOrEqual(1);
       expect(plan.shiftLetters).toBeLessThanOrEqual(2);
     }
