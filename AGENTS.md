@@ -27,12 +27,13 @@ Scenes, one per screen:
 |---|---|---|
 | `BootScene` | Final for Week 1 | Hands off to Title. Loads nothing until Week 2 art. |
 | `TitleScene` | Interim | Game name, one-line how-to, "Click to play". The click gives the page keyboard focus inside the itch.io iframe. Restyled in Week 2. |
-| `PlayScene` | Interim (M3) | Perspective floor, lane markers, the figure in its neutral pose, and a wall that approaches over `WALL_TIME`. Each wall's placeholder hole spawns `HOLE_DISTANCE` lanes from the figure; ← / → slide the figure one lane per tap and the marker under it lights when it's lined up. While lined up, the tray prompts the wall's placeholder letters one at a time; holding, slips, wrong keys (jump, flash, shake) and the Shift rule follow PLAN.md §2. Capital chips carry a Shift mark, and a warning shows while Caps Lock is on. Losing focus pauses behind a "Click to resume" panel. The approach loops into a new wall. A click ends the run. M4 adds the real hole, pose lock, scoring and fail. |
-| `GameOverScene` | Interim | Walls cleared, score, best, wall reached, restart prompt. The restart lockout and "release every key" rule arrive in M4. |
+| `PlayScene` | Interim (M4) | The full Week 1 loop. A wall approaches over `WALL_TIME` with a hole cut from the poses (`wall-gen.ts`) `HOLE_DISTANCE` lanes from the figure. ← / → line the figure up; the tray then prompts the wall's placeholder letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. All letters held while lined up locks the pose: the wall rushes past, a PERFECT / GREAT / CLOSE CALL label pops over the figure, and the next wall starts. If the wall arrives first, it shoves the figure into a placeholder splash and the run ends. Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses behind a "Click to resume" panel. |
+| `GameOverScene` | Interim | Walls cleared, score, best (saved in `localStorage`) and the wall reached. Restart follows PLAN.md §7: input is ignored for `RESTART_LOCKOUT`, then every key must be up ("Let go of every key" shows meanwhile) before a key or click restarts. |
 
 Shared scene helpers live in `src/scenes/` (`ui.ts`, `text-styles.ts`,
 `scene-keys.ts`). Game objects live in `src/objects/`: `Floor`, `LaneMarkers`,
-`Wall`, `Figure`, `PromptTray` and `PauseOverlay`. Keyboard input lives in `src/input/`:
+`Wall`, `Figure`, `PromptTray`, `TimingLabel`, `PauseOverlay` and the
+`playSplash()` placeholder. The best score lives in `src/storage/`. Keyboard input lives in `src/input/`:
 `KeyboardInput` (native listeners, one per Play scene) and
 `preventPageScroll()` (game-wide, from `main.ts`).
 
@@ -106,7 +107,7 @@ src/
   main.ts                  # Phaser game config + scene list
   config.ts                # every tunable number (PLAN.md §8)
   data/                    # PURE: static game data
-    poses.ts               # block ids + neutral pose on the figure grid
+    poses.ts               # block ids, neutral pose and alt poses on the grid
   input/
     KeyboardInput.ts       # native key/blur events -> moves, letters, pause, Caps Lock
     prevent-page-scroll.ts # arrows/Space never scroll the host page
@@ -115,7 +116,10 @@ src/
     lanes.ts               # lane moves, alignment, hole lane, lane x
     letters.ts             # placeholder letters; uppercase never back to back
     perspective.ts         # vanishing point, project(), floor edges
-    sequence.ts            # prompt / held / slip queue state machine
+    restart.ts             # game-over lockout + "release every key" gate
+    scoring.ts             # grades, wall points, PERFECT streak multiplier
+    sequence.ts            # prompt / held / slip queue state machine + lock
+    wall-gen.ts            # blocks + alt poses per wall, hole grid + outline
   objects/
     Floor.ts               # the two perspective floor lines
     LaneMarkers.ts         # floor strip per lane; lit = lined up
@@ -123,35 +127,43 @@ src/
     Figure.ts              # five blocks in the neutral pose; slides lanes
     PromptTray.ts          # tray with held / current / slipped letter chips
     PauseOverlay.ts        # "Click to resume" panel shown on blur
+    TimingLabel.ts         # PERFECT / GREAT / CLOSE CALL + points pop-up
+    splash.ts              # placeholder pool splash of blue squares
   scenes/
     BootScene.ts           # hands off to Title
     TitleScene.ts          # "Click to play" (gets keyboard focus)
     PlayScene.ts           # the game: draws state, passes input in
-    GameOverScene.ts       # run stats + restart
+    GameOverScene.ts       # run stats, best score, gated restart
     scene-keys.ts          # scene keys + RunResult handed to GameOver
     text-styles.ts         # Phaser text style built from config tokens
-    ui.ts                  # pulsing prompt, scene-scoped window keydown
+    ui.ts                  # pulsing prompt, reduced motion, window key events
+  storage/
+    best-score.ts          # best score in localStorage, every access guarded
 tests/
-  approach.test.ts         # t advance, ease-in, wall scale
+  approach.test.ts         # t advance, wrong-key jump, ease-in, wall scale
+  best-score.test.ts       # best score kept; corrupt or blocked storage
   config.test.ts           # config invariants + text and graphics contrast
   lanes.test.ts            # lane moves, clamping, hole lane, lane geometry
   letters.test.ts          # distinct letters, uppercase count and spacing
   perspective.test.ts      # projection and floor geometry
   poses.test.ts            # neutral pose fits the grid, no overlaps
   purity.test.ts           # pure modules never import Phaser
-  sequence.test.ts         # PLAN.md §2 input rules, incl. the M3 cases
+  restart.test.ts          # lockout, release-every-key, click
+  scoring.test.ts          # grades, points, streak multiplier and cap
+  seeded.ts                # deterministic random for repeatable tests
+  sequence.test.ts         # PLAN.md §2 input rules, incl. the M3 cases + lock
+  wall-gen.test.ts         # valid poses for every block set, hole + outline
 ```
 
 The rest of the planned layout from PLAN.md §9 arrives with its milestones:
-`src/data/keyboard.ts`, the other `src/logic/` modules (`difficulty`,
-`wall-gen`, `scoring`), and `stretchScore` plus the real combo generator in
-`letters.ts` (M5). Add each to this tree when it lands.
+`src/data/keyboard.ts`, `src/logic/difficulty.ts`, and `stretchScore` plus the
+real combo generator in `letters.ts` (M5). Add each to this tree when it lands.
 
 Where things go: rules, and the pure math they depend on (the `t` clock,
 perspective) → `src/logic/`. Static game data such as the keyboard map and
 pose tables → `src/data/`. Numbers you'd tweak while tuning →
-`src/config.ts`. Anything that draws or listens → `scenes/`, `objects/` or
-`input/`.
+`src/config.ts`. Browser storage → `src/storage/`, with every access guarded.
+Anything that draws or listens → `scenes/`, `objects/` or `input/`.
 
 ---
 
@@ -286,8 +298,9 @@ playtest covers.
   meaningful graphic color against what it sits on, measures each text color
   against every background it is drawn on (`TEXT_ON` in that test; add new
   pairs there), and keeps every font size at 24px or more. Text that fades or
-  flashes must still meet AA at its faintest frame, and text over a translucent
-  veil sits on an opaque panel. Record every pair below AAA, with its measured
+  flashes must still meet AA at its faintest frame. Text drawn over the moving
+  scene carries its own background: an opaque panel, or the timing label's
+  thick white stroke. Record every pair below AAA, with its measured
   ratio, in the list below.
   - Pairs below AAA: none.
 - **Keyboard first.** The game is played entirely on the keyboard, except the
@@ -398,7 +411,10 @@ Work through **PLAN.md §10** one milestone at a time.
 - **Wall** — the panel that comes toward the player. One wall is one round;
   walls are numbered from 1 (the wall #).
 - **Hole** — the cut-out in the wall: the union of every block's target
-  rectangle, placed at the hole's lane (planned: `src/logic/wall-gen.ts`).
+  rectangle, placed at the hole's lane (`src/logic/wall-gen.ts`). Wall-gen
+  changes one block per letter, never lets blocks overlap, and prefers a
+  one-piece silhouette. Turning the torso always parts it from one arm, so
+  those walls can have a small gap.
 - **Lane** — one of `LANE_COUNT` (7) columns across the stage. The figure and
   the hole each sit in one lane. The figure starts a run in the center lane and
   keeps its lane between walls (`src/logic/lanes.ts`).
@@ -425,9 +441,9 @@ Work through **PLAN.md §10** one milestone at a time.
 - **Figure** — the player's five blocks: `head`, `torso`, `armL`, `armR`,
   `legs`.
 - **Pose** — a block's rectangle(s) in grid cells. Each block has a neutral
-  pose and alt poses; the **target pose** is the alt pose a wall asks for
-  (`src/data/poses.ts`, which has the neutral pose so far; alt poses arrive in
-  M4).
+  pose and 2–3 alt poses; the **target pose** is the alt pose a wall asks for
+  (`src/data/poses.ts`). Holding a block's letter snaps it to its target, and a
+  slip snaps it back to neutral.
 - **Prompt** — the letter currently asked for, shown as the blue chip in the
   center of the tray. Letters appear one at a time: the next one shows
   `PROMPT_APPEAR_DELAY` after the previous hold, and only while lined up and
@@ -457,7 +473,14 @@ Work through **PLAN.md §10** one milestone at a time.
   `PLACEHOLDER_LETTER_COUNT` random distinct letters, `PLACEHOLDER_SHIFT_LETTERS`
   of them uppercase (`randomLetters()` in `src/logic/letters.ts`).
 - **Pose lock** — every letter held while lined up. The pose freezes, the wall
-  rushes past (`LOCK_RUSH_DURATION`), and input is ignored until the next wall.
+  rushes past (`LOCK_RUSH_DURATION`, scaling to `RUSH_END_SCALE` and moving in
+  front of the figure once past it), and input is ignored until the next wall.
+  It is decided from game state (`maybeLock()` in `PlayScene`), never from pixels.
+- **Fail** — `t` reaches 1 before the pose locks. The figure is shoved toward
+  the camera into a placeholder splash, then the game-over screen shows.
+- **Restart gate** — after a fail, input is ignored for `RESTART_LOCKOUT`, then
+  every key held from the run must be released before a fresh key or a click
+  restarts (`src/logic/restart.ts`).
 - **Shift Wall** — from wall 13, the hole slides 1–2 lanes partway through the
   approach after a `SHIFT_WALL_TELEGRAPH` warning. New letters pause until the
   player lines up again.
@@ -468,9 +491,12 @@ Work through **PLAN.md §10** one milestone at a time.
   wall time and Shift letters (PLAN.md §5; `DIFFICULTY_TIERS` in config from
   M5).
 - **PERFECT / GREAT / CLOSE CALL** — the timing grade at pose lock:
-  `t ≤ PERFECT_T`, `t ≤ GREAT_T`, or later.
-- **Streak** — consecutive PERFECTs. It sets the score multiplier,
-  ×(1 + 0.5 × streak), capped at ×3 (PLAN.md §6).
+  `t ≤ PERFECT_T`, `t ≤ GREAT_T`, or later. A wall scores
+  `WALL_CLEAR_POINTS` plus the grade's bonus (`src/logic/scoring.ts`).
+- **Streak** — consecutive PERFECTs. A PERFECT's whole score is multiplied by
+  1 + `STREAK_STEP` × the PERFECTs already in the streak, capped at
+  `MAX_MULTIPLIER`, so the first PERFECT is ×1 and the second ×1.5. Any other
+  grade scores ×1 and resets the streak (PLAN.md §6).
 - **Key ghosting** — keyboards failing to register many keys held at once. It
   is why a wall asks for at most 5 letters, and 4 on Shift Walls.
 - **Sticky Keys** — the Windows pop-up after 5 quick Shift presses. It is why

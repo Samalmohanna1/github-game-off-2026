@@ -109,6 +109,7 @@ const css = (color: string) => parseInt(color.slice(1), 16);
 const TEXT_ON = {
   stage: ['ink', 'muted', 'accent', 'danger'],
   panel: ['ink', 'muted', 'accent', 'danger'],
+  labelStroke: ['ink', 'accent', 'danger'],
   chipHeld: ['onChip'],
   chipCurrent: ['onChip'],
   chipSlipped: ['onChip'],
