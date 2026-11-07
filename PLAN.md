@@ -229,7 +229,7 @@ shape-shift/
 - Vite + Phaser 4 + TS + Vitest, at 1280×720 FIT, with a Title → Play → GameOver flow.
 - ✅ `npm run dev` runs, `npm run build` creates a `dist/` that works when opened from a subfolder, and `npm test` passes.
 
-**M1: Stage and wall coming in**
+**M1: Stage and wall coming in** (done)
 - Floor drawn in perspective, a wall driven by `t` with an ease-in, a placeholder rectangular hole, and the prompt tray area.
 - ✅ The wall grows smoothly from far away to the figure's position in `wallTime`, then loops.
 
