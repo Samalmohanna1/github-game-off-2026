@@ -5,8 +5,8 @@ A keyboard take on Japan's "Human Tetris", made for GitHub Game Off 2026
 hole with ← / →, then hold the letters shown to pose your figure so it fits
 through. Capital letters need Shift.
 
-**Status:** Week 1 prototype, built in grey boxes. M0 (scaffold) and M1 (stage
-and approaching wall) are done. See
+**Status:** Week 1 prototype, built in grey boxes. M0 (scaffold), M1 (stage
+and approaching wall) and M2 (figure, lanes, lining up) are done. See
 [PLAN.md](./PLAN.md) for the design and milestones, and
 [AGENTS.md](./AGENTS.md) for the working rules.
 

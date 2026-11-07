@@ -233,7 +233,7 @@ shape-shift/
 - Floor drawn in perspective, a wall driven by `t` with an ease-in, a placeholder rectangular hole, and the prompt tray area.
 - ✅ The wall grows smoothly from far away to the figure's position in `wallTime`, then loops.
 
-**M2: Figure, lanes, lining up**
+**M2: Figure, lanes, lining up** (done)
 - A 5-block figure in neutral pose, ← / → lane movement (one lane per tap, held keys don't repeat), lane markers, and the hole at a random lane.
 - ✅ The marker lights up only when the figure's lane = the hole's lane, and the figure can't leave the stage.
 
