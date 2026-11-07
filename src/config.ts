@@ -5,7 +5,7 @@ export const COLORS = {
   stage: 0xf7dde3,
 } as const;
 
-// CSS strings because Phaser text styles take CSS colours. Every pair must
+// CSS strings because Phaser text styles take CSS colors. Every pair must
 // stay at or above 4.5:1 against COLORS.stage (tests/config.test.ts).
 export const TEXT_COLORS = {
   ink: '#3b2a33',

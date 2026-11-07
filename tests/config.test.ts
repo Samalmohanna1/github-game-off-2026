@@ -24,7 +24,7 @@ describe('config', () => {
     expect([C.GAME_WIDTH, C.GAME_HEIGHT]).toEqual([1280, 720]);
   });
 
-  it('has a centre lane', () => {
+  it('has a center lane', () => {
     expect(C.LANE_COUNT % 2).toBe(1);
   });
 
