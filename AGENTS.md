@@ -27,7 +27,7 @@ Scenes, one per screen:
 |---|---|---|
 | `BootScene` | Final for Week 1 | Hands off to Title. Loads nothing until Week 2 art. |
 | `TitleScene` | Interim | Game name, one-line how-to, "Click to play". The click gives the page keyboard focus inside the itch.io iframe. Restyled in Week 2. |
-| `PlayScene` | Interim (M7) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). ← / → line the figure up, and so does Space, one lane right with a wrap from the last lane to the first; the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 13+), the wall stops behind a SHIFT callout, turns orange with an arrow, and the hole slides 1–2 lanes with a sideways jolt while the new lane is marked on the floor; then the wall carries on; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: the wall rushes past, a PERFECT / GREAT / CLOSE CALL label pops over the figure, and the next wall starts. If the wall arrives first, it shoves the figure into a placeholder splash and the run ends. Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses behind a "Click to resume" panel. F2 toggles the debug overlay. |
+| `PlayScene` | Interim (M7) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). ← / → line the figure up, and so does Space, one lane right with a wrap from the last lane to the first; the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 10+), the wall stops behind a SHIFT callout, turns orange with an arrow, and the hole slides 1–2 lanes with a sideways jolt while the new lane is marked on the floor; then the wall carries on; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: the wall rushes past, a PERFECT / GREAT / CLOSE CALL label pops over the figure, and the next wall starts. If the wall arrives first, it shoves the figure into a placeholder splash and the run ends. Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses behind a "Click to resume" panel. F2 toggles the debug overlay. |
 | `GameOverScene` | Interim | Walls cleared, score, best (saved in `localStorage`) and the wall reached. Restart follows PLAN.md §7: input is ignored for `RESTART_LOCKOUT`, then every key must be up ("Let go of every key" shows meanwhile) before a key or click restarts. |
 
 Shared scene helpers live in `src/scenes/` (`ui.ts`, `text-styles.ts`,
@@ -450,7 +450,7 @@ Work through **PLAN.md §10** one milestone at a time.
   `WRONG_KEY_JUMP` are fractions of the wall time. Reaching 1 before the pose
   locks is a fail (`src/logic/approach.ts`).
 - **Wall time** — seconds a wall takes to go from `t` = 0 to 1. Each tier sets
-  it; from wall 13 it drops `WALL_TIME_DECAY` (4%) per wall, never below
+  it; in the last tier (wall 16+) it drops `WALL_TIME_DECAY` (4%) per wall, never below
   `MIN_WALL_TIME` (`wallTimeFor()` in `src/logic/difficulty.ts`).
 - **Vanishing point** — where the floor lines meet, at
   (`GAME_WIDTH / 2`, `HORIZON_Y`). Every depth is a scale toward it
@@ -503,7 +503,7 @@ Work through **PLAN.md §10** one milestone at a time.
 - **Restart gate** — after a fail, input is ignored for `RESTART_LOCKOUT`, then
   every key held from the run must be released before a fresh key or a click
   restarts (`src/logic/restart.ts`).
-- **Shift Wall** — from wall 13, partway through the approach, the hole slides
+- **Shift Wall** — from wall 10, partway through the approach, the hole slides
   `SHIFT_WALL_SLIDE` (1–2) lanes, staying on the stage. It fires once, at a
   random `t` in `SHIFT_WALL_T_RANGE` but not before a letter is held. First the
   wall turns `wallWarning` orange with an arrow pointing the way it will go for
@@ -515,8 +515,9 @@ Work through **PLAN.md §10** one milestone at a time.
   lined up with the moved hole, and the camera jolts `SHIFT_JOLT` the slide's
   way (skipped for reduced motion). Held letters stay held; new letters wait
   until the figure lines up again, and show at once when it does. The chance
-  starts at 50% on wall 13 and rises `SHIFT_WALL_CHANCE_STEP` per wall to
-  `SHIFT_WALL_CHANCE_MAX`. Shift Wall rounds ask for at most
+  starts at 30% on wall 10, steps up each tier, and in the last tier rises
+  `SHIFT_WALL_CHANCE_STEP` per wall to `SHIFT_WALL_CHANCE_MAX`. Shift Wall
+  rounds ask for at most
   `MAX_LETTERS_SHIFT_WALL` letters, scored against the tier's
   `shiftWallStretch`: a range set for 5 letters would only accept the most
   cramped 4.
@@ -527,16 +528,20 @@ Work through **PLAN.md §10** one milestone at a time.
   For scale: a-s-d is 2, f-g-h is 4, Q-P-Z is 12.5.
 - **Tier** — a band of walls with its own letter count, stretch-score range,
   neighbor rule, finger rule, wall time, Shift letters, hole distance and Shift
-  Wall chance (`DIFFICULTY_TIERS` in config, PLAN.md §5). Each wall's letters
-  are random distinct combos, retried until the score lands in the tier's range
-  (and, from wall 4, until they can be ordered with no neighboring keys back to
-  back).
-- **One finger per letter** — before Hard+ (walls 1–12), no two letters share a
-  touch-typing finger (`allowSameFinger: false`, `onSeparateFingers()`). Pairs
-  like C + D or J + M force a finger off its key into a cramped grip, while
-  spread alone (Q + P) is easy because each hand takes one side. Hard+ allows
-  them again, and the same-finger penalty in the stretch score prices them in.
-  The tier ranges before Hard+ are set from the scores of these combos only.
+  Wall chance (`DIFFICULTY_TIERS` in config, PLAN.md §5). There are eight:
+  walls 1–3, then two walls each, then an open-ended last tier from wall 16.
+  Each one adds at most one new demand: a letter, a wider stretch, a capital, Shift
+  Walls or shared fingers. `tests/difficulty.test.ts` enforces that, so the
+  curve has no cliffs. Each wall's letters are random distinct combos, retried
+  until the score lands in the tier's range (and, from wall 4, until they can
+  be ordered with no neighboring keys back to back).
+- **One finger per letter** — before the last tier (walls 1–15), no two
+  letters share a touch-typing finger (`allowSameFinger: false`,
+  `onSeparateFingers()`). Pairs like C + D or J + M force a finger off its key
+  into a cramped grip, while spread alone (Q + P) is easy because each hand
+  takes one side. The last tier ("Shared fingers") allows them, and the
+  same-finger penalty in the stretch score prices them in. The tier ranges
+  before it are set from the scores of these combos only.
 - **PERFECT / GREAT / CLOSE CALL** — the timing grade at pose lock:
   `t ≤ PERFECT_T`, `t ≤ GREAT_T`, or later. A wall scores
   `WALL_CLEAR_POINTS` plus the grade's bonus (`src/logic/scoring.ts`).
