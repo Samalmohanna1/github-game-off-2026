@@ -151,7 +151,7 @@ tests/
   difficulty.test.ts       # tier table, wall time decay, Shift Wall chance, caps
   keyboard.test.ts         # all 26 letters, hand split, stagger, fingers
   lanes.test.ts            # lane moves, clamping, hole lane, lane geometry
-  letters.test.ts          # stretchScore; per tier: range, no repeats, capitals, caps
+  letters.test.ts          # stretchScore; per tier: range, no repeats, capitals, caps, fingers
   perspective.test.ts      # projection and floor geometry
   poses.test.ts            # neutral pose fits the grid, no overlaps
   purity.test.ts           # pure modules never import Phaser
@@ -512,10 +512,17 @@ Work through **PLAN.md §10** one milestone at a time.
   letter beyond `HAND_CAPACITY` on one side, and per pair on the same finger.
   For scale: a-s-d is 2, f-g-h is 4, Q-P-Z is 12.5.
 - **Tier** — a band of walls with its own letter count, stretch-score range,
-  neighbor rule, wall time, Shift letters, hole distance and Shift Wall chance
-  (`DIFFICULTY_TIERS` in config, PLAN.md §5). Each wall's letters are random
-  distinct combos, retried until the score lands in the tier's range (and, from
-  wall 4, until they can be ordered with no neighboring keys back to back).
+  neighbor rule, finger rule, wall time, Shift letters, hole distance and Shift
+  Wall chance (`DIFFICULTY_TIERS` in config, PLAN.md §5). Each wall's letters
+  are random distinct combos, retried until the score lands in the tier's range
+  (and, from wall 4, until they can be ordered with no neighboring keys back to
+  back).
+- **One finger per letter** — before Hard+ (walls 1–12), no two letters share a
+  touch-typing finger (`allowSameFinger: false`, `onSeparateFingers()`). Pairs
+  like C + D or J + M force a finger off its key into a cramped grip, while
+  spread alone (Q + P) is easy because each hand takes one side. Hard+ allows
+  them again, and the same-finger penalty in the stretch score prices them in.
+  The tier ranges before Hard+ are set from the scores of these combos only.
 - **PERFECT / GREAT / CLOSE CALL** — the timing grade at pose lock:
   `t ≤ PERFECT_T`, `t ≤ GREAT_T`, or later. A wall scores
   `WALL_CLEAR_POINTS` plus the grade's bonus (`src/logic/scoring.ts`).

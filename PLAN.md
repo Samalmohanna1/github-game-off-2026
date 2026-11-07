@@ -113,6 +113,7 @@ The goal is combos that make hands cross and fingers stretch, starting easy and 
   - plus a cross penalty: points when the letters are split unevenly between the two sides, which forces one hand to reach across
   - plus a same-column penalty: two keys in the same finger column
 - Each difficulty tier has a `[minScore, maxScore]` range. Generate random combos without repeated letters and **reject** any outside the range (about 200 tries max, then take the closest).
+- **One finger per letter (walls 1–12):** before Hard+, never put two letters on the same touch-typing finger (e.g. C + D, J + M). Those pairs force a finger off its key into a cramped grip, while spread alone (Q + P) is easy because each hand takes one side. Hard+ allows them, and the same-column penalty prices them in. (Added in the M7 tuning pass: before it, 59% of wall 7–9 combos and 89% of wall 10–12 combos had such a pair.)
 - **Order** the letters so that each new one isn't right next to the last one. Next to each other is fine on walls 1–3.
 - **Uppercase:** turn the tier's number of Shift letters into uppercase. **Never put two uppercase letters back to back.** (Windows opens a Sticky Keys pop-up if Shift is pressed 5 times quickly.)
 - **Key limit:** never ask for more than **5 letters**, and use at most **4** on Shift Wall rounds. With an arrow key (or Space) and Shift on top, that's up to 7 keys pressed at once. Many keyboards can't register that many keys together ("key ghosting").
@@ -131,7 +132,7 @@ All numbers live in `src/config.ts`.
 | 10–12 | 5 | Hard (full stretch, e.g. Q + P + Z) | 7.0s | 1–2 | 2–5 | No |
 | 13+ | 4 on Shift Wall rounds, 5 otherwise | Hard+ | −4% per wall from 7.0s, never under 3.5s | 1–2 | 2–6 | 50% of walls, rising to 80% |
 
-Lining up is in from wall 1. Early walls are slow enough that new players learn the whole mechanic at once. (Wall times were raised from 8 / 7 / 6 / 5.5s in the M7 tuning pass, after playtesting stalled at walls 7–8.)
+Lining up is in from wall 1. Early walls are slow enough that new players learn the whole mechanic at once. (Wall times were raised from 8 / 7 / 6 / 5.5s in the M7 tuning pass, after playtesting stalled at walls 7–8.) Walls 1–12 keep one finger per letter (§4), so their stretch ranges are set from those combos alone. Hard+ is the first tier with cramped same-finger grips.
 
 ### Shift Wall details
 - Triggers at a random `t ∈ [0.35, 0.6]`, but only once at least one letter is held.
