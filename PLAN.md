@@ -244,7 +244,7 @@ shape-shift/
 - Letters only appear while lined up.
 - ✅ Unit tests cover: a normal run; a slip in the middle; a slip on the last letter; re-pressing a slipped letter early (wrong key); uppercase without Shift (wrong key); releasing Shift after an uppercase press (still held); blur.
 
-**M4: Pass/fail, scoring, game over**
+**M4: Pass/fail, scoring, game over** (done)
 - Real hole made from the poses (`wall-gen.ts`), blocks moving into their target poses when held, pose lock + rush, timing labels, streak multiplier, fail shove + splash placeholder, game-over screen, restart lockout and the "release all keys" rule.
 - ✅ A full run is playable from start to game over and back again.
 
