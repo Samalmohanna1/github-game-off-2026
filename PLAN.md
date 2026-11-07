@@ -33,7 +33,7 @@ SPAWN → ALIGN → POSE → (SHIFT WALL?) → RESOLVE → next wall | GAME OVER
 
 1. **SPAWN.** A wall appears far away, with its hole at a random lane. It starts moving toward the camera immediately. The hole's shape is visible from the start.
 2. **ALIGN.** The player taps **← / →** to slide the whole figure one lane per tap. **No letters appear until the figure's lane matches the hole's lane.** When they match, the lane marker under the figure lights up.
-3. **POSE.** Letters appear **one at a time** in the prompt tray. Holding the current letter moves its body block into the target pose, and the letter turns green. The next letter appears once the current one is held.
+3. **POSE.** Letters appear **one at a time** in the prompt tray. Holding the current letter moves its body block into the target pose, and the letter turns green. The next letter appears once the current one is held. While lined up, that next letter waits on the right as a hollow preview chip and slides to the center when it becomes current, so the player can get a finger ready (added in the M7 tuning pass).
 4. **SHIFT WALL** (walls 13+). Partway through the approach, the hole slides 1–2 lanes. Held letters keep their blocks in place, but **new letters stop appearing until the player lines up again**, which they have to do while still holding letters.
 5. **RESOLVE.**
    - **Pass:** once every letter is held and the figure is lined up, the pose **locks**. The wall rushes past (about 0.4s), and the player gets a timing bonus.
@@ -73,6 +73,7 @@ SPAWN → ALIGN → POSE → (SHIFT WALL?) → RESOLVE → next wall | GAME OVER
 - A white **prompt tray** across the bottom:
   - **Held** letters as green chips, lined up from the left.
   - The **current** prompt as a blue chip in the center.
+  - The **next** letter as a hollow, blue-outlined preview chip just right of center (only while lined up). It slides to the center when it becomes current.
   - **Slipped/queued** letters as red chips on the right.
   - **Capital** letters also carry a Shift mark (⇧) on their chip, because case alone is hard to read for letters like o/O, s/S and x/X.
 

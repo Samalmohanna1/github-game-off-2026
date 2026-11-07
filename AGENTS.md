@@ -129,7 +129,7 @@ src/
     LaneMarkers.ts         # floor strip per lane; lit = lined up
     Wall.ts                # wall + hole; wrong-key flash, Shift warning + slide
     Figure.ts              # five blocks in the neutral pose; slides lanes
-    PromptTray.ts          # tray with held / current / slipped letter chips
+    PromptTray.ts          # tray: held / current / next preview / slipped chips
     PauseOverlay.ts        # "Click to resume" panel shown on blur
     TimingLabel.ts         # PERFECT / GREAT / CLOSE CALL + points pop-up
     DebugOverlay.ts        # F2 panel: state, t, lanes, prompt, queue, held, stretch
@@ -315,7 +315,9 @@ playtest covers.
   keyboard focus. Game over restarts on any key or a click. During play, a
   warning shows while Caps Lock is on (PLAN.md §2).
 - **Don't rely on color alone.** Held, current and slipped letters also differ
-  by position in the tray (left, center, right; PLAN.md §3). Don't rely on case
+  by position in the tray (left, center, right; PLAN.md §3), and the next-letter
+  preview is hollow where the others are filled. Show "not yet" with style,
+  never with opacity: a faded chip would drop its letter below AA. Don't rely on case
   alone either: capital chips carry a drawn Shift mark (`SHIFT_MARK`). The
   Shift Wall warning is as bright as the wrong-key flash, so its arrow, not
   its orange, is what sets it apart.
@@ -456,12 +458,18 @@ Work through **PLAN.md §10** one milestone at a time.
 - **Prompt** — the letter currently asked for, shown as the blue chip in the
   center of the tray. Letters appear one at a time: the next one shows
   `PROMPT_APPEAR_DELAY` after the previous hold, and only while lined up and
-  not paused. Upcoming fresh letters stay hidden.
+  not paused.
+- **Next-letter preview** — while lined up, the fresh letter after the current
+  one waits just right of center as a hollow, blue-outlined chip (`view().next`
+  in `src/logic/sequence.ts`), then slides to the center when it becomes
+  current. Letters further back stay hidden, and a slipped next letter shows as
+  red instead.
 - **Prompt tray** — the white strip along the bottom: held letters (green,
-  left, in the order held), the current prompt (blue, center), and slipped
-  letters waiting their turn (red, right, in queue order). Capital letters
-  carry a ⇧ Shift mark in the chip's top-right corner.
-- **Caps Lock warning** — a line under the placeholder hint while Caps Lock is
+  left, in the order held), the current prompt (blue, center), then the
+  next-letter preview and slipped letters waiting their turn (red), right of
+  center in queue order. Capital letters carry a ⇧ Shift mark in the chip's
+  top-right corner.
+- **Caps Lock warning** — a line at the top of the screen while Caps Lock is
   on. The state is read from every key event with `getModifierState`.
 - **Held** — a prompted letter that was pressed correctly and is still down;
   its block sits in the target pose (from M4). Held keys are tracked by
