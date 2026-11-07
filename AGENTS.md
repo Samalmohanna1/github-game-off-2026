@@ -27,12 +27,17 @@ Scenes, one per screen:
 |---|---|---|
 | `BootScene` | Final for Week 1 | Hands off to Title. Loads nothing until Week 2 art. |
 | `TitleScene` | Interim | Game name, one-line how-to, "Click to play". The click gives the page keyboard focus inside the itch.io iframe. Restyled in Week 2. |
-| `PlayScene` | Placeholder (M0) | Any key or click ends the run. M1–M7 build the stage, wall, figure, lanes, prompt tray and rules here. |
+| `PlayScene` | Interim (M1) | Perspective floor, a wall that approaches over `WALL_TIME` and loops, a centered placeholder hole and the empty prompt tray. Any key or click ends the run. M2–M7 add the figure, lanes, letters and rules. |
 | `GameOverScene` | Interim | Walls cleared, score, best, wall reached, restart prompt. The restart lockout and "release every key" rule arrive in M4. |
 
 Shared scene helpers live in `src/scenes/` (`ui.ts`, `text-styles.ts`,
-`scene-keys.ts`). Game objects (`Wall`, `Figure`, `LaneMarkers`, `PromptTray`)
-arrive in `src/objects/` from M1.
+`scene-keys.ts`). Game objects live in `src/objects/`: `Floor`, `Wall` and
+`PromptTray` so far, with `Figure` and `LaneMarkers` arriving in M2.
+
+The stage uses a single vanishing point, so a depth is just a scale toward it
+(`project()` in `src/logic/perspective.ts`). Scale 1 is the figure's plane.
+The wall is drawn once at full size around the vanishing point, and setting
+its scale places it at any depth.
 
 ## Companion docs (source of truth)
 
@@ -98,25 +103,35 @@ README.md                  # setup, commands, deploy
 src/
   main.ts                  # Phaser game config + scene list
   config.ts                # every tunable number (PLAN.md §8)
+  logic/                   # PURE: no Phaser imports
+    approach.ts            # t clock, ease-in, wall scale
+    perspective.ts         # vanishing point, project(), floor edges
+  objects/
+    Floor.ts               # the two perspective floor lines
+    Wall.ts                # wall with placeholder hole, scaled to depth
+    PromptTray.ts          # white tray area along the bottom
   scenes/
     BootScene.ts           # hands off to Title
     TitleScene.ts          # "Click to play" (gets keyboard focus)
-    PlayScene.ts           # the game; M0 placeholder for now
+    PlayScene.ts           # the game: draws state, passes input in
     GameOverScene.ts       # run stats + restart
     scene-keys.ts          # scene keys + RunResult handed to GameOver
     text-styles.ts         # Phaser text style built from config tokens
     ui.ts                  # pulsing prompt, scene-scoped window keydown
 tests/
-  config.test.ts           # config invariants + text contrast
+  approach.test.ts         # t advance, ease-in, wall scale
+  config.test.ts           # config invariants + text and graphics contrast
+  perspective.test.ts      # projection and floor geometry
   purity.test.ts           # pure modules never import Phaser
 ```
 
-The planned folders from PLAN.md §9 arrive with their milestones: `src/data/`
-(QWERTY map, poses), `src/logic/`, `src/input/KeyboardInput.ts` and
-`src/objects/`. Add each to this tree when it lands.
+The rest of the planned layout from PLAN.md §9 arrives with its milestones:
+`src/data/` (QWERTY map, poses), `src/input/KeyboardInput.ts`, and the other
+`src/logic/` modules and game objects. Add each to this tree when it lands.
 
-Where things go: rules → `src/logic/`. Static game data such as the keyboard
-map and pose tables → `src/data/`. Numbers you'd tweak while tuning →
+Where things go: rules, and the pure math they depend on (the `t` clock,
+perspective) → `src/logic/`. Static game data such as the keyboard map and
+pose tables → `src/data/`. Numbers you'd tweak while tuning →
 `src/config.ts`. Anything that draws or listens → `scenes/`, `objects/` or
 `input/`.
 
@@ -244,9 +259,10 @@ playtest covers.
 - **Contrast: WCAG AAA preferred, AA required.** Aim for AAA — **7:1 normal
   text, 4.5:1 large text** (≥24px, or ≥18.66px bold). A color between AA and
   AAA may ship, but no text goes below **AA — 4.5:1 normal, 3:1 large**.
-  Meaningful non-text graphics (lit vs unlit lane marker; held, current and
-  slipped chips) need 3:1. **Verify pairs, don't eyeball them**:
-  `tests/config.test.ts` measures every `TEXT_COLORS` entry against the stage
+  Meaningful non-text graphics (the wall and its hole, floor lines, tray edge,
+  lit vs unlit lane marker; held, current and slipped chips) need 3:1.
+  **Verify pairs, don't eyeball them**: `tests/config.test.ts` measures every
+  `TEXT_COLORS` entry and every meaningful graphic color against the stage,
   and keeps every font size at 24px or more. Text that fades or flashes must
   still meet AA at its faintest frame. Record every pair below AAA, with its
   measured ratio, in the list below.
@@ -363,10 +379,18 @@ Work through **PLAN.md §10** one milestone at a time.
 - **Lined up** (aligned) — the figure's lane equals the hole's lane. Letters
   only appear while lined up.
 - **`t`** (progress) — the wall's approach from 0 (far away) to 1 (at the
-  figure), with an ease-in. It drives the wall's scale and position. Reaching 1
-  before the pose locks is a fail.
-- **Wall time** — seconds a wall takes to go from `t` = 0 to 1. It shrinks as
+  figure). `t` is linear in time; an ease-in (`WALL_EASE_POWER`) shapes only
+  the wall's scale, so it seems to speed up. Timing thresholds and
+  `WRONG_KEY_JUMP` are fractions of the wall time. Reaching 1 before the pose
+  locks is a fail (`src/logic/approach.ts`).
+- **Wall time** — seconds a wall takes to go from `t` = 0 to 1. It is a single
+  `WALL_TIME` until M5 brings the difficulty tiers, after which it shrinks as
   the difficulty rises, never below `MIN_WALL_TIME`.
+- **Vanishing point** — where the floor lines meet, at
+  (`GAME_WIDTH / 2`, `HORIZON_Y`). Every depth is a scale toward it
+  (`src/logic/perspective.ts`).
+- **Figure plane** — the depth where the figure stands, on `FIGURE_FLOOR_Y`.
+  It is scale 1: the wall reaches full size there.
 - **Figure** — the player's five blocks: `head`, `torso`, `armL`, `armR`,
   `legs`.
 - **Pose** — a block's rectangle(s) in grid cells. Each block has a neutral
