@@ -71,6 +71,15 @@ describe('config', () => {
     expect(C.LANE_MARKER_FRONT_Y).toBeGreaterThan(C.FIGURE_FLOOR_Y);
     expect(C.LANE_MARKER_FRONT_Y).toBeLessThanOrEqual(C.STAGE_BOTTOM_Y);
   });
+
+  it('fits every chip inside the tray', () => {
+    expect(C.CHIP.size).toBeLessThan(C.TRAY_HEIGHT);
+    expect(C.CHIP.currentSize).toBeLessThan(C.TRAY_HEIGHT);
+  });
+
+  it('keeps the Shift mark inside its chip corner', () => {
+    expect(C.SHIFT_MARK.size + C.SHIFT_MARK.inset).toBeLessThan(0.5);
+  });
 });
 
 describe('graphics contrast', () => {
@@ -87,6 +96,10 @@ describe('graphics contrast', () => {
 
   it.each(['chipHeld', 'chipCurrent', 'chipSlipped'] as const)('%s chips stand out from the tray', (name) => {
     expect(contrastRatio(C.COLORS[name], C.COLORS.tray)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  });
+
+  it.each(['chipHeld', 'chipCurrent', 'chipSlipped'] as const)('the Shift mark reads on %s chips', (name) => {
+    expect(contrastRatio(C.COLORS.chipShiftMark, C.COLORS[name])).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 });
 

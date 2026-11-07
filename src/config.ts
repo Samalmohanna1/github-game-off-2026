@@ -19,6 +19,7 @@ export const COLORS = {
   chipHeld: 0x1a7a43,
   chipCurrent: 0x1d4fb8,
   chipSlipped: 0xb3243a,
+  chipShiftMark: 0xffffff,
   panel: 0xffffff,
   panelEdge: 0x6e5662,
 } as const;
@@ -43,7 +44,7 @@ export const CHIP_FONT_FAMILY = 'Verdana, Tahoma, sans-serif';
 export const FONT_SIZES = {
   title: 112,
   heading: 80,
-  chip: 44,
+  chip: 42,
   body: 34,
   small: 24,
 } as const;
@@ -58,6 +59,7 @@ export const SCREEN_LAYOUT = {
   gameOverStatsLineGap: 0.08,
   gameOverPromptY: 0.85,
   playHintY: 0.07,
+  capsWarningY: 0.15,
   pauseHeadingY: 0.44,
   pausePromptY: 0.56,
 } as const;
@@ -69,12 +71,16 @@ export const PANEL_EDGE_WIDTH = 3;
 // Prompt tray chips, px. Held chips line up from the tray's left edge, the
 // current prompt sits in the center, and slipped letters queue to its right.
 export const CHIP = {
-  size: 64,
-  currentSize: 84,
+  size: 68,
+  currentSize: 88,
   gap: 14,
   edgeInset: 40,
   radius: 12,
 } as const;
+
+// The outlined Shift arrow on capital chips, in the top-right corner. Size and
+// inset are fractions of the chip, sized to clear even wide capitals (W, M).
+export const SHIFT_MARK = { size: 0.25, inset: 0.07, lineWidth: 2 } as const;
 
 // Prompts pulse in size, not alpha, so their contrast never drops.
 export const PROMPT_PULSE_SCALE = 1.06;

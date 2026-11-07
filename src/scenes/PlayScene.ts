@@ -35,6 +35,7 @@ export class PlayScene extends Phaser.Scene {
   private figure!: Figure;
   private laneMarkers!: LaneMarkers;
   private tray!: PromptTray;
+  private capsWarning!: Phaser.GameObjects.Text;
   private pauseOverlay!: PauseOverlay;
 
   constructor() {
@@ -54,6 +55,15 @@ export class PlayScene extends Phaser.Scene {
     this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT * SCREEN_LAYOUT.playHintY, 'Placeholder: click to end the run', textStyle('small', 'muted'))
       .setOrigin(0.5);
+    this.capsWarning = this.add
+      .text(
+        GAME_WIDTH / 2,
+        GAME_HEIGHT * SCREEN_LAYOUT.capsWarningY,
+        'Caps Lock is on. Turn it off and use Shift for capitals.',
+        textStyle('body', 'danger', true),
+      )
+      .setOrigin(0.5)
+      .setVisible(false);
     this.pauseOverlay = new PauseOverlay(this);
     this.startWall();
 
@@ -63,6 +73,7 @@ export class PlayScene extends Phaser.Scene {
       onKeyDown: (key, code) => this.apply(this.sequence.press(key, code)),
       onKeyUp: (code) => this.apply(this.sequence.release(code)),
       onBlur: () => this.pause(),
+      onCapsLock: (on) => this.capsWarning.setVisible(on),
     });
     this.events.once('shutdown', () => keyboard.destroy());
   }

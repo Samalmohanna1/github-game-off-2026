@@ -20,11 +20,15 @@ export function isLetterKey(key: string): boolean {
   return /^[a-z]$/i.test(key);
 }
 
+export function isUppercaseLetter(letter: string): boolean {
+  return /^[A-Z]$/.test(letter);
+}
+
 // PLAN.md §2: an uppercase prompt needs the exact key, so Shift must be down at
 // press time. A lowercase prompt takes either case, so a Shift still held from
 // an earlier letter isn't punished.
 export function matchesPrompt(prompt: string, key: string): boolean {
-  return prompt === prompt.toUpperCase() ? key === prompt : key.toLowerCase() === prompt;
+  return isUppercaseLetter(prompt) ? key === prompt : key.toLowerCase() === prompt;
 }
 
 // Held keys are tracked by event.code, so letting go of Shift never looks like

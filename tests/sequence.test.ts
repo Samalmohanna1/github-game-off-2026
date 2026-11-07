@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PROMPT_APPEAR_DELAY } from '@/config';
-import { LetterSequence, isLetterKey, matchesPrompt } from '@/logic/sequence';
+import { LetterSequence, isLetterKey, isUppercaseLetter, matchesPrompt } from '@/logic/sequence';
 
 const code = (letter: string) => `Key${letter.toUpperCase()}`;
 
@@ -133,6 +133,12 @@ describe('case and Shift', () => {
     const seq = lineUp(['J', 'k']);
     hold(seq, 'J');
     expect(seq.press('K', 'KeyK')).toEqual({ type: 'held', letter: 'k' });
+  });
+
+  it('tells capitals (which need Shift) from lowercase letters', () => {
+    expect(isUppercaseLetter('J')).toBe(true);
+    expect(isUppercaseLetter('j')).toBe(false);
+    expect(isUppercaseLetter('Shift')).toBe(false);
   });
 
   it('matches prompts by the rules', () => {

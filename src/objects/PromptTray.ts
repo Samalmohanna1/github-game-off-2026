@@ -1,6 +1,15 @@
 import Phaser from 'phaser';
-import { CHIP, CHIP_FONT_FAMILY, COLORS, GAME_WIDTH, STAGE_BOTTOM_Y, TRAY_EDGE_WIDTH, TRAY_HEIGHT } from '@/config';
-import type { SequenceView } from '@/logic/sequence';
+import {
+  CHIP,
+  CHIP_FONT_FAMILY,
+  COLORS,
+  GAME_WIDTH,
+  SHIFT_MARK,
+  STAGE_BOTTOM_Y,
+  TRAY_EDGE_WIDTH,
+  TRAY_HEIGHT,
+} from '@/config';
+import { isUppercaseLetter, type SequenceView } from '@/logic/sequence';
 import { textStyle } from '@/scenes/text-styles';
 
 const MID_Y = STAGE_BOTTOM_Y + TRAY_HEIGHT / 2;
@@ -13,7 +22,21 @@ const CHIP_TEXT_STYLE: Phaser.Types.GameObjects.Text.TextStyle = {
   fontFamily: CHIP_FONT_FAMILY,
 };
 
-// Letters keep their case: uppercase means "hold Shift" (AGENTS.md).
+// The Shift key's hollow up arrow, in a unit square. Drawn rather than typed so
+// it never depends on a font having the ⇧ glyph.
+const SHIFT_ARROW: readonly [number, number][] = [
+  [0.5, 0],
+  [1, 0.55],
+  [0.72, 0.55],
+  [0.72, 1],
+  [0.28, 1],
+  [0.28, 0.55],
+  [0, 0.55],
+];
+
+// Letters keep their case: uppercase means "hold Shift" (AGENTS.md). Capitals
+// also carry the Shift mark, because case alone is hard to read in a lone chip
+// (o/O, s/S, x/X differ only in size).
 export class PromptTray extends Phaser.GameObjects.Container {
   private readonly chips: Phaser.GameObjects.Graphics;
   private letters: Phaser.GameObjects.Text[] = [];
@@ -53,5 +76,18 @@ export class PromptTray extends Phaser.GameObjects.Container {
     const text = new Phaser.GameObjects.Text(this.scene, x, MID_Y, letter, CHIP_TEXT_STYLE).setOrigin(0.5);
     this.add(text);
     this.letters.push(text);
+    if (isUppercaseLetter(letter)) this.addShiftMark(x, size);
+  }
+
+  private addShiftMark(chipX: number, chipSize: number): void {
+    const markSize = chipSize * SHIFT_MARK.size;
+    const inset = chipSize * SHIFT_MARK.inset;
+    const left = chipX + chipSize / 2 - inset - markSize;
+    const top = MID_Y - chipSize / 2 + inset;
+    this.chips.lineStyle(SHIFT_MARK.lineWidth, COLORS.chipShiftMark);
+    this.chips.strokePoints(
+      SHIFT_ARROW.map(([u, v]) => new Phaser.Math.Vector2(left + u * markSize, top + v * markSize)),
+      true,
+    );
   }
 }
