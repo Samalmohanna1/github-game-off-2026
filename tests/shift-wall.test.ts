@@ -7,7 +7,7 @@ import {
   SHIFT_WALL_TELEGRAPH,
   SHIFT_WALL_T_RANGE,
 } from '@/config';
-import { isAligned, moveLane } from '@/logic/lanes';
+import { isAligned, moveLane, stepToward } from '@/logic/lanes';
 import { LetterSequence } from '@/logic/sequence';
 import { ShiftWall, pickSlideLane } from '@/logic/shift-wall';
 import { seeded } from './seeded';
@@ -114,10 +114,22 @@ describe('ShiftWall', () => {
       expect(Math.sign(warn.toLane - 3)).toBe(warn.dir);
     }
   });
+
+  it('names the upcoming lane only while it warns', () => {
+    const shift = new ShiftWall(true, 3, seeded(5));
+    expect(shift.upcomingLane).toBeNull();
+    const warn = shift.update(1, 1, MANY_LEFT, FRAME);
+    if (warn?.type !== 'warn') throw new Error('expected a warning');
+    expect(shift.upcomingLane).toBe(warn.toLane);
+    let slid = false;
+    while (!slid) slid = shift.update(1, 1, MANY_LEFT, FRAME)?.type === 'slide';
+    expect(shift.upcomingLane).toBeNull();
+    expect(new ShiftWall(false, 3, seeded(1)).upcomingLane).toBeNull();
+  });
 });
 
 describe('pickSlideLane', () => {
-  it('slides 1-2 lanes and stays on the stage, from every lane', () => {
+  it('slides SHIFT_WALL_SLIDE lanes and stays on the stage, from every lane', () => {
     for (let lane = 0; lane < LANE_COUNT; lane++) {
       for (const seed of SEEDS.slice(0, 40)) {
         const to = pickSlideLane(lane, seeded(seed));
@@ -133,6 +145,22 @@ describe('pickSlideLane', () => {
 // PLAN.md M6 done-when: holding 3 letters while tapping an arrow to line up
 // again works, and the next letter appears right away.
 describe('lining up again after a Shift Wall', () => {
+  it('takes one Space press, made during the warning or after the slide', () => {
+    for (let hole = 0; hole < LANE_COUNT; hole++) {
+      for (const seed of SEEDS.slice(0, 20)) {
+        const shift = new ShiftWall(true, hole, seeded(seed));
+        shift.update(1, 1, MANY_LEFT, FRAME);
+        const early = stepToward(hole, shift.upcomingLane ?? hole);
+        let slide = null;
+        while (slide === null) slide = shift.update(1, 1, MANY_LEFT, FRAME);
+        if (slide.type !== 'slide') throw new Error('expected a slide');
+        const late = stepToward(hole, slide.toLane);
+        expect(early).toBe(slide.toLane);
+        expect(late).toBe(slide.toLane);
+      }
+    }
+  });
+
   it('keeps the held letters and shows the next prompt the moment the figure is lined up', () => {
     let figureLane = 3;
     let holeLane = 3;

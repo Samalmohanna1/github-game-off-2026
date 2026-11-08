@@ -9,10 +9,10 @@ export function moveLane(lane: number, dir: -1 | 1): number {
   return Math.min(LANE_COUNT - 1, Math.max(0, lane + dir));
 }
 
-// Space: one lane right, wrapping from the last lane back to the first, so a
-// thumb can reach any lane without the hands leaving the letters.
-export function cycleLane(lane: number): number {
-  return (lane + 1) % LANE_COUNT;
+// Space: one lane toward the hole, so a thumb can line up either way without
+// the hands leaving the letters. Once lined up, it stays put.
+export function stepToward(lane: number, targetLane: number): number {
+  return lane + Math.sign(targetLane - lane);
 }
 
 export function isAligned(figureLane: number, holeLane: number): boolean {
