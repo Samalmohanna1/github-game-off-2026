@@ -6,11 +6,13 @@ import {
   GAME_WIDTH,
   SHIFT_MARK,
   STAGE_BOTTOM_Y,
+  TEAR,
   TEXT_COLORS,
-  TRAY_EDGE_WIDTH,
   TRAY_HEIGHT,
 } from '@/config';
 import { isUppercaseLetter, type SequenceView } from '@/logic/sequence';
+import { tornLine } from '@/logic/torn';
+import { toVectors } from '@/objects/paper';
 import { textStyle } from '@/scenes/text-styles';
 import { prefersReducedMotion } from '@/scenes/ui';
 
@@ -28,11 +30,13 @@ interface ChipLook {
   readonly mark: number;
 }
 
+// Key caps on the black tray (M10): cream for the current letter, green once
+// held, coral when slipped, and a hollow cream outline for the preview.
 const LOOKS: Readonly<Record<ChipKind, ChipLook>> = {
-  held: { fill: COLORS.chipHeld, edge: null, text: 'onChip', mark: COLORS.chipShiftMark },
-  current: { fill: COLORS.chipCurrent, edge: null, text: 'onChip', mark: COLORS.chipShiftMark },
-  next: { fill: COLORS.chipNext, edge: COLORS.chipNextEdge, text: 'accent', mark: COLORS.chipNextEdge },
-  slipped: { fill: COLORS.chipSlipped, edge: null, text: 'onChip', mark: COLORS.chipShiftMark },
+  held: { fill: COLORS.chipHeld, edge: null, text: 'ink', mark: COLORS.chipShiftMark },
+  current: { fill: COLORS.chipCurrent, edge: null, text: 'ink', mark: COLORS.chipShiftMark },
+  next: { fill: COLORS.chipNext, edge: COLORS.chipNextEdge, text: 'paper', mark: COLORS.chipNextEdge },
+  slipped: { fill: COLORS.chipSlipped, edge: null, text: 'ink', mark: COLORS.chipShiftMark },
 };
 
 interface ChipSpec {
@@ -81,11 +85,14 @@ export class PromptTray extends Phaser.GameObjects.Container {
     super(scene);
     scene.add.existing(this);
 
+    // A black strip with a torn top edge, like the mocks' prompt bar.
     const background = new Phaser.GameObjects.Graphics(scene);
+    const left = { x: 0, y: STAGE_BOTTOM_Y };
+    const right = { x: GAME_WIDTH, y: STAGE_BOTTOM_Y };
+    const bottom = STAGE_BOTTOM_Y + TRAY_HEIGHT;
+    const outline = [...tornLine(left, right, TEAR.step, TEAR.jag, Math.random), right, { x: GAME_WIDTH, y: bottom }, { x: 0, y: bottom }];
     background.fillStyle(COLORS.tray);
-    background.fillRect(0, STAGE_BOTTOM_Y, GAME_WIDTH, TRAY_HEIGHT);
-    background.lineStyle(TRAY_EDGE_WIDTH, COLORS.trayEdge);
-    background.lineBetween(0, STAGE_BOTTOM_Y, GAME_WIDTH, STAGE_BOTTOM_Y);
+    background.fillPoints(toVectors(outline), true);
     this.add(background);
   }
 

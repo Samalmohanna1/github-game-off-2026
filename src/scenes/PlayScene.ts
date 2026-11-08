@@ -25,10 +25,13 @@ import { ScoreKeeper, gradeFor } from '@/logic/scoring';
 import { LetterSequence, type SequenceEffect } from '@/logic/sequence';
 import { ShiftWall, type ShiftWallEvent } from '@/logic/shift-wall';
 import { generateWall, holeGrid, type WallSpec } from '@/logic/wall-gen';
+import { Backdrop } from '@/objects/Backdrop';
 import { DebugOverlay, type DebugRow } from '@/objects/DebugOverlay';
 import { Figure } from '@/objects/Figure';
 import { Floor } from '@/objects/Floor';
+import { Hud } from '@/objects/Hud';
 import { LaneMarkers } from '@/objects/LaneMarkers';
+import { GRAIN_TEXTURE, paperLabel } from '@/objects/paper';
 import { PauseOverlay } from '@/objects/PauseOverlay';
 import { PromptTray } from '@/objects/PromptTray';
 import { ShiftCallout } from '@/objects/ShiftCallout';
@@ -40,19 +43,22 @@ import { textStyle } from '@/scenes/text-styles';
 import { prefersReducedMotion } from '@/scenes/ui';
 
 // Draw order. The wall moves from behind the figure to in front of it once it
-// rushes past the figure's plane.
+// rushes past the figure's plane. The paper grain lies over the scene but
+// under the cards, tray and HUD, so their text stays crisp.
 const LAYER = {
-  floor: 0,
-  laneMarkers: 1,
-  wall: 2,
-  figure: 3,
-  wallPassed: 4,
-  splash: 5,
-  label: 6,
-  tray: 7,
-  hud: 8,
-  pause: 9,
-  debug: 10,
+  backdrop: 0,
+  floor: 1,
+  laneMarkers: 2,
+  wall: 3,
+  figure: 4,
+  wallPassed: 5,
+  splash: 6,
+  grain: 7,
+  label: 8,
+  tray: 9,
+  hud: 10,
+  pause: 11,
+  debug: 12,
 } as const;
 
 // Kept in the game registry so the overlay stays on across walls and restarts.
@@ -81,7 +87,8 @@ export class PlayScene extends Phaser.Scene {
   private tray!: PromptTray;
   private label!: TimingLabel;
   private callout!: ShiftCallout;
-  private capsWarning!: Phaser.GameObjects.Text;
+  private capsWarning!: Phaser.GameObjects.Container;
+  private hud!: Hud;
   private pauseOverlay!: PauseOverlay;
   private debug!: DebugOverlay;
   // Null when the browser has no Web Audio; the game then plays silent.
@@ -102,21 +109,19 @@ export class PlayScene extends Phaser.Scene {
     this.sequence = new LetterSequence();
     this.scoreKeeper = new ScoreKeeper(this.dev.startWall);
 
+    new Backdrop(this).setDepth(LAYER.backdrop);
     new Floor(this).setDepth(LAYER.floor);
+    this.add.tileSprite(0, 0, GAME_WIDTH, STAGE_BOTTOM_Y, GRAIN_TEXTURE).setOrigin(0).setDepth(LAYER.grain);
     this.laneMarkers = new LaneMarkers(this).setDepth(LAYER.laneMarkers);
     this.wall = new Wall(this).setDepth(LAYER.wall);
     this.figure = new Figure(this, this.figureLane).setDepth(LAYER.figure);
     this.label = new TimingLabel(this).setDepth(LAYER.label);
     this.callout = new ShiftCallout(this).setDepth(LAYER.label);
     this.tray = new PromptTray(this).setDepth(LAYER.tray);
-    this.capsWarning = this.add
-      .text(
-        GAME_WIDTH / 2,
-        GAME_HEIGHT * SCREEN_LAYOUT.capsWarningY,
-        'Caps Lock is on. Turn it off and use Shift for capitals.',
-        textStyle('body', 'danger', true),
-      )
-      .setOrigin(0.5)
+    this.hud = new Hud(this).setDepth(LAYER.hud);
+    // Sized to fit between the two HUD cards.
+    const capsText = 'Caps Lock is on. Use Shift for capitals.';
+    this.capsWarning = paperLabel(this, GAME_WIDTH / 2, GAME_HEIGHT * SCREEN_LAYOUT.capsWarningY, capsText, textStyle('small', 'danger', true))
       .setDepth(LAYER.hud)
       .setVisible(false);
     this.pauseOverlay = new PauseOverlay(this).setDepth(LAYER.pause);
@@ -196,6 +201,7 @@ export class PlayScene extends Phaser.Scene {
 
   private startWall(): void {
     this.plan = planWall(this.scoreKeeper.wallNumber, Math.random, this.dev.forceShiftWall);
+    this.hud.setWall(this.scoreKeeper.wallNumber);
     const { letters, stretch } = generateLetters(this.plan);
     this.stretch = stretch;
     this.spec = generateWall(this.figureLane, letters, this.plan.holeDistance);
@@ -262,6 +268,7 @@ export class PlayScene extends Phaser.Scene {
     this.phase = 'rush';
     this.sequence.lock();
     const score = this.scoreKeeper.clearWall(this.t);
+    this.hud.setScore(this.scoreKeeper.score);
     this.label.show(score, laneCenterX(this.figureLane));
     if (score.grade === 'closeCall') this.slowMotion();
     if (score.grade === 'perfect') this.synth?.fanfare();

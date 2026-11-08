@@ -1,67 +1,110 @@
 export const GAME_WIDTH = 1280;
 export const GAME_HEIGHT = 720;
 
+// The collage palette of the design mocks (M10), sampled from the asset
+// sheet's swatches: cream paper, a bright and a dark green, near-black, and a
+// warm gray.
+const PALETTE = {
+  green: 0x49a443,
+  darkGreen: 0x17472d,
+  cream: 0xefdfca,
+  black: 0x20201f,
+  gray: 0xc0bcad,
+} as const;
+
 // Non-text graphics that carry meaning (wall and hole, floor, tray edge, lane
 // markers, figure) must stay at or above 3:1 against COLORS.stage, and the
-// figure also against the wall it passes in front of (tests/config.test.ts).
+// figure's cream edge against the wall it passes in front of
+// (tests/config.test.ts). The bright green only reaches 2.4:1 on cream, so it
+// decorates (verges, collage, held chips on the black tray) and a deeper green
+// marks the lined-up lane.
 export const COLORS = {
-  stage: 0xf7dde3,
-  floorLine: 0x6e5662,
-  wall: 0x6b7a8f,
-  wallEdge: 0x3b4656,
-  tray: 0xffffff,
-  trayEdge: 0x6e5662,
-  laneMarker: 0x6e5662,
-  laneMarkerLit: 0x1f8a4c,
-  figure: 0x241c29,
-  figureEdge: 0xf7dde3,
-  wallFlash: 0xd6374a,
-  chipHeld: 0x1a7a43,
-  chipCurrent: 0x1d4fb8,
-  chipSlipped: 0xb3243a,
-  chipShiftMark: 0xffffff,
+  stage: PALETTE.cream,
+  floorLine: PALETTE.darkGreen,
+  floorSeam: PALETTE.gray, // decorative tile seams
+  verge: PALETTE.green, // decorative grass strips beside the floor
+  vergeOuter: PALETTE.darkGreen,
+  wall: PALETTE.darkGreen,
+  wallEdge: 0x0e2e1c,
+  tray: PALETTE.black,
+  laneMarker: 0x736757,
+  laneMarkerLit: 0x2f7f3a,
+  // Black blocks with cream seams, as in the mocks; the seams also outline the
+  // figure against the dark green wall, which the black alone can't.
+  figure: PALETTE.black,
+  figureEdge: PALETTE.cream,
+  figureShadow: PALETTE.black,
+  wallFlash: 0xc8402f,
+  // Key caps on the black tray, each with black letters.
+  chipHeld: PALETTE.green,
+  chipCurrent: PALETTE.cream,
+  chipSlipped: 0xef6f5a,
+  chipShiftMark: PALETTE.black,
   // The next-letter preview is hollow rather than faded, so its letter keeps
   // full contrast while still reading as "not yet".
-  chipNext: 0xffffff,
-  chipNextEdge: 0x1d4fb8,
-  panel: 0xffffff,
-  panelEdge: 0x6e5662,
-  labelStroke: 0xffffff,
+  chipNext: PALETTE.black,
+  chipNextEdge: PALETTE.cream,
+  // Paper cards: the HUD, the timing label, the SHIFT callout, the pause panel.
+  panel: 0xf8f0e3,
+  panelEdge: PALETTE.black,
   splash: 0x3d8fd6,
   // Shift Wall warning. It's as bright as the wrong-key flash, so the arrow is
   // what tells the two apart, not the color.
   wallWarning: 0xa86400,
-  shiftArrow: 0xffffff,
+  shiftArrow: 0xf8f0e3,
+  // Collage decoration behind the stage; decorative only.
+  decorGreen: PALETTE.green,
+  decorDarkGreen: PALETTE.darkGreen,
+  decorPale: 0xd1d0a8,
+  decorPaper: 0xe4d3bb,
+  gridLine: 0xb9b0a0,
+  grain: PALETTE.black,
 } as const;
 
 // CSS strings because Phaser text styles take CSS colors. ink, muted, accent
-// and danger sit on the stage, a white panel, or a timing label's white
-// stroke; onChip sits on the chip colors. Every pair must reach 4.5:1
-// (tests/config.test.ts).
+// and danger sit on the stage or a paper card (COLORS.panel); warning is the
+// SHIFT callout on its card; ink also sits on the chips, and paper on the black
+// tray. Every pair must reach 4.5:1 (tests/config.test.ts).
 export const TEXT_COLORS = {
-  ink: '#3b2a33',
-  muted: '#6e5662',
-  accent: '#1d4fb8',
-  danger: '#b3243a',
-  onChip: '#ffffff',
-  warning: '#a86400', // the Shift Wall callout; matches COLORS.wallWarning
+  ink: '#20201f',
+  muted: '#5f5446',
+  accent: '#17472d',
+  danger: '#a82a22',
+  paper: '#efdfca',
+  warning: '#8a5200', // the SHIFT callout: COLORS.wallWarning, darkened for text
 } as const;
 
-export const FONT_FAMILY = 'Arial, Helvetica, sans-serif';
+// Anton for display text (titles, grades, big numbers) and IBM Plex Mono for
+// the rest, as in the design mocks. Both are bundled from @fontsource (SIL
+// OFL) and never fetched at runtime; the fallbacks only show if loading fails.
+export const DISPLAY_FONT_FAMILY = 'Anton, Impact, "Arial Narrow", sans-serif';
+export const FONT_FAMILY = '"IBM Plex Mono", Consolas, Menlo, monospace';
 // Prompt letters need a capital I that can't be mistaken for a lowercase l;
-// Verdana and Tahoma give the I crossbars, Arial does not.
-export const CHIP_FONT_FAMILY = 'Verdana, Tahoma, sans-serif';
+// IBM Plex Mono's I has crossbars.
+export const CHIP_FONT_FAMILY = FONT_FAMILY;
 // Monospace so the debug overlay's columns line up.
-export const DEBUG_FONT_FAMILY = 'Consolas, Menlo, "Courier New", monospace';
+export const DEBUG_FONT_FAMILY = FONT_FAMILY;
+export const FONT_LOAD_TIMEOUT = 3000; // ms; past this, start with the fallbacks
 
 // px. Nothing goes below 24 so all text counts as "large" for WCAG contrast.
 export const FONT_SIZES = {
   title: 112,
   heading: 80,
+  hud: 48,
   chip: 42,
   body: 34,
   small: 24,
 } as const;
+
+// Which family each size uses. Anton has one weight, so it is never bolded.
+export const FONT_ROLES: Readonly<Record<keyof typeof FONT_SIZES, 'display' | 'mono'>> = {
+  title: 'display',
+  heading: 'display',
+  hud: 'display',
+  chip: 'mono',
+  body: 'mono',
+  small: 'mono',
+};
 
 // Fractions of GAME_HEIGHT.
 export const SCREEN_LAYOUT = {
@@ -73,7 +116,7 @@ export const SCREEN_LAYOUT = {
   gameOverStatsLineGap: 0.08,
   gameOverPromptY: 0.85,
   capsWarningY: 0.07,
-  shiftCalloutY: 0.15, // above the wall while it is far enough away to shift
+  shiftCalloutY: 0.14, // above the wall while it is far enough away to shift
   pauseHeadingY: 0.44,
   pausePromptY: 0.56,
 } as const;
@@ -94,7 +137,7 @@ export const CHIP = {
   currentSize: 88,
   gap: 14,
   edgeInset: 40,
-  radius: 12,
+  radius: 6, // square-ish key caps, as in the mocks
   nextEdgeWidth: 3,
   slideMs: 140,
 } as const;
@@ -115,14 +158,53 @@ export const STAGE_BOTTOM_Y = GAME_HEIGHT - TRAY_HEIGHT;
 export const HORIZON_Y = 140;
 export const FIGURE_FLOOR_Y = 560;
 export const FLOOR_LINE_WIDTH = 3;
-export const TRAY_EDGE_WIDTH = 3;
+
+// Art (PLAN.md §10, M10): the paper collage of the design mocks, all drawn in
+// code. Grain is sparse dark and light specks, tiled over the stage under the
+// HUD, tray and labels, so the scene reads as printed on one sheet of paper.
+export const GRAIN = { size: 256, darkShare: 0.09, lightShare: 0.05, maxAlpha: 0.22 } as const;
+// Torn edges on paper cards: a point about every `step` px, pushed up to `jag`
+// px across the edge (src/logic/torn.ts).
+export const TEAR = { step: 14, jag: 3 } as const;
+// Paper cards behind the timing label, the SHIFT callout and the pause panel:
+// padding around their text and a slight tilt, px and degrees.
+export const CARD = { padX: 26, padY: 14, tiltDeg: 2 } as const;
+// SCORE top-left and WALL top-right, each on a paper card. Label and value y
+// are from the card's center, px.
+export const HUD = { margin: 18, width: 210, height: 98, labelY: -24, valueY: 14, tiltDeg: 2 } as const;
+// The floor: green verges outside its edges (vergeWidth as a share of the
+// floor's half width, the outer share in dark green), and tile seams along the
+// lanes and across it. Cross seams are evenly spaced in 1/scale, so they
+// bunch up into the distance like real tiles.
+export const FLOOR = { vergeWidth: 0.22, vergeOuterShare: 0.45, seamWidth: 2, tileDepth: 0.2 } as const;
+
+// The collage behind the stage, px, drawn once from a fixed seed so it tears
+// the same way every run. It keeps to the corners and sides, clear of the far
+// wall at the center; the HUD cards sit over the top corners. Piece colors
+// are COLORS keys.
+export const BACKDROP = {
+  seed: 7,
+  tear: { step: 22, jag: 6 },
+  circles: [{ color: 'decorPale', x: 120, y: 330, r: 165 }],
+  torn: [
+    { color: 'decorPaper', points: [[0, 130], [330, 96], [340, 150], [0, 196]] },
+    { color: 'decorGreen', points: [[840, 0], [1280, 0], [1280, 150], [1110, 120], [960, 64]] },
+    { color: 'decorDarkGreen', points: [[1090, 0], [1280, 0], [1280, 70], [1170, 46]] },
+    { color: 'decorDarkGreen', points: [[1210, 300], [1280, 290], [1280, 372], [1196, 360]] },
+  ],
+  grid: { x: 1085, y: 120, width: 195, height: 175, cell: 16, lineWidth: 1 },
+  halftone: { x: 250, y: 36, width: 170, height: 64, spacing: 10, radius: 2.4, alpha: 0.35 },
+} as const;
 
 // The figure's pose grid (PLAN.md §3).
 export const FIGURE_GRID = { cols: 6, rows: 8 } as const;
 export const CELL_SIZE = 24; // px at full scale
 export const FIGURE_WIDTH = FIGURE_GRID.cols * CELL_SIZE;
 export const FIGURE_HEIGHT = FIGURE_GRID.rows * CELL_SIZE;
-export const FIGURE_EDGE_WIDTH = 2; // px; the gap line that separates the blocks
+export const FIGURE_EDGE_WIDTH = 3; // px; the cream edge round each block
+export const FIGURE_SEAM_WIDTH = 1.5; // px; the thinner seams between a block's cells
+// The soft shadow under the figure's feet, px.
+export const FIGURE_SHADOW = { width: 170, height: 22, alpha: 0.22 } as const;
 export const FIGURE_SLIDE_MS = 90; // one lane, visual only: the lane changes instantly
 
 export const LANE_COUNT = 7;
@@ -241,7 +323,6 @@ export const LABEL_Y = 300;
 export const LABEL_POP_FROM = 0.5; // starting scale of the pop
 export const LABEL_POP_MS = 180;
 export const LABEL_HOLD_MS = 700;
-export const LABEL_STROKE_WIDTH = 10;
 export const LABEL_EDGE_MARGIN = 20;
 
 // Fail (PLAN.md §7): the figure is shoved toward the camera and falls into

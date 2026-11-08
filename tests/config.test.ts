@@ -166,15 +166,18 @@ describe('audio (M9)', () => {
 });
 
 describe('graphics contrast', () => {
-  it.each(['wall', 'floorLine', 'trayEdge', 'laneMarker', 'laneMarkerLit', 'figure'] as const)(
+  it.each(['wall', 'floorLine', 'tray', 'laneMarker', 'laneMarkerLit', 'figure'] as const)(
     '%s stands out from the stage',
     (name) => {
       expect(contrastRatio(C.COLORS[name], C.COLORS.stage)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
     },
   );
 
-  it('keeps the figure readable in front of the wall', () => {
-    expect(contrastRatio(C.COLORS.figure, C.COLORS.wall)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  // M10: the mocks' black figure is only 1.5:1 on the dark green wall, so its
+  // cream edge is what outlines it there.
+  it('keeps the figure readable in front of the wall by its edge', () => {
+    expect(contrastRatio(C.COLORS.figureEdge, C.COLORS.wall)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(contrastRatio(C.COLORS.figureEdge, C.COLORS.figure)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
   it('keeps the Shift Wall warning readable: wall on the stage, arrow on the wall', () => {
@@ -201,12 +204,12 @@ const css = (color: string) => parseInt(color.slice(1), 16);
 // Every place each text color is drawn.
 const TEXT_ON = {
   stage: ['ink', 'muted', 'accent', 'danger'],
-  panel: ['ink', 'muted', 'accent', 'danger'],
-  labelStroke: ['ink', 'accent', 'danger', 'warning'],
-  chipNext: ['accent'],
-  chipHeld: ['onChip'],
-  chipCurrent: ['onChip'],
-  chipSlipped: ['onChip'],
+  panel: ['ink', 'muted', 'accent', 'danger', 'warning'],
+  tray: ['paper'],
+  chipNext: ['paper'],
+  chipHeld: ['ink'],
+  chipCurrent: ['ink'],
+  chipSlipped: ['ink'],
 } as const satisfies Partial<Record<keyof typeof C.COLORS, readonly (keyof typeof C.TEXT_COLORS)[]>>;
 
 const TEXT_PAIRS = Object.entries(TEXT_ON).flatMap(([bg, texts]) => texts.map((text) => [text, bg] as const));
