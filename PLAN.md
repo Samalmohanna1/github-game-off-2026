@@ -294,8 +294,8 @@ Built in this order (chosen after M7): feel and audio go on the grey box first, 
   - a quick cartoon "bloop" on a slip (the forced slips of a blur pause make no sound)
   - a fanfare on PERFECT
   - a Shift Wall alert heard from the side the hole is moving to, then a whoosh that way as it slides
-  - on a fail: a hit the moment the wall reaches the figure, and a splash as the figure lands
-- (After the M9 playtest, the countdown replaced a wall rumble that swelled with `t`. The slip sound got lighter, and the Shift Wall alert and the hit were added. After the second playtest, the crowd "OOOH" that followed the hit was cut, and the hit moved up into a range laptop speakers play.)
+  - on a fail: a hit the moment the wall reaches the figure, and a splash (fizz and rising bubbles) as the figure lands
+- (After the M9 playtest, the countdown replaced a wall rumble that swelled with `t`. The slip sound got lighter, and the Shift Wall alert and the hit were added. After the second playtest, the crowd "OOOH" that followed the hit was cut, and the hit moved up into a range laptop speakers play. After the third, the splash lost its low plunk, which sounded like a second hit, and became fizz and bubbles.)
 - ✅ Each sound plays at its moment, the countdown follows `t`, and nothing plays before the player's first click (browser autoplay rules).
 
 **M10: Art**

@@ -579,8 +579,9 @@ Work through **PLAN.md §10** one milestone at a time.
   - A fanfare on PERFECT.
   - A Shift Wall alert panned to the side the hole is going, then a whoosh
     that way as it slides.
-  - On a fail: a hit at once, and a splash as the figure lands. (A crowd
-    "oooh" after the hit was tried and cut.)
+  - On a fail: a hit at once, and a splash as the figure lands: a bright
+    fizz plus bubbles that each blip upward, with no low tone so it can't pass
+    for a second hit. (A crowd "oooh" after the hit was tried and cut.)
 
   The synth uses Phaser's audio context and master node, so audio unlocks on
   the first click and suspends while the window is blurred. Sounds are
