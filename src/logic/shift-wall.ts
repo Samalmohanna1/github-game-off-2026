@@ -44,6 +44,12 @@ export class ShiftWall {
     return this.phase !== 'warning';
   }
 
+  // During the warning, the lane the hole is about to slide to, so Space can
+  // head there before it moves; otherwise null.
+  get upcomingLane(): number | null {
+    return this.phase === 'warning' ? this.toLane : null;
+  }
+
   // lettersLeft counts the letters not held yet, the current one included.
   update(t: number, heldLetters: number, lettersLeft: number, dtMs: number): ShiftWallEvent | null {
     const due = t >= this.triggerT || lettersLeft <= 1;

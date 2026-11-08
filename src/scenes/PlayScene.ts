@@ -18,7 +18,7 @@ import { KeyboardInput } from '@/input/KeyboardInput';
 import { advanceT, jumpT, wallScale } from '@/logic/approach';
 import { NO_DEV_OPTIONS, parseDevOptions, type DevOptions } from '@/logic/dev-options';
 import { planWall, type WallPlan } from '@/logic/difficulty';
-import { CENTER_LANE, cycleLane, isAligned, laneCenterX, moveLane } from '@/logic/lanes';
+import { CENTER_LANE, isAligned, laneCenterX, moveLane, stepToward } from '@/logic/lanes';
 import { generateLetters } from '@/logic/letters';
 import { ScoreKeeper, gradeFor } from '@/logic/scoring';
 import { LetterSequence, type SequenceEffect } from '@/logic/sequence';
@@ -121,7 +121,7 @@ export class PlayScene extends Phaser.Scene {
     });
     this.keyboard = new KeyboardInput({
       onMove: (dir) => this.moveFigure(moveLane(this.figureLane, dir)),
-      onCycle: () => this.moveFigure(cycleLane(this.figureLane)),
+      onSpace: () => this.moveFigure(stepToward(this.figureLane, this.shiftWall.upcomingLane ?? this.holeLane)),
       onKeyDown: (key, code) => this.apply(this.sequence.press(key, code)),
       onKeyUp: (code) => this.apply(this.sequence.release(code)),
       onBlur: () => this.pause(),
@@ -215,12 +215,8 @@ export class PlayScene extends Phaser.Scene {
   private moveFigure(lane: number): void {
     if (this.phase !== 'approach' || this.sequence.paused) return;
     if (lane === this.figureLane) return;
-    // A wrap from the last lane to the first jumps rather than gliding back
-    // across the whole stage.
-    const wrapped = Math.abs(lane - this.figureLane) > 1;
     this.figureLane = lane;
-    if (wrapped) this.figure.jumpToLane(lane);
-    else this.figure.slideToLane(lane);
+    this.figure.slideToLane(lane);
     this.refreshAlignment();
   }
 

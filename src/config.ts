@@ -150,7 +150,9 @@ export const PROMPT_APPEAR_DELAY = 120; // ms after the previous letter is held
 // hole slides SHIFT_WALL_SLIDE lanes in the arrow's direction.
 export const SHIFT_WALL_TELEGRAPH = 300; // ms
 export const SHIFT_WALL_T_RANGE: readonly [number, number] = [0.3, 0.5];
-export const SHIFT_WALL_SLIDE: readonly [number, number] = [1, 2]; // lanes
+// lanes; one, so a single Space or arrow tap lines up again (1-2 before the
+// M7 follow-up, when moving meant taking a hand off the letters)
+export const SHIFT_WALL_SLIDE: readonly [number, number] = [1, 1];
 export const SHIFT_WALL_SLIDE_MS = 220; // visual only: the hole's lane changes at once
 // The wall stops approaching from the warning on, for the warning, the slide
 // and time to line up again, then carries on. The SHIFT callout shows for as
