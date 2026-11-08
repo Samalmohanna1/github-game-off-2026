@@ -48,7 +48,7 @@ SPAWN → ALIGN → POSE → (SHIFT WALL?) → RESOLVE → next wall | GAME OVER
 | Lowercase prompt (e.g. `j`) | Either case is accepted, so a player still holding Shift from an earlier letter isn't punished. |
 | Uppercase prompt pressed without Shift | Counts as a **wrong key**. |
 | A held letter is released before the pose locks (**slip**) | The block goes limp (back to neutral), the letter turns red, and it moves to the **end of the queue**. It can only be pressed again when it comes back around as the current prompt. |
-| Any letter key that isn't the current prompt and isn't held | **Wrong key:** the wall jumps forward (`WRONG_KEY_JUMP`), the camera shakes and the wall flashes. This includes pressing a slipped letter before its turn comes back. |
+| Any letter key that isn't the current prompt and isn't held | **Wrong key:** the wall jumps forward (`WRONG_KEY_JUMP`), rattles side to side and flashes. (Week 1 shook the camera; M8 shakes only the wall, so the tray stays still while the player reads it.) This includes pressing a slipped letter before its turn comes back. |
 | Letter pressed during ALIGN (no prompt showing) | Counts as a **wrong key**. |
 | Arrow keys, Space, Shift, and all other non-letter keys | Never count as wrong keys. Arrows and Space move the figure, and the rest are ignored. |
 | Pose locked | Input is ignored until the next wall. Keys still held from this wall are ignored until they're released. |
@@ -280,11 +280,28 @@ shape-shift/
 - Follow-up from the M7 playtests: Space steps toward the hole, and Shift Walls slide 1 lane, so lining up again never needs a hand off the letters.
 
 ### Week 2: making it feel good, theme, ship
-- **Feel:** squash and stretch when a block snaps into place, wall shake on a wrong key, slow motion on CLOSE CALL, a big splash with water particles, a crowd/announcer "OOOH" when the player fails.
-- **Audio:** a wall rumble that gets louder as `t` rises, a click when a key is held, a sad note on a slip, a fanfare on PERFECT, a splash.
-- **Title screen:** *SHAPE SHIFT*, with a short how-to (← → to line up, hold letters, Shift for CAPS).
-- **Art:** replace the blocks with SVG cutout body parts, keeping the same 5 parts and pose data. Use game-show style lettering for the wall and tray.
-- **Ship:** itch.io HTML5 upload (zip of `dist/`), set the embed to 1280×720, add a fullscreen button, and test in Chrome, Firefox and Safari.
+
+Built in this order (chosen after M7): feel and audio go on the grey box first, then the art swaps in underneath, then the title screen and the ship. Motion effects are skipped for players who prefer reduced motion, and none of them touch the game state.
+
+**M8: Feel** (done)
+- Squash and stretch when a block snaps into place, a limp slump back to neutral when a held letter slips, the wall rattling on a wrong key, slow motion on CLOSE CALL, and a big splash with water particles and a ripple on a fail.
+- ✅ Each effect plays at its moment, the motion ones are skipped for reduced motion, and pass/fail still comes only from the game state.
+
+**M9: Audio**
+- Synthesized in code with Web Audio, with no sound files: a wall rumble that gets louder as `t` rises, a click when a key is held, a sad note on a slip, a fanfare on PERFECT, a splash, and a crowd/announcer "OOOH" when the player fails.
+- ✅ Each sound plays at its moment, the rumble follows `t`, and nothing plays before the player's first click (browser autoplay rules).
+
+**M10: Art**
+- Replace the blocks with hand-written SVG cutout body parts, keeping the same 5 parts and pose data. Use game-show style lettering for the wall and tray.
+- ✅ Every pose still fits its hole exactly, the SVGs load at the largest size they appear, and the contrast tests still pass.
+
+**M11: Title screen**
+- *SHAPE SHIFT*, with a short how-to (← → or Space to line up, hold letters, Shift for CAPS).
+- ✅ A new player can start a run knowing the controls from the title screen alone.
+
+**M12: Ship**
+- itch.io HTML5 upload (zip of `dist/`), set the embed to 1280×720, add a fullscreen button, and test in Chrome, Firefox and Safari.
+- ✅ The itch.io build plays a full run in Chrome, Firefox and Safari, both embedded and fullscreen.
 
 ### Stretch goals (only if there's time)
 - Shift Wall variant where the hole's **shape** changes too (one block's key gets swapped for a new letter).
@@ -294,6 +311,5 @@ shape-shift/
 ---
 
 ## 11. Open questions for later
-- Should a slipped block go limp (drop down), or snap back to neutral? Week 1 snaps it back to neutral, and the limp drop is saved for the Week 2 polish.
 - Should the lane-matched marker also flash briefly when a Shift Wall warning starts?
 - Should the camera move in close on the figure for the last 20% of the approach?

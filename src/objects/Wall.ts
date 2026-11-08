@@ -10,6 +10,7 @@ import {
   WALL_EDGE_WIDTH,
   WALL_FLASH_MS,
   WALL_HEIGHT,
+  WALL_RATTLE,
 } from '@/config';
 import { laneCenterX } from '@/logic/lanes';
 import { FLOOR_HALF_WIDTH, VANISHING_POINT } from '@/logic/perspective';
@@ -34,6 +35,7 @@ export class Wall extends Phaser.GameObjects.Graphics {
   private flashing = false;
   private flashTimer?: Phaser.Time.TimerEvent;
   private slide?: Phaser.Tweens.Tween;
+  private rattling?: Phaser.Tweens.Tween;
 
   constructor(scene: Phaser.Scene) {
     super(scene);
@@ -43,6 +45,7 @@ export class Wall extends Phaser.GameObjects.Graphics {
 
   setHole(lane: number, grid: HoleGrid): void {
     this.slide?.stop();
+    this.rattling?.stop();
     this.holeLane = lane;
     this.grid = grid;
     this.warningDir = null;
@@ -56,6 +59,24 @@ export class Wall extends Phaser.GameObjects.Graphics {
     this.flashTimer = this.scene.time.delayedCall(WALL_FLASH_MS, () => {
       this.flashing = false;
       this.redraw();
+    });
+  }
+
+  // Wrong key (M8): the wall shakes side to side, dying away. Only its
+  // position moves, so the hole stays where the rules have it.
+  rattle(): void {
+    this.rattling?.stop();
+    const { distance, ms, swings } = WALL_RATTLE;
+    this.rattling = this.scene.tweens.addCounter({
+      from: 0,
+      to: 1,
+      duration: ms,
+      onUpdate: (tween) => {
+        const p = tween.getValue() ?? 1;
+        this.setX(VANISHING_POINT.x + distance * Math.sin(p * swings * 2 * Math.PI) * (1 - p));
+      },
+      onComplete: () => this.setX(VANISHING_POINT.x),
+      onStop: () => this.setX(VANISHING_POINT.x),
     });
   }
 

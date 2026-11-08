@@ -17,9 +17,9 @@ the figure so it fits through. If it doesn't fit, the wall shoves the figure
 into the pool. It ships on itch.io as an HTML5 game, played on a desktop
 keyboard.
 
-Current state: **Week 1 grey-box prototype**, built one milestone at a time
-(M0–M7, PLAN.md §10). Everything is drawn with Phaser shapes. SVG art, audio
-and polish come in Week 2.
+Current state: **Week 2, still in grey boxes**, built one milestone at a time
+(PLAN.md §10). The Week 1 prototype (M0–M7) and the M8 feel pass are done.
+Everything is drawn with Phaser shapes until the M10 art; audio comes in M9.
 
 Scenes, one per screen:
 
@@ -27,7 +27,7 @@ Scenes, one per screen:
 |---|---|---|
 | `BootScene` | Final for Week 1 | Hands off to Title. Loads nothing until Week 2 art. |
 | `TitleScene` | Interim | Game name, one-line how-to, "Click to play". The click gives the page keyboard focus inside the itch.io iframe. Restyled in Week 2. |
-| `PlayScene` | Interim (M7) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). ← / → line the figure up, and so does Space, one lane toward the hole (during a Shift Wall's warning, toward the lane it is about to slide to); the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 4+), the wall stops behind a SHIFT callout, turns orange with an arrow, and the hole slides 1 lane with a sideways jolt while the new lane is marked on the floor; then the wall carries on; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: the wall rushes past, a PERFECT / GREAT / CLOSE CALL label pops over the figure, and the next wall starts. If the wall arrives first, it shoves the figure into a placeholder splash and the run ends. Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses behind a "Click to resume" panel. F2 toggles the debug overlay. |
+| `PlayScene` | Interim (M8) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). ← / → line the figure up, and so does Space, one lane toward the hole (during a Shift Wall's warning, toward the lane it is about to slide to); the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 4+), the wall stops behind a SHIFT callout, turns orange with an arrow, and the hole slides 1 lane with a sideways jolt while the new lane is marked on the floor; then the wall carries on; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: the wall rushes past, a PERFECT / GREAT / CLOSE CALL label pops over the figure, and the next wall starts. Held blocks land with a squash, slipped ones slump back limp, a wrong key rattles the wall, and a CLOSE CALL plays the rush in slow motion. If the wall arrives first, it shoves the figure into a splash of water particles and the run ends. Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses behind a "Click to resume" panel. F2 toggles the debug overlay. |
 | `GameOverScene` | Interim | Walls cleared, score, best (saved in `localStorage`) and the wall reached. Restart follows PLAN.md §7: input is ignored for `RESTART_LOCKOUT`, then every key must be up ("Let go of every key" shows meanwhile) before a key or click restarts. |
 
 Shared scene helpers live in `src/scenes/` (`ui.ts`, `text-styles.ts`,
@@ -87,8 +87,9 @@ the doc is **part of that change, not a follow-up**.
   `event.key` decides the letter and its case at press time, `event.code`
   tracks which keys are held, `event.repeat` is ignored, and arrows and Space
   get `preventDefault()` on every screen (`src/input/prevent-page-scroll.ts`).
-- **Art:** Phaser shapes, rectangles and Graphics only until Week 2. No SVGs or
-  image assets before then. Week 2 swaps in one SVG per body part and keeps the
+- **Art:** Phaser shapes, rectangles and Graphics only until M10. No SVGs or
+  image assets before then (the M8 splash drop is a texture generated from a
+  Graphics circle at runtime). M10 swaps in one SVG per body part and keeps the
   same five parts and pose data (PLAN.md §1).
 
 ### Project layout
@@ -128,14 +129,14 @@ src/
   objects/
     Floor.ts               # the two perspective floor lines
     LaneMarkers.ts         # floor strip per lane; lit = lined up, target = Shift Wall's new lane
-    Wall.ts                # wall + hole; wrong-key flash, Shift warning + slide
-    Figure.ts              # five blocks in the neutral pose; slides lanes
+    Wall.ts                # wall + hole; wrong-key flash + rattle, Shift warning + slide
+    Figure.ts              # five blocks; snap with a squash, slip with a limp slump; slides lanes
     PromptTray.ts          # tray: held / current / next preview / slipped chips
     PauseOverlay.ts        # "Click to resume" panel shown on blur
     ShiftCallout.ts        # SHIFT + arrow pop-up while a Shift Wall holds
     TimingLabel.ts         # PERFECT / GREAT / CLOSE CALL + points pop-up
     DebugOverlay.ts        # F2 panel: state, t, lanes, prompt, queue, held, stretch
-    splash.ts              # placeholder pool splash of blue squares
+    splash.ts              # fail splash: particle drops + ripple
   scenes/
     BootScene.ts           # hands off to Title
     TitleScene.ts          # "Click to play" (gets keyboard focus)
@@ -326,10 +327,11 @@ playtest covers.
   its orange, is what sets it apart.
 - **Desktop only.** The game needs a physical keyboard. It renders at 1280×720
   and scales to fit; there is no mobile or touch layout.
-- **Motion.** Honor `prefers-reduced-motion`: the pulsing prompts stay still
-  and the wrong-key camera shake is skipped under it (`prefersReducedMotion()`
-  in `src/scenes/ui.ts`). Feedback that carries meaning keeps a still
-  alternative, such as the wall flash.
+- **Motion.** Honor `prefers-reduced-motion`: the pulsing prompts stay still,
+  and the wrong-key wall rattle, the block squash and the limp slump are
+  skipped under it (`prefersReducedMotion()` in `src/scenes/ui.ts`). Feedback
+  that carries meaning keeps a still alternative, such as the wall flash, and
+  blocks still land in their poses at once.
 - **Performance budget.** One bundle (Phaser plus game code), no third-party
   scripts, no network requests at runtime. The best score is the only thing
   stored, in `localStorage`, wrapped in try/catch (PLAN.md §6).
@@ -484,14 +486,16 @@ Work through **PLAN.md §10** one milestone at a time.
   its block sits in the target pose (from M4). Held keys are tracked by
   `event.code`.
 - **Slip** — letting go of a held letter before the pose locks. Its block
-  snaps back to neutral (from M4) and the letter goes to the end of the queue.
+  goes limp, slumping back to neutral with a bounce (`BLOCK_LIMP`, M8), and
+  the letter goes to the end of the queue.
 - **Queue** — the letters still to be prompted, including slipped ones; its
   head is the current prompt (`LetterSequence` in `src/logic/sequence.ts`).
 - **Wrong key** — any letter that isn't the current prompt and isn't held,
   including a slipped letter pressed early, any letter while no prompt is
   showing (not lined up, or during the appear delay), and an uppercase prompt
   pressed without Shift. The wall jumps forward by `WRONG_KEY_JUMP` and
-  flashes, and the camera shakes unless the player prefers reduced motion.
+  flashes, and the wall rattles (`WALL_RATTLE`) unless the player prefers
+  reduced motion.
   Letters pressed with Ctrl, Cmd or Alt are shortcuts and are ignored.
 - **Stale key** — a letter still held from the previous wall. It is ignored
   until released, so it can't slip or count on the new wall.
@@ -552,7 +556,8 @@ Work through **PLAN.md §10** one milestone at a time.
   before it are set from the scores of these combos only.
 - **PERFECT / GREAT / CLOSE CALL** — the timing grade at pose lock:
   `t ≤ PERFECT_T`, `t ≤ GREAT_T`, or later. A wall scores
-  `WALL_CLEAR_POINTS` plus the grade's bonus (`src/logic/scoring.ts`).
+  `WALL_CLEAR_POINTS` plus the grade's bonus (`src/logic/scoring.ts`). A
+  CLOSE CALL plays the rush in slow motion (`CLOSE_CALL_SLOWMO`).
 - **Streak** — consecutive PERFECTs. A PERFECT's whole score is multiplied by
   1 + `STREAK_STEP` × the PERFECTs already in the streak, capped at
   `MAX_MULTIPLIER`, so the first PERFECT is ×1 and the second ×1.5. Any other

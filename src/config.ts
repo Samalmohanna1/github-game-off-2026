@@ -139,8 +139,9 @@ export const WALL_EDGE_WIDTH = 4; // px at full scale
 export const WALL_EASE_POWER = 2; // scale follows t^n, so higher n rushes harder at the end
 
 export const WRONG_KEY_JUMP = 0.03; // added to t
-export const WRONG_KEY_SHAKE_MS = 160;
-export const WRONG_KEY_SHAKE_INTENSITY = 0.006; // fraction of the screen size
+// A wrong key rattles the wall itself, side to side and dying away, rather
+// than shaking the camera, so the tray the player is reading stays still.
+export const WALL_RATTLE = { distance: 12, ms: 240, swings: 3 } as const; // px, ms, full swings
 export const WALL_FLASH_MS = 120;
 export const LOCK_RUSH_DURATION = 400; // ms
 export const PROMPT_APPEAR_DELAY = 120; // ms after the previous letter is held
@@ -179,6 +180,17 @@ export const BEST_SCORE_KEY = 'shape-shift.best';
 // LOCK_RUSH_DURATION, passing in front of the figure and fading as it goes.
 export const RUSH_END_SCALE = 1.8;
 
+// Feel (PLAN.md §10, M8). Visual only: none of these touch the game state.
+// A block that snaps into its pose lands squashed (wider and shorter by
+// `squash`) and springs back to its true size.
+export const BLOCK_SNAP = { squash: 0.25, ms: 240 } as const;
+// A slipped block goes limp: it slumps back to neutral with a bounce, tilted
+// away from where it was and settling upright.
+export const BLOCK_LIMP = { ms: 450, tiltDeg: 14 } as const;
+// CLOSE CALL: tweens (the rush and the label pop) run at `scale` speed for
+// `ms` of real time.
+export const CLOSE_CALL_SLOWMO = { scale: 0.3, ms: 650 } as const;
+
 // The timing label over the figure, px and ms.
 export const LABEL_Y = 300;
 export const LABEL_POP_FROM = 0.5; // starting scale of the pop
@@ -188,7 +200,7 @@ export const LABEL_STROKE_WIDTH = 10;
 export const LABEL_EDGE_MARGIN = 20;
 
 // Fail (PLAN.md §7): the figure is shoved toward the camera and falls into
-// the pool below the stage. Splash is a Week 1 placeholder of blue squares.
+// the pool below the stage.
 export const FAIL_SHOVE_MS = 450;
 export const FAIL_FALL_DISTANCE = 220; // px
 export const FAIL_SPIN_DEG = 70;
@@ -196,7 +208,17 @@ export const FAIL_SHOVE_SCALE = 1.2;
 export const FAIL_SHAKE_MS = 300;
 export const FAIL_SHAKE_INTENSITY = 0.012;
 export const FAIL_TO_GAME_OVER_MS = 1400; // from the fail to the game-over screen
-export const SPLASH = { drops: 14, dropSize: 10, minHeight: 60, maxHeight: 160, spread: 220, ms: 420 } as const;
+// The splash as it lands (M8): a column of big drops shoots up, a wide spray of
+// small ones fans out, both fall back under gravity, and a ripple spreads on
+// the water. Angles in degrees (270 is straight up), speeds in px/s.
+export const SPLASH = {
+  column: { drops: 28, radius: 9, speed: [520, 900], angle: [255, 285] },
+  spray: { drops: 44, radius: 5, speed: [260, 620], angle: [200, 340] },
+  gravity: 1700, // px/s^2
+  lifespan: 1100, // ms; long enough for the fastest drop to fall back
+  endScale: 0.4,
+  ripple: { width: 300, height: 46, lineWidth: 5, ms: 600 },
+} as const;
 
 export const RESTART_LOCKOUT = 1000; // ms
 
