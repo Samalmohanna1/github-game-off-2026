@@ -192,35 +192,58 @@ export const BLOCK_LIMP = { ms: 450, tiltDeg: 14 } as const;
 export const CLOSE_CALL_SLOWMO = { scale: 0.3, ms: 650 } as const;
 
 // Audio (PLAN.md §10, M9): every sound is synthesized with Web Audio, with no
-// sound files. Gains are 0-1 under `master`; Hz for pitches, ms for times.
+// sound files. Gains are 0-1 under `master`; Hz for pitches, ms for times; pan
+// runs -1 (left) to 1 (right).
 export const AUDIO = {
   master: 0.5,
-  // A low noise rumble while the wall approaches: louder (gain^curve) and
-  // brighter (filter cutoff) as t rises. `smoothing` is how fast it follows.
-  rumble: { minGain: 0.04, maxGain: 0.5, curve: 2, minCutoff: 90, maxCutoff: 420, smoothingMs: 60 },
+  // Countdown: silent until the wall is in CLOSE CALL range (past GREAT_T),
+  // then a clock ticks and tocks, faster as t nears 1. It replaced an
+  // approach rumble after the M9 playtest.
+  tick: { gain: 0.22, fromT: GREAT_T, startMs: 420, endMs: 110, tickHz: 2000, tockHz: 1500, ms: 25 },
   // Each held letter clicks a step higher than the last.
   click: { gain: 0.3, baseHz: 660, stepSemitones: 2, ms: 50 },
-  // A slip: a sad note sagging down a fifth.
-  slip: { gain: 0.3, fromHz: 330, toHz: 220, ms: 450 },
+  // A slip: a quick cartoon "bloop" deflating, with a wobble.
+  slip: { gain: 0.35, fromHz: 700, toHz: 160, ms: 240, wobbleHz: 14, wobbleDepthHz: 30 },
   // PERFECT: a quick major arpeggio, the last note held.
   fanfare: { gain: 0.22, rootHz: 523.25, semitones: [0, 4, 7, 12], noteMs: 90, lastMs: 360 },
-  // The pool: a hiss sweeping down plus a low plunk.
-  splash: { gain: 0.6, ms: 750, fromHz: 2000, toHz: 260, plunkFromHz: 200, plunkToHz: 60, plunkMs: 260 },
-  // A fail: a crowd's "oooh", detuned voices through "oo" vowel formants,
+  // Shift Wall warning: rising chirps from the side the hole is moving to,
+  // then a whoosh that way as it slides.
+  shiftAlert: { gain: 0.28, fromHz: 520, toHz: 1040, chirps: 2, chirpMs: 90, gapMs: 120, pan: 0.7 },
+  whoosh: { gain: 0.22, fromHz: 400, toHz: 2400, ms: 220, pan: 0.7 },
+  // The wall hits the figure: a low thump under a short smack, at once.
+  hit: { gain: 0.8, fromHz: 160, toHz: 45, ms: 200, smackMs: 90, smackCutoffHz: 1800 },
+  // Then the crowd goes "oooh": detuned voices through a dark "oo" vowel,
   // swelling then sinking.
   ooh: {
-    gain: 0.35,
+    gain: 0.5,
+    delayMs: 80,
     voices: 8,
-    centerHz: 200,
+    centerHz: 210,
     spreadSemitones: 3,
     riseSemitones: 1,
     fallSemitones: 5,
-    swellMs: 300,
-    ms: 1500,
-    formantsHz: [320, 880],
-    formantQ: 5,
+    swellMs: 200,
+    ms: 1400,
+    cutoffHz: 1100,
+    formantHz: 350,
+    formantQ: 1.5,
     vibratoHz: 5,
     vibratoDepthHz: 3,
+  },
+  // The figure lands in the pool: a hiss sweeping down, a low plunk, and a
+  // few droplets after.
+  splash: {
+    gain: 0.6,
+    ms: 750,
+    fromHz: 2000,
+    toHz: 260,
+    plunkFromHz: 200,
+    plunkToHz: 60,
+    plunkMs: 260,
+    droplets: 5,
+    dropletHz: [600, 1400],
+    dropletMs: 45,
+    dropletSpreadMs: 450,
   },
 } as const;
 

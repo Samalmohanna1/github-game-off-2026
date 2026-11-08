@@ -16,6 +16,7 @@ import {
 import { NEUTRAL_POSE } from '@/data/poses';
 import { KeyboardInput } from '@/input/KeyboardInput';
 import { advanceT, jumpT, wallScale } from '@/logic/approach';
+import { Countdown } from '@/logic/countdown';
 import { NO_DEV_OPTIONS, parseDevOptions, type DevOptions } from '@/logic/dev-options';
 import { planWall, type WallPlan } from '@/logic/difficulty';
 import { CENTER_LANE, isAligned, laneCenterX, moveLane, stepToward } from '@/logic/lanes';
@@ -85,6 +86,7 @@ export class PlayScene extends Phaser.Scene {
   private debug!: DebugOverlay;
   // Null when the browser has no Web Audio; the game then plays silent.
   private synth: Synth | null = null;
+  private countdown = new Countdown();
   // The URL's playtest shortcuts, honored on the dev server only, so a
   // published build always plays a normal run.
   private readonly dev = import.meta.env.DEV ? parseDevOptions(window.location.search) : NO_DEV_OPTIONS;
@@ -136,23 +138,21 @@ export class PlayScene extends Phaser.Scene {
     // click and suspends it while the window is blurred (PLAN.md §10, M9).
     const sound = this.sound;
     this.synth = sound instanceof Phaser.Sound.WebAudioSoundManager ? new Synth(sound.context, sound.destination) : null;
-    this.events.once('shutdown', () => {
-      this.keyboard.destroy();
-      this.synth?.destroy();
-    });
+    this.events.once('shutdown', () => this.keyboard.destroy());
 
     this.startWall();
   }
 
   update(_time: number, deltaMs: number): void {
     if (this.debug.visible) this.debug.show(this.debugRows());
-    // The rumble follows t only while the wall is coming at a player who can act.
-    this.synth?.setRumble(this.phase === 'approach' && !this.sequence.paused ? this.t : null);
     if (this.sequence.paused) return;
     if (this.phase === 'approach') {
       this.sequence.tick(deltaMs);
       this.applyShift(this.shiftWall.update(this.t, this.sequence.heldCount, this.sequence.leftCount, deltaMs));
       if (!this.shiftWall.holding) this.setT(advanceT(this.t, deltaMs / 1000, this.plan.wallTime));
+      // setT may have just failed the wall.
+      const tick = this.phase === 'approach' ? this.countdown.update(this.t, deltaMs) : null;
+      if (tick !== null) this.synth?.tick(tick);
     }
     this.callout.setVisible(this.phase === 'approach' && this.shiftWall.holding);
     this.tray.show(this.sequence.view());
@@ -167,12 +167,14 @@ export class PlayScene extends Phaser.Scene {
     if (event.type === 'warn') {
       this.wall.warn(event.dir);
       this.callout.show(event.dir);
+      this.synth?.shiftAlert(event.dir);
       this.laneMarkers.setTarget({ lane: event.toLane, dir: event.dir });
       return;
     }
     const dir = event.toLane > this.holeLane ? 1 : -1;
     this.holeLane = event.toLane;
     this.wall.slideHoleTo(event.toLane);
+    this.synth?.whoosh(dir);
     if (!prefersReducedMotion()) {
       // Scrolling the camera against dir moves the scene toward it.
       this.tweens.add({
@@ -199,6 +201,7 @@ export class PlayScene extends Phaser.Scene {
     this.spec = generateWall(this.figureLane, letters, this.plan.holeDistance);
     this.holeLane = this.spec.holeLane;
     this.shiftWall = new ShiftWall(this.plan.shiftWall, this.holeLane);
+    this.countdown = new Countdown();
     this.wall.setHole(this.holeLane, holeGrid(this.spec.targets));
     this.wall.setAlpha(1).setDepth(LAYER.wall);
     this.figure.resetPose();
@@ -293,6 +296,7 @@ export class PlayScene extends Phaser.Scene {
     if (this.phase === 'failing') return;
     this.phase = 'failing';
     this.sequence.lock();
+    this.synth?.hit();
     this.synth?.ooh();
     this.figure.shove(() => {
       playSplash(this, this.figure.x, STAGE_BOTTOM_Y, LAYER.splash);

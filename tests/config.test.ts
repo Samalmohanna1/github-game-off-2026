@@ -129,11 +129,12 @@ describe('feel (M8)', () => {
 });
 
 describe('audio (M9)', () => {
-  const { master, rumble, click, slip, fanfare, splash, ooh } = C.AUDIO;
+  const { master, tick, click, slip, fanfare, shiftAlert, whoosh, hit, ooh, splash } = C.AUDIO;
 
   it('keeps every gain above silence and at most full scale', () => {
     // Above zero too: the envelopes ramp exponentially, which can't reach 0.
-    for (const gain of [master, rumble.minGain, rumble.maxGain, click.gain, slip.gain, fanfare.gain, splash.gain, ooh.gain]) {
+    const gains = [master, tick.gain, click.gain, slip.gain, fanfare.gain, shiftAlert.gain, whoosh.gain, hit.gain, ooh.gain, splash.gain];
+    for (const gain of gains) {
       expect(gain).toBeGreaterThan(0);
       expect(gain).toBeLessThanOrEqual(1);
     }
@@ -144,9 +145,19 @@ describe('audio (M9)', () => {
     expect(length).toBeLessThanOrEqual(C.LABEL_HOLD_MS);
   });
 
-  it('lets the crowd swell before it sinks, and the plunk end inside the splash', () => {
+  it('finishes the Shift Wall alert as the hole slides, and the whoosh while the wall holds', () => {
+    expect((shiftAlert.chirps - 1) * shiftAlert.gapMs + shiftAlert.chirpMs).toBeLessThanOrEqual(C.SHIFT_WALL_TELEGRAPH);
+    expect(C.SHIFT_WALL_TELEGRAPH + whoosh.ms).toBeLessThanOrEqual(C.SHIFT_WALL_PAUSE);
+  });
+
+  it('hits at once, then lets the crowd swell before it sinks', () => {
+    expect(ooh.delayMs).toBeLessThan(hit.ms);
     expect(ooh.swellMs).toBeLessThan(ooh.ms);
+  });
+
+  it('keeps every part of the splash inside it', () => {
     expect(splash.plunkMs).toBeLessThanOrEqual(splash.ms);
+    expect(splash.dropletSpreadMs + splash.dropletMs).toBeLessThanOrEqual(splash.ms);
   });
 });
 

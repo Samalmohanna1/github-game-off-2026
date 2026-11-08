@@ -1,33 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { AUDIO } from '@/config';
-import { clickHz, fanfareHz, noteHz, rumbleCutoff, rumbleGain } from '@/logic/sound-levels';
-
-const STEPS = Array.from({ length: 11 }, (_, i) => i / 10);
+import { clickHz, fanfareHz, noteHz } from '@/logic/sound-levels';
 
 describe('noteHz', () => {
   it('doubles the pitch every 12 semitones', () => {
     expect(noteHz(440, 12)).toBeCloseTo(880);
     expect(noteHz(440, -12)).toBeCloseTo(220);
     expect(noteHz(440, 0)).toBe(440);
-  });
-});
-
-describe('the approach rumble (M9)', () => {
-  it('runs from its quietest at t = 0 to its loudest at t = 1', () => {
-    expect(rumbleGain(0)).toBeCloseTo(AUDIO.rumble.minGain);
-    expect(rumbleGain(1)).toBeCloseTo(AUDIO.rumble.maxGain);
-  });
-
-  it('only ever gets louder and brighter as the wall comes in', () => {
-    STEPS.slice(1).forEach((t, i) => {
-      expect(rumbleGain(t)).toBeGreaterThan(rumbleGain(STEPS[i]!));
-      expect(rumbleCutoff(t)).toBeGreaterThan(rumbleCutoff(STEPS[i]!));
-    });
-  });
-
-  it('stays in range when a wrong-key jump pushes t past 1', () => {
-    expect(rumbleGain(1.2)).toBeCloseTo(AUDIO.rumble.maxGain);
-    expect(rumbleCutoff(-0.1)).toBeCloseTo(AUDIO.rumble.minCutoff);
   });
 });
 
