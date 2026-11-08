@@ -128,6 +128,43 @@ describe('feel (M8)', () => {
   });
 });
 
+describe('audio (M9)', () => {
+  const { master, tick, click, slip, fanfare, shiftAlert, whoosh, hit, whomp } = C.AUDIO;
+
+  it('keeps every gain above silence and at most full scale', () => {
+    // Above zero too: the envelopes ramp exponentially, which can't reach 0.
+    const gains = [master, tick.gain, click.gain, slip.gain, fanfare.gain, shiftAlert.gain, whoosh.gain, hit.gain, whomp.gain];
+    for (const gain of gains) {
+      expect(gain).toBeGreaterThan(0);
+      expect(gain).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('finishes the PERFECT fanfare while the PERFECT label is still up', () => {
+    const length = (fanfare.semitones.length - 1) * fanfare.noteMs + fanfare.lastMs;
+    expect(length).toBeLessThanOrEqual(C.LABEL_HOLD_MS);
+  });
+
+  it('finishes the Shift Wall alert as the hole slides, and the whoosh while the wall holds', () => {
+    expect((shiftAlert.chirps - 1) * shiftAlert.gapMs + shiftAlert.chirpMs).toBeLessThanOrEqual(C.SHIFT_WALL_TELEGRAPH);
+    expect(C.SHIFT_WALL_TELEGRAPH + whoosh.ms).toBeLessThanOrEqual(C.SHIFT_WALL_PAUSE);
+  });
+
+  it('ends the hit before the figure lands, so the hit and the whomp never blur together', () => {
+    expect(hit.ms).toBeLessThan(C.FAIL_SHOVE_MS);
+  });
+
+  it('plays the whomp as separate notes, the last one long and sagging', () => {
+    expect(whomp.noteMs).toBeLessThanOrEqual(whomp.gapMs);
+    expect(whomp.lastMs).toBeGreaterThan(whomp.noteMs);
+    expect(whomp.sagSemitones).toBeGreaterThan(0);
+    expect(whomp.wahLowHz).toBeLessThan(whomp.wahHighHz);
+    expect(whomp.wahOpenMs).toBeLessThan(whomp.noteMs * whomp.holdShare);
+    expect(whomp.holdShare).toBeGreaterThan(0);
+    expect(whomp.holdShare).toBeLessThan(1);
+  });
+});
+
 describe('graphics contrast', () => {
   it.each(['wall', 'floorLine', 'trayEdge', 'laneMarker', 'laneMarkerLit', 'figure'] as const)(
     '%s stands out from the stage',

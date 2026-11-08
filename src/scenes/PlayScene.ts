@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { Synth } from '@/audio/Synth';
 import {
   CLOSE_CALL_SLOWMO,
   FAIL_SHAKE_INTENSITY,
@@ -15,6 +16,7 @@ import {
 import { NEUTRAL_POSE } from '@/data/poses';
 import { KeyboardInput } from '@/input/KeyboardInput';
 import { advanceT, jumpT, wallScale } from '@/logic/approach';
+import { Countdown } from '@/logic/countdown';
 import { NO_DEV_OPTIONS, parseDevOptions, type DevOptions } from '@/logic/dev-options';
 import { planWall, type WallPlan } from '@/logic/difficulty';
 import { CENTER_LANE, isAligned, laneCenterX, moveLane, stepToward } from '@/logic/lanes';
@@ -82,6 +84,9 @@ export class PlayScene extends Phaser.Scene {
   private capsWarning!: Phaser.GameObjects.Text;
   private pauseOverlay!: PauseOverlay;
   private debug!: DebugOverlay;
+  // Null when the browser has no Web Audio; the game then plays silent.
+  private synth: Synth | null = null;
+  private countdown = new Countdown();
   // The URL's playtest shortcuts, honored on the dev server only, so a
   // published build always plays a normal run.
   private readonly dev = import.meta.env.DEV ? parseDevOptions(window.location.search) : NO_DEV_OPTIONS;
@@ -129,6 +134,10 @@ export class PlayScene extends Phaser.Scene {
       onCapsLock: (on) => this.capsWarning.setVisible(on),
       onToggleDebug: () => this.toggleDebug(),
     });
+    // Phaser's own context and master node: Phaser unlocks audio on the first
+    // click and suspends it while the window is blurred (PLAN.md §10, M9).
+    const sound = this.sound;
+    this.synth = sound instanceof Phaser.Sound.WebAudioSoundManager ? new Synth(sound.context, sound.destination) : null;
     this.events.once('shutdown', () => this.keyboard.destroy());
 
     this.startWall();
@@ -141,6 +150,9 @@ export class PlayScene extends Phaser.Scene {
       this.sequence.tick(deltaMs);
       this.applyShift(this.shiftWall.update(this.t, this.sequence.heldCount, this.sequence.leftCount, deltaMs));
       if (!this.shiftWall.holding) this.setT(advanceT(this.t, deltaMs / 1000, this.plan.wallTime));
+      // setT may have just failed the wall.
+      const tick = this.phase === 'approach' ? this.countdown.update(this.t, deltaMs) : null;
+      if (tick !== null) this.synth?.tick(tick);
     }
     this.callout.setVisible(this.phase === 'approach' && this.shiftWall.holding);
     this.tray.show(this.sequence.view());
@@ -155,12 +167,14 @@ export class PlayScene extends Phaser.Scene {
     if (event.type === 'warn') {
       this.wall.warn(event.dir);
       this.callout.show(event.dir);
+      this.synth?.shiftAlert(event.dir);
       this.laneMarkers.setTarget({ lane: event.toLane, dir: event.dir });
       return;
     }
     const dir = event.toLane > this.holeLane ? 1 : -1;
     this.holeLane = event.toLane;
     this.wall.slideHoleTo(event.toLane);
+    this.synth?.whoosh(dir);
     if (!prefersReducedMotion()) {
       // Scrolling the camera against dir moves the scene toward it.
       this.tweens.add({
@@ -187,6 +201,7 @@ export class PlayScene extends Phaser.Scene {
     this.spec = generateWall(this.figureLane, letters, this.plan.holeDistance);
     this.holeLane = this.spec.holeLane;
     this.shiftWall = new ShiftWall(this.plan.shiftWall, this.holeLane);
+    this.countdown = new Countdown();
     this.wall.setHole(this.holeLane, holeGrid(this.spec.targets));
     this.wall.setAlpha(1).setDepth(LAYER.wall);
     this.figure.resetPose();
@@ -199,7 +214,8 @@ export class PlayScene extends Phaser.Scene {
     if (!document.hasFocus()) this.pause();
   }
 
-  private apply(effect: SequenceEffect | null): void {
+  // quiet: the slips a blur forces are part of pausing, not the player's doing.
+  private apply(effect: SequenceEffect | null, quiet = false): void {
     if (effect === null || this.phase !== 'approach') return;
     if (effect.type === 'wrongKey') {
       this.wall.flash();
@@ -209,8 +225,13 @@ export class PlayScene extends Phaser.Scene {
     }
     const block = this.spec.blockFor[effect.letter];
     if (block === undefined) return;
-    if (effect.type === 'held') this.figure.snapBlock(block, this.spec.targets[block]);
-    else this.figure.slumpBlock(block, NEUTRAL_POSE[block]);
+    if (effect.type === 'held') {
+      this.figure.snapBlock(block, this.spec.targets[block]);
+      this.synth?.click(this.sequence.heldCount);
+    } else {
+      this.figure.slumpBlock(block, NEUTRAL_POSE[block]);
+      if (!quiet) this.synth?.slip();
+    }
     this.maybeLock();
   }
 
@@ -243,6 +264,7 @@ export class PlayScene extends Phaser.Scene {
     const score = this.scoreKeeper.clearWall(this.t);
     this.label.show(score, laneCenterX(this.figureLane));
     if (score.grade === 'closeCall') this.slowMotion();
+    if (score.grade === 'perfect') this.synth?.fanfare();
     this.tweens.addCounter({
       from: wallScale(this.t),
       to: RUSH_END_SCALE,
@@ -274,8 +296,10 @@ export class PlayScene extends Phaser.Scene {
     if (this.phase === 'failing') return;
     this.phase = 'failing';
     this.sequence.lock();
+    this.synth?.hit();
     this.figure.shove(() => {
       playSplash(this, this.figure.x, STAGE_BOTTOM_Y, LAYER.splash);
+      this.synth?.whomp();
       if (!prefersReducedMotion()) this.cameras.main.shake(FAIL_SHAKE_MS, FAIL_SHAKE_INTENSITY);
     });
     this.time.delayedCall(FAIL_TO_GAME_OVER_MS, () => this.endRun());
@@ -283,7 +307,7 @@ export class PlayScene extends Phaser.Scene {
 
   private pause(): void {
     if (this.phase !== 'approach' || this.sequence.paused) return;
-    for (const effect of this.sequence.blur()) this.apply(effect);
+    for (const effect of this.sequence.blur()) this.apply(effect, true);
     this.tray.show(this.sequence.view());
     this.pauseOverlay.setVisible(true);
   }

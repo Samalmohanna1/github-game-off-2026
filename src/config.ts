@@ -191,6 +191,51 @@ export const BLOCK_LIMP = { ms: 450, tiltDeg: 14 } as const;
 // `ms` of real time.
 export const CLOSE_CALL_SLOWMO = { scale: 0.3, ms: 650 } as const;
 
+// Audio (PLAN.md §10, M9): every sound is synthesized with Web Audio, with no
+// sound files. Gains are 0-1 under `master`; Hz for pitches, ms for times; pan
+// runs -1 (left) to 1 (right).
+export const AUDIO = {
+  master: 0.5,
+  // Countdown: silent until the wall is in CLOSE CALL range (past GREAT_T),
+  // then a clock ticks and tocks, faster as t nears 1. It replaced an
+  // approach rumble after the M9 playtest.
+  tick: { gain: 0.22, fromT: GREAT_T, startMs: 420, endMs: 110, tickHz: 2000, tockHz: 1500, ms: 25 },
+  // Each held letter clicks a step higher than the last.
+  click: { gain: 0.3, baseHz: 660, stepSemitones: 2, ms: 50 },
+  // A slip: a quick cartoon "bloop" deflating, with a wobble.
+  slip: { gain: 0.35, fromHz: 700, toHz: 160, ms: 240, wobbleHz: 14, wobbleDepthHz: 30 },
+  // PERFECT: a quick major arpeggio, the last note held.
+  fanfare: { gain: 0.22, rootHz: 523.25, semitones: [0, 4, 7, 12], noteMs: 90, lastMs: 360 },
+  // Shift Wall warning: rising chirps from the side the hole is moving to,
+  // then a whoosh that way as it slides.
+  shiftAlert: { gain: 0.28, fromHz: 520, toHz: 1040, chirps: 2, chirpMs: 90, gapMs: 120, pan: 0.7 },
+  whoosh: { gain: 0.22, fromHz: 400, toHz: 2400, ms: 220, pan: 0.7 },
+  // The wall hits the figure: a thump under a short smack, at once. The thump
+  // stays above ~80 Hz so laptop speakers still play it. (A crowd "oooh" after
+  // it was cut after the second M9 playtest.)
+  hit: { gain: 0.8, fromHz: 300, toHz: 80, ms: 200, smackMs: 110, smackCutoffHz: 2500 },
+  // The figure lands: a game-show "whomp whomp whooom". Brassy notes stepping
+  // down from rootHz, each with a "wah" as its filter opens and closes; the
+  // last one is long, wobbles and sags. Each note holds until holdShare of its
+  // length, then fades. It replaced a water splash sound after the third M9
+  // playtest.
+  whomp: {
+    gain: 0.35,
+    rootHz: 196, // G3; 233 Hz (Bb3) played a bit high
+    semitones: [0, -1, -2],
+    noteMs: 260,
+    gapMs: 320,
+    lastMs: 950,
+    holdShare: 0.6,
+    sagSemitones: 2,
+    wahLowHz: 250,
+    wahHighHz: 1500,
+    wahOpenMs: 110,
+    vibratoHz: 5.5,
+    vibratoDepthHz: 4,
+  },
+} as const;
+
 // The timing label over the figure, px and ms.
 export const LABEL_Y = 300;
 export const LABEL_POP_FROM = 0.5; // starting scale of the pop
