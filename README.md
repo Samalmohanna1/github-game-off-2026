@@ -5,14 +5,14 @@ A keyboard take on Japan's "Human Tetris", made for GitHub Game Off 2026
 hole with ← / → (or Space, which steps toward the hole), then hold the letters shown to pose your figure so it fits
 through. Capital letters need Shift.
 
-**Status:** Week 2, still in grey boxes. M0–M9 are done: a full run plays from
-the title through walls that get harder by a playtested difficulty curve, Shift
-Walls whose hole slides mid-approach, scoring and a fail to the game-over
-screen and back, with an F2 debug overlay for tuning. The M8 feel pass adds
-squash and stretch, limp slips, a rattling wall on wrong keys, slow motion on
-CLOSE CALL and a water splash, and M9 adds synthesized sound with no audio
-files. See [PLAN.md](./PLAN.md) for the design and milestones, and
-[AGENTS.md](./AGENTS.md) for the working rules.
+**Status:** Week 2. M0–M10 are done: a full run plays from the title through
+walls that get harder by a playtested difficulty curve, Shift Walls whose hole
+slides mid-approach, scoring and a fail to the game-over screen and back, with
+an F2 debug overlay for tuning. M8 added feel (squash and stretch, limp slips,
+a rattling wall, slow motion on CLOSE CALL, a water splash), M9 synthesized
+sound with no audio files, and M10 the paper-collage art of the design mocks,
+drawn in code, in Anton and IBM Plex Mono. See [PLAN.md](./PLAN.md) for the
+design and milestones, and [AGENTS.md](./AGENTS.md) for the working rules.
 
 ## Setup
 

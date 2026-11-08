@@ -17,18 +17,20 @@ the figure so it fits through. If it doesn't fit, the wall shoves the figure
 into the pool. It ships on itch.io as an HTML5 game, played on a desktop
 keyboard.
 
-Current state: **Week 2, still in grey boxes**, built one milestone at a time
-(PLAN.md §10). The Week 1 prototype (M0–M7), the M8 feel pass and the M9
-synthesized audio are done. Everything is drawn with Phaser shapes until the
-M10 art.
+Current state: **Week 2**, built one milestone at a time (PLAN.md §10). The
+Week 1 prototype (M0–M7), the M8 feel pass, the M9 synthesized audio and the
+M10 paper-collage art for the play screen are done. The art comes from design
+mocks kept outside the repo (`../design-mocks/`); it is all drawn in code,
+with no image files. The title and game-over screens get their collage
+layouts in M11.
 
 Scenes, one per screen:
 
 | Scene | Status | Contents |
 |---|---|---|
-| `BootScene` | Final for Week 1 | Hands off to Title. Loads nothing until Week 2 art. |
-| `TitleScene` | Interim | Game name, one-line how-to, "Click to play". The click gives the page keyboard focus inside the itch.io iframe. Restyled in Week 2. |
-| `PlayScene` | Interim (M9) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). ← / → line the figure up, and so does Space, one lane toward the hole (during a Shift Wall's warning, toward the lane it is about to slide to); the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 4+), the wall stops behind a SHIFT callout, turns orange with an arrow, and the hole slides 1 lane with a sideways jolt while the new lane is marked on the floor; then the wall carries on; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: the wall rushes past, a PERFECT / GREAT / CLOSE CALL label pops over the figure, and the next wall starts. Held blocks land with a squash, slipped ones slump back limp, a wrong key rattles the wall, and a CLOSE CALL plays the rush in slow motion. If the wall arrives first, it shoves the figure into a splash of water particles and the run ends. Synthesized sounds (M9) play over all of it: the countdown tick in CLOSE CALL range, clicks, slips, the PERFECT fanfare, the Shift Wall alert and whoosh, and the fail's hit and "whomp whomp whooom". Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses behind a "Click to resume" panel. F2 toggles the debug overlay. |
+| `BootScene` | Final (M10) | Waits for the bundled fonts (`loadFonts()`, giving up after `FONT_LOAD_TIMEOUT`), makes the shared paper-grain texture, then hands off to Title. |
+| `TitleScene` | Interim | Game name, one-line how-to, "Click to play". The click gives the page keyboard focus inside the itch.io iframe. It already uses the M10 palette and fonts; its collage layout comes in M11. |
+| `PlayScene` | Interim (M10) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). ← / → line the figure up, and so does Space, one lane toward the hole (during a Shift Wall's warning, toward the lane it is about to slide to); the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 4+), the wall stops behind a SHIFT callout, turns orange with an arrow, and the hole slides 1 lane with a sideways jolt while the new lane is marked on the floor; then the wall carries on; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: the wall rushes past, a PERFECT / GREAT / CLOSE CALL label pops over the figure, and the next wall starts. Held blocks land with a squash, slipped ones slump back limp, a wrong key rattles the wall, and a CLOSE CALL plays the rush in slow motion. If the wall arrives first, it shoves the figure into a splash of water particles and the run ends. Synthesized sounds (M9) play over all of it: the countdown tick in CLOSE CALL range, clicks, slips, the PERFECT fanfare, the Shift Wall alert and whoosh, and the fail's hit and "whomp whomp whooom". Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses behind a "Click to resume" panel. F2 toggles the debug overlay. Everything is drawn in the M10 paper collage: a backdrop, a cream floor with tile seams and green verges, a dark green wall, black blocks with cream seams, a black key-cap tray, SCORE and WALL cards, and paper cards behind every label, all under a paper grain. |
 | `GameOverScene` | Interim | Walls cleared, score, best (saved in `localStorage`) and the wall reached. Restart follows PLAN.md §7: input is ignored for `RESTART_LOCKOUT`, then every key must be up ("Let go of every key" shows meanwhile) before a key or click restarts. |
 
 Shared scene helpers live in `src/scenes/` (`ui.ts`, `text-styles.ts`,
@@ -88,10 +90,13 @@ the doc is **part of that change, not a follow-up**.
   `event.key` decides the letter and its case at press time, `event.code`
   tracks which keys are held, `event.repeat` is ignored, and arrows and Space
   get `preventDefault()` on every screen (`src/input/prevent-page-scroll.ts`).
-- **Art:** Phaser shapes, rectangles and Graphics only until M10. No SVGs or
-  image assets before then (the M8 splash drop is a texture generated from a
-  Graphics circle at runtime). M10 swaps in one SVG per body part and keeps the
-  same five parts and pose data (PLAN.md §1).
+- **Art:** drawn in code, with no image files: Phaser shapes and Graphics, plus
+  textures generated at runtime (the paper grain, the splash drop). M10 styles
+  everything after the design mocks' paper collage: torn edges come from
+  `src/logic/torn.ts`, and the figure stays the same five blocks and pose data,
+  restyled (PLAN.md §1).
+- **Fonts:** Anton and IBM Plex Mono, bundled from `@fontsource` (latin
+  subsets, imported in `src/main.ts`). Never load fonts from the network.
 
 ### Project layout
 
@@ -107,7 +112,7 @@ PLAN.md                    # game design + milestones
 README.md                  # setup, commands, deploy
 src/
   main.ts                  # Phaser game config + scene list
-  config.ts                # every tunable number (PLAN.md §8)
+  config.ts                # every tunable number (PLAN.md §8), palette and fonts
   audio/
     Synth.ts               # Web Audio sounds, no files: tick, click, slip, fanfare, Shift alert, hit, whomp
   data/                    # PURE: static game data
@@ -122,7 +127,7 @@ src/
     dev-options.ts         # dev-server URL options: ?wall=N, ?shiftwall
     difficulty.ts          # wall # -> tier, wall time, Shift Wall roll, WallPlan
     letters.ts             # stretchScore, combo generator, ordering, capitals
-    random.ts              # injectable random helpers (shuffle, pick, int)
+    random.ts              # injectable random helpers (shuffle, pick, int, seeded)
     perspective.ts         # vanishing point, project(), floor edges
     restart.ts             # game-over lockout + "release every key" gate
     scoring.ts             # grades, wall points, PERFECT streak multiplier
@@ -130,20 +135,25 @@ src/
     shift-wall.ts          # Shift Wall trigger, warning timer, slide target, wall hold
     countdown.ts           # countdown tick timing: silent until CLOSE CALL range, then speeding up
     sound-levels.ts        # click, fanfare and whomp pitches
+    torn.ts                # torn-paper outlines: jagged edges for cards and collage
     wall-gen.ts            # blocks + alt poses per wall, hole grid + outline
   objects/
-    Floor.ts               # the two perspective floor lines
+    Backdrop.ts            # paper collage behind the stage, from a fixed seed
+    Floor.ts               # perspective floor: edge lines, tile seams, green verges
+    Hud.ts                 # SCORE and WALL paper cards in the top corners
+    paper.ts               # paper grain texture, torn cards, paper labels
     LaneMarkers.ts         # floor strip per lane; lit = lined up, target = Shift Wall's new lane
     Wall.ts                # wall + hole; wrong-key flash + rattle, Shift warning + slide
-    Figure.ts              # five blocks; snap with a squash, slip with a limp slump; slides lanes
-    PromptTray.ts          # tray: held / current / next preview / slipped chips
-    PauseOverlay.ts        # "Click to resume" panel shown on blur
-    ShiftCallout.ts        # SHIFT + arrow pop-up while a Shift Wall holds
-    TimingLabel.ts         # PERFECT / GREAT / CLOSE CALL + points pop-up
+    Figure.ts              # five black blocks with seams + shadow; squash on snap, limp slump on slip
+    PromptTray.ts          # black torn-edge tray: held / current / next preview / slipped key caps
+    PauseOverlay.ts        # "Click to resume" paper card shown on blur
+    ShiftCallout.ts        # SHIFT + arrow on a paper card while a Shift Wall holds
+    TimingLabel.ts         # PERFECT / GREAT / CLOSE CALL + points on a paper card
     DebugOverlay.ts        # F2 panel: state, t, lanes, prompt, queue, held, stretch
     splash.ts              # fail splash: particle drops + ripple
   scenes/
-    BootScene.ts           # hands off to Title
+    BootScene.ts           # waits for fonts, makes the grain texture, hands off to Title
+    fonts.ts               # loads the bundled font faces before any text is drawn
     TitleScene.ts          # "Click to play" (gets keyboard focus)
     PlayScene.ts           # the game: draws state, passes input in
     GameOverScene.ts       # run stats, best score, gated restart
@@ -171,6 +181,7 @@ tests/
   shift-wall.test.ts       # trigger, warning, hold, slide range, M6 line-up case
   countdown.test.ts        # silent before CLOSE CALL range, speeds up, no catch-up bursts
   sound-levels.test.ts     # click steps, fanfare rises an octave, whomp steps down
+  torn.test.ts             # torn edges stay within their jag, keep corners, repeat per seed
   wall-gen.test.ts         # valid poses for every block set, hole + outline
 ```
 
@@ -300,25 +311,31 @@ playtest covers.
 ## Design system & UX standards
 
 - **Pull colors, type, sizes and layout from `src/config.ts`** rather than
-  inventing inline values. `config.ts` is the single re-skin point. Week 2 art
-  replaces the shapes but keeps the same pose data and tokens.
-- **Typography:** Week 1 uses the system sans stack in `FONT_FAMILY`, normal or
-  bold only. Prompt letters use `CHIP_FONT_FAMILY` (Verdana, Tahoma), whose
-  capital I has crossbars and can't be mistaken for a lowercase l; any future
-  prompt font must keep I and l distinct. Game-show lettering for the wall and
-  tray comes in Week 2.
+  inventing inline values. `config.ts` is the single re-skin point. The M10
+  palette (`PALETTE`, then `COLORS` and `TEXT_COLORS`) was sampled from the
+  design mocks: cream paper, a bright and a dark green, near-black, warm gray.
+- **Typography:** each size in `FONT_SIZES` has a role (`FONT_ROLES`): display
+  sizes (title, heading, HUD numbers) set in Anton, which has one weight and
+  is never bolded; the rest set in IBM Plex Mono, normal or bold. Prompt
+  letters use `CHIP_FONT_FAMILY` (IBM Plex Mono), whose capital I has
+  crossbars and can't be mistaken for a lowercase l; any future prompt font
+  must keep I and l distinct.
 - **Contrast: WCAG AAA preferred, AA required.** Aim for AAA — **7:1 normal
   text, 4.5:1 large text** (≥24px, or ≥18.66px bold). A color between AA and
   AAA may ship, but no text goes below **AA — 4.5:1 normal, 3:1 large**.
-  Meaningful non-text graphics (the wall and its hole, floor lines, tray edge,
-  lit vs unlit lane marker; held, current and slipped chips) need 3:1.
+  Meaningful non-text graphics (the wall and its hole, floor lines, the tray,
+  lit vs unlit lane marker; held, current and slipped chips) need 3:1. The
+  mocks' bright green is only 2.4:1 on cream, so it decorates and a deeper
+  green lights the lined-up lane; the black figure is only 1.5:1 on the dark
+  green wall, so its cream edge outlines it there.
   **Verify pairs, don't eyeball them**: `tests/config.test.ts` measures every
   meaningful graphic color against what it sits on, measures each text color
   against every background it is drawn on (`TEXT_ON` in that test; add new
   pairs there), and keeps every font size at 24px or more. Text that fades or
   flashes must still meet AA at its faintest frame. Text drawn over the moving
-  scene carries its own background: an opaque panel, or the timing label's
-  thick white stroke. Record every pair below AAA, with its measured
+  scene carries its own background: an opaque paper card (the HUD, the timing
+  label, the SHIFT callout, the Caps Lock warning, the pause panel) or the
+  black tray. The paper grain lies under all of them. Record every pair below AAA, with its measured
   ratio, in the list below.
   - Pairs below AAA: none.
 - **Keyboard first.** The game is played entirely on the keyboard, except the
@@ -331,7 +348,7 @@ playtest covers.
   never with opacity: a faded chip would drop its letter below AA. Don't rely on case
   alone either: capital chips carry a drawn Shift mark (`SHIFT_MARK`). The
   Shift Wall warning is as bright as the wrong-key flash, so its arrow, not
-  its orange, is what sets it apart.
+  its amber, is what sets it apart.
 - **Desktop only.** The game needs a physical keyboard. It renders at 1280×720
   and scales to fit; there is no mobile or touch layout.
 - **Motion.** Honor `prefers-reduced-motion`: the pulsing prompts stay still,
@@ -445,8 +462,8 @@ Work through **PLAN.md §10** one milestone at a time.
   or during a Shift Wall's warning toward the lane the hole is about to slide
   to (`ShiftWall.upcomingLane`), and does nothing once lined up.
 - **Lane marker** — the floor strip under each lane. The one under the figure
-  lights up green (filled, not just outlined) when the player is lined up.
-  On a Shift Wall, the hole's new lane is the **target lane**: a thick orange
+  lights up deep green (filled, not just outlined) when the player is lined up.
+  On a Shift Wall, the hole's new lane is the **target lane**: a thick amber
   outline with chevrons pointing the way the hole went (`LANE_TARGET`), so it
   reads by shape as well as color.
 - **Lined up** (aligned) — the figure's lane equals the hole's lane
@@ -468,27 +485,29 @@ Work through **PLAN.md §10** one milestone at a time.
 - **Figure plane** — the depth where the figure stands, on `FIGURE_FLOOR_Y`.
   It is scale 1: the wall reaches full size there.
 - **Figure** — the player's five blocks: `head`, `torso`, `armL`, `armR`,
-  `legs`.
+  `legs`. Drawn black with cream seams between each block's cells and a cream
+  edge, over a soft shadow (M10).
 - **Pose** — a block's rectangle(s) in grid cells. Each block has a neutral
   pose and 2–3 alt poses; the **target pose** is the alt pose a wall asks for
   (`src/data/poses.ts`). Holding a block's letter snaps it to its target, and a
   slip snaps it back to neutral.
-- **Prompt** — the letter currently asked for, shown as the blue chip in the
+- **Prompt** — the letter currently asked for, shown as the cream chip in the
   center of the tray. Letters appear one at a time: the next one shows
   `PROMPT_APPEAR_DELAY` after the previous hold, and only while lined up and
   not paused.
 - **Next-letter preview** — while lined up, the fresh letter after the current
-  one waits just right of center as a hollow, blue-outlined chip (`view().next`
+  one waits just right of center as a hollow, cream-outlined chip (`view().next`
   in `src/logic/sequence.ts`), then slides to the center when it becomes
   current. Letters further back stay hidden, and a slipped next letter shows as
-  red instead.
-- **Prompt tray** — the white strip along the bottom: held letters (green,
-  left, in the order held), the current prompt (blue, center), then the
-  next-letter preview and slipped letters waiting their turn (red), right of
-  center in queue order. Capital letters carry a ⇧ Shift mark in the chip's
+  coral instead.
+- **Prompt tray** — the black strip along the bottom, with a torn top edge.
+  Its chips are key caps with black letters: held letters (green, left, in
+  the order held), the current prompt (cream, center), then the next-letter
+  preview and slipped letters waiting their turn (coral), right of center in
+  queue order. Capital letters carry a ⇧ Shift mark in the chip's
   top-right corner.
-- **Caps Lock warning** — a line at the top of the screen while Caps Lock is
-  on. The state is read from every key event with `getModifierState`.
+- **Caps Lock warning** — a paper card at the top of the screen, between the
+  HUD cards, while Caps Lock is on. The state is read from every key event with `getModifierState`.
 - **Held** — a prompted letter that was pressed correctly and is still down;
   its block sits in the target pose (from M4). Held keys are tracked by
   `event.code`.
@@ -588,6 +607,12 @@ Work through **PLAN.md §10** one milestone at a time.
   The synth uses Phaser's audio context and master node, so audio unlocks on
   the first click and suspends while the window is blurred. Sounds are
   skipped while the context isn't running, so none queue up.
+- **HUD** (M10) — SCORE top-left and the WALL number top-right, each on a
+  tilted paper card (`Hud`). The mocks show a run timer top-right; the game
+  has none, so the wall number takes its place.
+- **Paper grain** — a tiled texture of sparse dark and light specks
+  (`GRAIN`), made once in BootScene and laid over the stage under the cards,
+  tray and HUD, so the scene reads as printed on one sheet.
 - **Key ghosting** — keyboards failing to register many keys held at once. It
   is why a wall asks for at most 5 letters, and 4 on Shift Walls.
 - **Sticky Keys** — the Windows pop-up after 5 quick Shift presses. It is why

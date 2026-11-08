@@ -18,7 +18,8 @@ A wall with a hole cut in it comes toward the player. They slide their block fig
 | Tests | Vitest | For game logic only (see the "pure logic" rule below). |
 | Resolution | 1280×720, `Phaser.Scale.FIT`, centered | |
 | Art (Week 1) | Phaser shapes (rectangles/Graphics) only | No SVG yet. |
-| Art (Week 2+) | One SVG per body part, cutout style | Phaser turns SVGs into flat images when it loads them, so it can't change a path's shape while the game runs. Animate by moving and rotating separate parts instead. Load SVGs at the largest size they'll appear (the wall grows as it gets closer). |
+| Art (M10+) | The paper collage of the design mocks, drawn in code | Cream paper, two greens, near-black and warm gray. Torn edges, grid paper, halftone and grain are drawn with Graphics or generated at load, so there are no image files. The figure stays five blocks, styled as in the mocks. (Planned as one SVG per body part until the mocks arrived.) |
+| Fonts | Anton (display) and IBM Plex Mono (everything else) | Bundled from `@fontsource` (SIL OFL), never fetched at runtime. BootScene waits for them, because Phaser draws text once with whatever font is ready. |
 
 ### Rule: keep game logic separate from Phaser
 Write the sequence/queue state machine, the letter generator, the difficulty curve and the scoring as **plain TS modules that don't import Phaser**. Phaser scenes only render that state and pass input into it. This keeps the core rules testable and easy to tune.
@@ -68,14 +69,15 @@ SPAWN → ALIGN → POSE → (SHIFT WALL?) → RESOLVE → next wall | GAME OVER
 ## 3. Stage, lanes, wall and figure
 
 ### Layout (matches the concept sketch)
-- Pale pink background, with a floor drawn in perspective as two lines running from the bottom corners toward the wall.
+- Cream paper background with a torn-paper collage around the edges. The floor is drawn in perspective from the bottom corners toward the wall, with gray tile seams and green verges beyond its dark green edge lines. (Week 1 was a pale pink background with two floor lines.)
 - The wall comes in from the far end. It starts small (scale ≈ 0.35) and grows to full size at the figure's position. Drive everything from a single `progress` value, `t ∈ [0, 1]`, with an ease-in so the wall seems to speed up as it gets closer.
-- A white **prompt tray** across the bottom:
+- A black **prompt tray** across the bottom, with a torn top edge. Its chips are key caps with black letters:
   - **Held** letters as green chips, lined up from the left.
-  - The **current** prompt as a blue chip in the center.
-  - The **next** letter as a hollow, blue-outlined preview chip just right of center (only while lined up). It slides to the center when it becomes current.
-  - **Slipped/queued** letters as red chips on the right.
+  - The **current** prompt as a cream chip in the center.
+  - The **next** letter as a hollow, cream-outlined preview chip just right of center (only while lined up). It slides to the center when it becomes current.
+  - **Slipped/queued** letters as coral chips on the right.
   - **Capital** letters also carry a Shift mark (⇧) on their chip, because case alone is hard to read for letters like o/O, s/S and x/X.
+- **SCORE** and the **WALL** number sit on paper cards in the top corners (M10).
 
 ### Lanes
 - `LANE_COUNT = 7` lanes across the stage.
@@ -298,16 +300,17 @@ Built in this order (chosen after M7): feel and audio go on the grey box first, 
 - (After the M9 playtest, the countdown replaced a wall rumble that swelled with `t`. The slip sound got lighter, and the Shift Wall alert and the hit were added. After the second playtest, the crowd "OOOH" that followed the hit was cut, and the hit moved up into a range laptop speakers play. After the third, the splash sound, which kept sounding like a second hit, was replaced by the "whomp whomp whooom". The visual splash stays.)
 - ✅ Each sound plays at its moment, the countdown follows `t`, and nothing plays before the player's first click (browser autoplay rules).
 
-**M10: Art**
-- Replace the blocks with hand-written SVG cutout body parts, keeping the same 5 parts and pose data. Use game-show style lettering for the wall and tray.
-- ✅ Every pose still fits its hole exactly, the SVGs load at the largest size they appear, and the contrast tests still pass.
+**M10: Art** (done)
+- Re-skin the play screen from the design mocks (kept outside the repo, in `design-mocks/`): the collage palette and fonts, a paper backdrop, the floor with verges and tile seams, a dark green wall, the figure as black blocks with cream seams and a shadow, a black key-cap tray, SCORE and WALL cards, and paper cards behind the timing label, the SHIFT callout, the Caps Lock warning and the pause panel. A paper grain lies over the stage. All of it is drawn in code.
+- The mocks' blocky figure replaced the planned SVG body parts, and the HUD shows the wall number where the mocks show a run timer, since the game has none.
+- ✅ Every pose still fits its hole exactly (the poses and the hole are unchanged), the fonts are bundled and loaded before any text is drawn, and the contrast tests pass with the new palette.
 
-**M11: Title screen**
-- *SHAPE SHIFT*, with a short how-to (← → or Space to line up, hold letters, Shift for CAPS).
+**M11: Title and game-over screens**
+- The title and game-over screens from the mocks' collage layouts: *SHAPE SHIFT* with a short how-to (← → or Space to line up, hold letters, Shift for CAPS), and GAME OVER with the final and best scores. The title keeps "Click to play" where the mock says "Press any key", because the itch.io frame only gets keyboard focus from a click (§2).
 - ✅ A new player can start a run knowing the controls from the title screen alone.
 
 **M12: Ship**
-- itch.io HTML5 upload (zip of `dist/`), set the embed to 1280×720, add a fullscreen button, and test in Chrome, Firefox and Safari.
+- itch.io HTML5 upload (zip of `dist/`), set the embed to 1280×720, add the mocks' fullscreen and mute buttons, and test in Chrome, Firefox and Safari.
 - ✅ The itch.io build plays a full run in Chrome, Firefox and Safari, both embedded and fullscreen.
 
 ### Stretch goals (only if there's time)
