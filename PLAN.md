@@ -287,8 +287,8 @@ Built in this order (chosen after M7): feel and audio go on the grey box first, 
 - Squash and stretch when a block snaps into place, a limp slump back to neutral when a held letter slips, the wall rattling on a wrong key, slow motion on CLOSE CALL, and a big splash with water particles and a ripple on a fail.
 - ✅ Each effect plays at its moment, the motion ones are skipped for reduced motion, and pass/fail still comes only from the game state.
 
-**M9: Audio**
-- Synthesized in code with Web Audio, with no sound files: a wall rumble that gets louder as `t` rises, a click when a key is held, a sad note on a slip, a fanfare on PERFECT, a splash, and a crowd/announcer "OOOH" when the player fails.
+**M9: Audio** (done)
+- Synthesized in code with Web Audio, with no sound files: a wall rumble that gets louder as `t` rises, a click when a key is held (a step higher for each letter in the wall), a sad note on a slip, a fanfare on PERFECT, a splash, and a crowd "OOOH" when the player fails. The forced slips of a blur pause make no sound, and the rumble is silent while paused.
 - ✅ Each sound plays at its moment, the rumble follows `t`, and nothing plays before the player's first click (browser autoplay rules).
 
 **M10: Art**
