@@ -214,13 +214,25 @@ export const AUDIO = {
   // stays above ~80 Hz so laptop speakers still play it. (A crowd "oooh" after
   // it was cut after the second M9 playtest.)
   hit: { gain: 0.8, fromHz: 300, toHz: 80, ms: 200, smackMs: 110, smackCutoffHz: 2500 },
-  // The figure lands in the pool: a bright fizz that fades, and bubbles, each a
-  // tiny rising blip, scattered across the stereo field and bunched near the
-  // start. No low tone, so it never sounds like a second hit (the first
-  // version's low plunk did). [min, max] ranges are picked per bubble.
-  splash: {
-    fizz: { gain: 0.3, attackMs: 25, ms: 800, highpassHz: 1200, fromHz: 4000, toHz: 1500, q: 0.7 },
-    bubbles: { count: 18, gain: [0.06, 0.18], hz: [400, 1600], rise: [1.6, 2.4], ms: [30, 70], spreadMs: 650, pan: 0.4 },
+  // The figure lands: a game-show "whomp whomp whooom". Brassy notes stepping
+  // down from rootHz, each with a "wah" as its filter opens and closes; the
+  // last one is long, wobbles and sags. Each note holds until holdShare of its
+  // length, then fades. It replaced a water splash sound after the third M9
+  // playtest.
+  whomp: {
+    gain: 0.35,
+    rootHz: 233.08,
+    semitones: [0, -1, -2],
+    noteMs: 260,
+    gapMs: 320,
+    lastMs: 950,
+    holdShare: 0.6,
+    sagSemitones: 2,
+    wahLowHz: 250,
+    wahHighHz: 1500,
+    wahOpenMs: 110,
+    vibratoHz: 5.5,
+    vibratoDepthHz: 4,
   },
 } as const;
 

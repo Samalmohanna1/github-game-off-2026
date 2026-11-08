@@ -129,11 +129,11 @@ describe('feel (M8)', () => {
 });
 
 describe('audio (M9)', () => {
-  const { master, tick, click, slip, fanfare, shiftAlert, whoosh, hit, splash } = C.AUDIO;
+  const { master, tick, click, slip, fanfare, shiftAlert, whoosh, hit, whomp } = C.AUDIO;
 
   it('keeps every gain above silence and at most full scale', () => {
     // Above zero too: the envelopes ramp exponentially, which can't reach 0.
-    const gains = [master, tick.gain, click.gain, slip.gain, fanfare.gain, shiftAlert.gain, whoosh.gain, hit.gain, splash.fizz.gain, ...splash.bubbles.gain];
+    const gains = [master, tick.gain, click.gain, slip.gain, fanfare.gain, shiftAlert.gain, whoosh.gain, hit.gain, whomp.gain];
     for (const gain of gains) {
       expect(gain).toBeGreaterThan(0);
       expect(gain).toBeLessThanOrEqual(1);
@@ -150,20 +150,18 @@ describe('audio (M9)', () => {
     expect(C.SHIFT_WALL_TELEGRAPH + whoosh.ms).toBeLessThanOrEqual(C.SHIFT_WALL_PAUSE);
   });
 
-  it('ends the hit before the figure lands, so the hit and the splash never blur together', () => {
+  it('ends the hit before the figure lands, so the hit and the whomp never blur together', () => {
     expect(hit.ms).toBeLessThan(C.FAIL_SHOVE_MS);
   });
 
-  it('keeps every bubble inside the splash, rising in pitch', () => {
-    const { fizz, bubbles } = splash;
-    expect(bubbles.spreadMs + bubbles.ms[1]).toBeLessThanOrEqual(fizz.ms);
-    expect(bubbles.rise[0]).toBeGreaterThan(1);
-    for (const range of [bubbles.gain, bubbles.hz, bubbles.rise, bubbles.ms]) expect(range[0]).toBeLessThanOrEqual(range[1]);
-  });
-
-  it('keeps the splash clear of the low range, so it never sounds like a second hit', () => {
-    expect(splash.bubbles.hz[0]).toBeGreaterThan(hit.fromHz);
-    expect(splash.fizz.highpassHz).toBeGreaterThan(hit.fromHz);
+  it('plays the whomp as separate notes, the last one long and sagging', () => {
+    expect(whomp.noteMs).toBeLessThanOrEqual(whomp.gapMs);
+    expect(whomp.lastMs).toBeGreaterThan(whomp.noteMs);
+    expect(whomp.sagSemitones).toBeGreaterThan(0);
+    expect(whomp.wahLowHz).toBeLessThan(whomp.wahHighHz);
+    expect(whomp.wahOpenMs).toBeLessThan(whomp.noteMs * whomp.holdShare);
+    expect(whomp.holdShare).toBeGreaterThan(0);
+    expect(whomp.holdShare).toBeLessThan(1);
   });
 });
 

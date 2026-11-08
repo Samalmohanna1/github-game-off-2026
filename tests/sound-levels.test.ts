@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AUDIO } from '@/config';
-import { clickHz, fanfareHz, noteHz } from '@/logic/sound-levels';
+import { clickHz, fanfareHz, noteHz, whompHz } from '@/logic/sound-levels';
 
 describe('noteHz', () => {
   it('doubles the pitch every 12 semitones', () => {
@@ -25,5 +25,14 @@ describe('the PERFECT fanfare (M9)', () => {
     expect(notes[0]).toBeCloseTo(AUDIO.fanfare.rootHz);
     expect(notes.at(-1)).toBeCloseTo(AUDIO.fanfare.rootHz * 2);
     notes.slice(1).forEach((hz, i) => expect(hz).toBeGreaterThan(notes[i]!));
+  });
+});
+
+describe('the fail whomp (M9)', () => {
+  it('starts at the root and steps down note by note', () => {
+    const notes = whompHz();
+    expect(notes.length).toBeGreaterThanOrEqual(3);
+    expect(notes[0]).toBeCloseTo(AUDIO.whomp.rootHz);
+    notes.slice(1).forEach((hz, i) => expect(hz).toBeLessThan(notes[i]!));
   });
 });

@@ -1,10 +1,9 @@
 import { AUDIO } from '@/config';
-import { clickHz, fanfareHz } from '@/logic/sound-levels';
+import { clickHz, fanfareHz, noteHz, whompHz } from '@/logic/sound-levels';
 
 const SILENT = 0.0001; // exponential ramps can't reach 0
 const STOP_MARGIN = 0.05; // s a source runs past its envelope, so it never clicks off
 const sec = (ms: number) => ms / 1000;
-const between = ([min, max]: readonly [number, number]) => min + Math.random() * (max - min);
 
 function whiteNoise(ctx: BaseAudioContext, seconds: number): AudioBuffer {
   const buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * seconds), ctx.sampleRate);
@@ -113,31 +112,31 @@ export class Synth {
     this.noiseBurst(at, smackMs).connect(this.filter('lowpass', smackCutoffHz)).connect(this.envelope(gain, 1, smackMs, at));
   }
 
-  // The figure lands in the pool: a bright fizz, and bubbles that each blip
-  // upward in pitch, the way a real bubble sounds as it shrinks.
-  splash(): void {
+  // The figure lands: "whomp whomp whooom". Each brassy note opens and closes
+  // its filter (the "wah"); the last one is long, wobbles and sags.
+  whomp(): void {
     if (!this.running) return;
-    const { fizz, bubbles } = AUDIO.splash;
-    const at = this.ctx.currentTime;
-
-    const band = this.filter('bandpass', fizz.fromHz, fizz.q);
-    band.frequency.setValueAtTime(fizz.fromHz, at);
-    band.frequency.exponentialRampToValueAtTime(fizz.toHz, at + sec(fizz.ms));
-    this.noiseBurst(at, fizz.ms)
-      .connect(this.filter('highpass', fizz.highpassHz))
-      .connect(band)
-      .connect(this.envelope(fizz.gain, fizz.attackMs, fizz.ms, at));
-
-    for (let i = 0; i < bubbles.count; i++) {
-      // Squaring the spread bunches most bubbles near the splash's start.
-      const bubbleAt = at + sec(Math.random() ** 2 * bubbles.spreadMs);
-      const ms = between(bubbles.ms);
-      const hz = between(bubbles.hz);
-      const bubble = this.tone('sine', hz, bubbleAt, ms);
-      bubble.frequency.exponentialRampToValueAtTime(hz * between(bubbles.rise), bubbleAt + sec(ms));
-      const side = this.panner((Math.random() * 2 - 1) * bubbles.pan);
-      bubble.connect(this.envelope(between(bubbles.gain), 2, ms, bubbleAt, side));
-    }
+    const w = AUDIO.whomp;
+    const notes = whompHz();
+    const start = this.ctx.currentTime;
+    notes.forEach((hz, i) => {
+      const last = i === notes.length - 1;
+      const at = start + sec(i * w.gapMs);
+      const ms = last ? w.lastMs : w.noteMs;
+      const end = at + sec(ms);
+      const note = this.tone('sawtooth', hz, at, ms);
+      if (last) {
+        note.frequency.setValueAtTime(hz, at + sec(ms * w.holdShare));
+        note.frequency.exponentialRampToValueAtTime(noteHz(hz, -w.sagSemitones), end);
+        this.wobble(note, w.vibratoHz, w.vibratoDepthHz, at, ms);
+      }
+      const wah = this.filter('lowpass', w.wahLowHz, 2);
+      wah.frequency.setValueAtTime(w.wahLowHz, at);
+      wah.frequency.exponentialRampToValueAtTime(w.wahHighHz, at + sec(w.wahOpenMs));
+      wah.frequency.setValueAtTime(w.wahHighHz, at + sec(ms * w.holdShare));
+      wah.frequency.exponentialRampToValueAtTime(w.wahLowHz, end);
+      note.connect(wah).connect(this.heldEnvelope(w.gain, 20, ms * w.holdShare, ms, at));
+    });
   }
 
   // Silence up to `peak` over attackMs, then back to silence by endMs.
@@ -147,6 +146,17 @@ export class Synth {
     gain.gain.exponentialRampToValueAtTime(peak, at + sec(attackMs));
     gain.gain.exponentialRampToValueAtTime(SILENT, at + sec(endMs));
     gain.connect(to);
+    return gain;
+  }
+
+  // Like envelope(), but sustains `peak` until holdMs before fading.
+  private heldEnvelope(peak: number, attackMs: number, holdMs: number, endMs: number, at: number): GainNode {
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(SILENT, at);
+    gain.gain.exponentialRampToValueAtTime(peak, at + sec(attackMs));
+    gain.gain.setValueAtTime(peak, at + sec(holdMs));
+    gain.gain.exponentialRampToValueAtTime(SILENT, at + sec(endMs));
+    gain.connect(this.out);
     return gain;
   }
 

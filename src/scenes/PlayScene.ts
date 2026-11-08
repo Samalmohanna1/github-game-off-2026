@@ -299,7 +299,7 @@ export class PlayScene extends Phaser.Scene {
     this.synth?.hit();
     this.figure.shove(() => {
       playSplash(this, this.figure.x, STAGE_BOTTOM_Y, LAYER.splash);
-      this.synth?.splash();
+      this.synth?.whomp();
       if (!prefersReducedMotion()) this.cameras.main.shake(FAIL_SHAKE_MS, FAIL_SHAKE_INTENSITY);
     });
     this.time.delayedCall(FAIL_TO_GAME_OVER_MS, () => this.endRun());

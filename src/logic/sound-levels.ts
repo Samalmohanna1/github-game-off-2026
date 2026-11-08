@@ -15,3 +15,8 @@ export function clickHz(heldCount: number): number {
 export function fanfareHz(): number[] {
   return AUDIO.fanfare.semitones.map((s) => noteHz(AUDIO.fanfare.rootHz, s));
 }
+
+// The fail jingle's notes, each a step lower than the last.
+export function whompHz(): number[] {
+  return AUDIO.whomp.semitones.map((s) => noteHz(AUDIO.whomp.rootHz, s));
+}
