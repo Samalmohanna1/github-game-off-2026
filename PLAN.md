@@ -94,7 +94,7 @@ Put these in `src/data/poses.ts` so they're easy to edit. Use a cell grid such a
 ### Wall generation
 1. Pick `N` blocks to change, where `N` is the key count for this wall (3–5).
 2. For each of those blocks, pick one alt pose. Blocks that aren't picked stay neutral.
-3. The **hole** is the union of every block's target rectangle, placed at the hole's lane.
+3. The **hole** is the union of every block's target rectangle, placed at the hole's lane. It is always **one piece** (M10): if no pose of the picked blocks makes one, the letters go to another set of blocks that can.
 4. Give each changed block one letter (§4).
 
 ### Pass/fail check
@@ -301,9 +301,11 @@ Built in this order (chosen after M7): feel and audio go on the grey box first, 
 - ✅ Each sound plays at its moment, the countdown follows `t`, and nothing plays before the player's first click (browser autoplay rules).
 
 **M10: Art** (done)
-- Re-skin the play screen from the design mocks (kept outside the repo, in `design-mocks/`): the collage palette and fonts, a paper backdrop, the floor with verges and tile seams, a dark green wall, the figure as black blocks with cream seams and a shadow, a black key-cap tray, SCORE and WALL cards, and paper cards behind the timing label, the SHIFT callout, the Caps Lock warning and the pause panel. A paper grain lies over the stage. All of it is drawn in code.
+- Re-skin the play screen from the design mocks (kept outside the repo, in `design-mocks/`): the collage palette and fonts, a pale disc behind the far end of the stage, the floor with verges and tile seams, a dark green wall with a clean paper hole, the figure as black blocks with cream seams and a shadow, a black key-cap tray, SCORE and WALL cards, and paper cards behind the timing label, the SHIFT callout, the Caps Lock warning and the pause panel. Every paper edge and outline is a pencil line. A paper grain lies over the stage. All of it is drawn in code.
+- **One color system:** every color is named once in `PALETTE`: the mocks' swatches, the yellow and coral of the mock's logo, and darker steps of those for use on cream. Components only use roles (`COLORS`, `TEXT_COLORS`), and a test checks that every role comes from the palette. The alerts are two families: yellow/ochre for a Shift Wall, coral/red for a mistake.
 - The mocks' blocky figure replaced the planned SVG body parts, and the HUD shows the wall number where the mocks show a run timer, since the game has none.
-- ✅ Every pose still fits its hole exactly (the poses and the hole are unchanged), the fonts are bundled and loaded before any text is drawn, and the contrast tests pass with the new palette.
+- (After the first M10 review: the collage scraps, grid paper and halftone were cut as tacked-on. The pale disc moved behind the stage, where it frames the incoming wall, and breathes and drifts very slowly. The grain boils, and every outline became a pencil line. The prototype alert colors were replaced by the palette. Holes are now always one piece: two stretched torso poses were added, since turning the torso alone always split the hole, and 5-letter walls could never be one piece.)
+- ✅ Every pose still fits its hole, and every hole is one piece. The fonts are bundled and loaded before any text is drawn, and the contrast and color-system tests pass.
 
 **M11: Title and game-over screens**
 - The title and game-over screens from the mocks' collage layouts: *SHAPE SHIFT* with a short how-to (← → or Space to line up, hold letters, Shift for CAPS), and GAME OVER with the final and best scores. The title keeps "Click to play" where the mock says "Press any key", because the itch.io frame only gets keyboard focus from a click (§2).
