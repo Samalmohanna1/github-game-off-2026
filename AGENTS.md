@@ -28,7 +28,7 @@ Scenes, one per screen:
 |---|---|---|
 | `BootScene` | Final for Week 1 | Hands off to Title. Loads nothing until Week 2 art. |
 | `TitleScene` | Interim | Game name, one-line how-to, "Click to play". The click gives the page keyboard focus inside the itch.io iframe. Restyled in Week 2. |
-| `PlayScene` | Interim (M9) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). ← / → line the figure up, and so does Space, one lane toward the hole (during a Shift Wall's warning, toward the lane it is about to slide to); the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 4+), the wall stops behind a SHIFT callout, turns orange with an arrow, and the hole slides 1 lane with a sideways jolt while the new lane is marked on the floor; then the wall carries on; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: the wall rushes past, a PERFECT / GREAT / CLOSE CALL label pops over the figure, and the next wall starts. Held blocks land with a squash, slipped ones slump back limp, a wrong key rattles the wall, and a CLOSE CALL plays the rush in slow motion. If the wall arrives first, it shoves the figure into a splash of water particles and the run ends. Synthesized sounds (M9) play over all of it: the approach rumble, clicks, slips, the PERFECT fanfare, the crowd "oooh" and the splash. Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses behind a "Click to resume" panel. F2 toggles the debug overlay. |
+| `PlayScene` | Interim (M9) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). ← / → line the figure up, and so does Space, one lane toward the hole (during a Shift Wall's warning, toward the lane it is about to slide to); the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 4+), the wall stops behind a SHIFT callout, turns orange with an arrow, and the hole slides 1 lane with a sideways jolt while the new lane is marked on the floor; then the wall carries on; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: the wall rushes past, a PERFECT / GREAT / CLOSE CALL label pops over the figure, and the next wall starts. Held blocks land with a squash, slipped ones slump back limp, a wrong key rattles the wall, and a CLOSE CALL plays the rush in slow motion. If the wall arrives first, it shoves the figure into a splash of water particles and the run ends. Synthesized sounds (M9) play over all of it: the countdown tick in CLOSE CALL range, clicks, slips, the PERFECT fanfare, the Shift Wall alert and whoosh, and the fail's hit, crowd "oooh" and splash. Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses behind a "Click to resume" panel. F2 toggles the debug overlay. |
 | `GameOverScene` | Interim | Walls cleared, score, best (saved in `localStorage`) and the wall reached. Restart follows PLAN.md §7: input is ignored for `RESTART_LOCKOUT`, then every key must be up ("Let go of every key" shows meanwhile) before a key or click restarts. |
 
 Shared scene helpers live in `src/scenes/` (`ui.ts`, `text-styles.ts`,
@@ -109,7 +109,7 @@ src/
   main.ts                  # Phaser game config + scene list
   config.ts                # every tunable number (PLAN.md §8)
   audio/
-    Synth.ts               # Web Audio sounds, no files: rumble, click, slip, fanfare, splash, "oooh"
+    Synth.ts               # Web Audio sounds, no files: tick, click, slip, fanfare, Shift alert, hit, "oooh", splash
   data/                    # PURE: static game data
     keyboard.ts            # QWERTY row/x (with stagger), hand, finger per letter
     poses.ts               # block ids, neutral pose and alt poses on the grid
@@ -128,7 +128,8 @@ src/
     scoring.ts             # grades, wall points, PERFECT streak multiplier
     sequence.ts            # prompt / held / slip queue state machine + lock
     shift-wall.ts          # Shift Wall trigger, warning timer, slide target, wall hold
-    sound-levels.ts        # rumble level and cutoff from t, click and fanfare pitches
+    countdown.ts           # countdown tick timing: silent until CLOSE CALL range, then speeding up
+    sound-levels.ts        # click and fanfare pitches
     wall-gen.ts            # blocks + alt poses per wall, hole grid + outline
   objects/
     Floor.ts               # the two perspective floor lines
@@ -168,7 +169,8 @@ tests/
   seeded.ts                # deterministic random for repeatable tests
   sequence.test.ts         # PLAN.md §2 input rules, incl. the M3 cases + lock
   shift-wall.test.ts       # trigger, warning, hold, slide range, M6 line-up case
-  sound-levels.test.ts     # rumble follows t, click steps, fanfare rises an octave
+  countdown.test.ts        # silent before CLOSE CALL range, speeds up, no catch-up bursts
+  sound-levels.test.ts     # click steps, fanfare rises an octave
   wall-gen.test.ts         # valid poses for every block set, hole + outline
 ```
 
@@ -568,14 +570,21 @@ Work through **PLAN.md §10** one milestone at a time.
   `MAX_MULTIPLIER`, so the first PERFECT is ×1 and the second ×1.5. Any other
   grade scores ×1 and resets the streak (PLAN.md §6).
 - **Sounds** (M9) — all synthesized in `src/audio/Synth.ts` from `AUDIO` in
-  config, with no sound files. A low **rumble** swells and brightens with `t`
-  while the wall approaches and goes quiet otherwise (paused, rush, fail).
-  One-shots: a click per held letter, rising a step each time; a sagging note
-  on a slip (not for the forced slips of a blur pause); a fanfare on PERFECT;
-  a crowd "oooh" on a fail; a splash as the figure lands. The synth uses
-  Phaser's audio context and master node, so audio unlocks on the first click
-  and suspends while the window is blurred; one-shots are skipped while the
-  context isn't running, so none queue up.
+  config, with no sound files:
+  - The **countdown**: silent until the wall is in CLOSE CALL range (past
+    `GREAT_T`), then a tick-tock that speeds up as `t` nears 1 (`Countdown`
+    in `src/logic/countdown.ts`, one per wall).
+  - A click per held letter, rising a step each time.
+  - A "bloop" on a slip, but not for the forced slips of a blur pause.
+  - A fanfare on PERFECT.
+  - A Shift Wall alert panned to the side the hole is going, then a whoosh
+    that way as it slides.
+  - On a fail: a hit at once, a crowd "oooh" just after, and a splash as the
+    figure lands.
+
+  The synth uses Phaser's audio context and master node, so audio unlocks on
+  the first click and suspends while the window is blurred. Sounds are
+  skipped while the context isn't running, so none queue up.
 - **Key ghosting** — keyboards failing to register many keys held at once. It
   is why a wall asks for at most 5 letters, and 4 on Shift Walls.
 - **Sticky Keys** — the Windows pop-up after 5 quick Shift presses. It is why
