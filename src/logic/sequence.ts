@@ -65,6 +65,11 @@ export class LetterSequence {
     return this.held.length;
   }
 
+  // Letters not held yet, the current one and slipped ones included.
+  get leftCount(): number {
+    return this.queue.length;
+  }
+
   // For the debug overlay: every letter still to prompt, including ones not
   // shown yet, and each held letter with its key code.
   get queued(): readonly string[] {

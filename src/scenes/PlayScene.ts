@@ -138,7 +138,7 @@ export class PlayScene extends Phaser.Scene {
     if (this.sequence.paused) return;
     if (this.phase === 'approach') {
       this.sequence.tick(deltaMs);
-      this.applyShift(this.shiftWall.update(this.t, this.sequence.heldCount, deltaMs));
+      this.applyShift(this.shiftWall.update(this.t, this.sequence.heldCount, this.sequence.leftCount, deltaMs));
       if (!this.shiftWall.holding) this.setT(advanceT(this.t, deltaMs / 1000, this.plan.wallTime));
     }
     this.callout.setVisible(this.phase === 'approach' && this.shiftWall.holding);
@@ -234,10 +234,11 @@ export class PlayScene extends Phaser.Scene {
   }
 
   // PLAN.md §3: pass = lined up and every letter held, decided from game
-  // state, never from pixels.
+  // state, never from pixels. A Shift Wall's warning holds the lock back, so
+  // the hole still slides; the slide then re-checks.
   private maybeLock(): void {
     if (this.phase !== 'approach' || !this.sequence.complete) return;
-    if (!isAligned(this.figureLane, this.holeLane)) return;
+    if (!isAligned(this.figureLane, this.holeLane) || !this.shiftWall.letsPoseLock) return;
 
     this.phase = 'rush';
     this.sequence.lock();
@@ -311,7 +312,7 @@ export class PlayScene extends Phaser.Scene {
       ['queue', list(this.sequence.queued)],
       ['held', list(this.sequence.heldKeys.map((h) => `${h.letter}:${h.code}`))],
       ['stretch', `${this.stretch.toFixed(2)}  (tier ${lo}-${hi})`],
-      ['shift wall', this.plan.shiftWall ? `yes, at t ${this.shiftWall.triggerT.toFixed(2)}` : 'no'],
+      ['shift wall', this.plan.shiftWall ? `yes, at t ${this.shiftWall.triggerT.toFixed(2)} or the last letter` : 'no'],
       ['score', `${this.scoreKeeper.score}  streak ${this.scoreKeeper.streak}`],
       ...(this.dev === NO_DEV_OPTIONS ? [] : [devRow(this.dev)]),
     ];

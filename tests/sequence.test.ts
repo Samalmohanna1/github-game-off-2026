@@ -114,6 +114,16 @@ describe('slips', () => {
     expect(seq.complete).toBe(true);
   });
 
+  it('counts a slipped letter as still left to hold', () => {
+    const seq = lineUp(['a', 's', 'd']);
+    expect(seq.leftCount).toBe(3);
+    hold(seq, 'a');
+    hold(seq, 's');
+    expect(seq.leftCount).toBe(1);
+    seq.release('KeyS');
+    expect(seq.leftCount).toBe(2);
+  });
+
   it('brings back a slip on the last letter as the current prompt', () => {
     const seq = lineUp(['a', 's', 'd']);
     hold(seq, 'a');

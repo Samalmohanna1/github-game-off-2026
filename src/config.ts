@@ -213,9 +213,13 @@ export const HAND_CAPACITY = 3; // letters one hand holds before the other must 
 export const STRETCH_TRIES = 200; // random combos tried per wall before taking the closest
 export const ADJACENT_KEY_DISTANCE = 1.3; // key widths; nearer keys count as "right next to"
 
-// PLAN.md §5, one entry per band of walls. Each band adds one new demand (a
-// letter, a wider stretch, a capital, Shift Walls or shared fingers) while the
-// wall time eases down, so the curve climbs steadily instead of in cliffs.
+// PLAN.md §5, one entry per band of walls: walls 1-3, two walls each through
+// wall 9, three walls each after that, then an open-ended last tier from wall
+// 19. Each band adds one new demand (Shift Walls, a letter, a wider stretch, a
+// capital or shared fingers) while the wall time eases down by half a second
+// or less, so the curve climbs steadily instead of in cliffs. Shift Walls come
+// first, on easy letters, so the mechanic is learned while the hands are free;
+// the first wall of their band always shifts (difficulty.ts).
 // stretch ranges were set from the score distribution of every combo the tier
 // can draw (one finger per letter before the last tier): each range catches at
 // least 7% of them, so STRETCH_TRIES essentially never misses.
@@ -252,90 +256,90 @@ export const DIFFICULTY_TIERS: readonly DifficultyTier[] = [
   },
   {
     fromWall: 4,
+    name: 'Shift Walls',
+    letters: 3,
+    stretch: [0, 5],
+    allowAdjacent: true,
+    allowSameFinger: false,
+    wallTime: 10,
+    shiftLetters: [0, 0],
+    holeDistance: [1, 2],
+    shiftWallChance: 0.3,
+  },
+  {
+    fromWall: 6,
     name: 'Four letters',
     letters: 4,
     stretch: [6, 8.5],
     allowAdjacent: false,
     allowSameFinger: false,
-    wallTime: 9.5,
+    wallTime: 10,
     shiftLetters: [0, 0],
     holeDistance: [1, 3],
-    shiftWallChance: 0,
+    shiftWallChance: 0.3,
   },
   {
-    fromWall: 6,
+    fromWall: 8,
     name: 'Wider stretch',
     letters: 4,
     stretch: [7.5, 10],
     allowAdjacent: false,
     allowSameFinger: false,
-    wallTime: 9,
+    wallTime: 9.5,
     shiftLetters: [0, 0],
     holeDistance: [1, 3],
-    shiftWallChance: 0,
+    shiftWallChance: 0.3,
   },
   {
-    fromWall: 8,
+    fromWall: 10,
     name: 'Capitals',
     letters: 4,
     stretch: [7.5, 10],
     allowAdjacent: false,
     allowSameFinger: false,
-    wallTime: 9,
+    wallTime: 9.5,
     shiftLetters: [1, 1],
     holeDistance: [1, 3],
-    shiftWallChance: 0,
-  },
-  {
-    fromWall: 10,
-    name: 'Shift Walls',
-    letters: 4,
-    stretch: [7.5, 10],
-    allowAdjacent: false,
-    allowSameFinger: false,
-    wallTime: 8.5,
-    shiftLetters: [1, 1],
-    holeDistance: [1, 4],
     shiftWallChance: 0.3,
   },
   {
-    fromWall: 12,
+    fromWall: 13,
     name: 'Five letters',
     letters: 5,
     stretch: [9.5, 11],
     shiftWallStretch: [7.5, 10],
     allowAdjacent: false,
     allowSameFinger: false,
-    wallTime: 8.5,
+    wallTime: 9,
     shiftLetters: [1, 1],
     holeDistance: [1, 4],
     shiftWallChance: 0.35,
   },
   {
-    fromWall: 14,
+    fromWall: 16,
     name: 'Two capitals',
     letters: 5,
     stretch: [9.5, 11],
     shiftWallStretch: [7.5, 10],
     allowAdjacent: false,
     allowSameFinger: false,
-    wallTime: 8,
+    wallTime: 9,
     shiftLetters: [1, 2],
     holeDistance: [2, 5],
-    shiftWallChance: 0.4,
+    shiftWallChance: 0.35,
   },
   {
-    fromWall: 16,
+    fromWall: 19,
     name: 'Shared fingers',
     letters: 5,
     stretch: [11, 14.5],
     shiftWallStretch: [9, 11.5],
     allowAdjacent: false,
     allowSameFinger: true,
-    wallTime: 8,
+    wallTime: 8.5,
     shiftLetters: [1, 2],
     holeDistance: [2, 6],
-    shiftWallChance: 0.45,
+    shiftWallChance: 0.4,
   },
 ];
 

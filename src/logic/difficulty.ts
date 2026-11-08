@@ -22,6 +22,10 @@ export interface WallPlan extends LetterRules {
 
 const LAST_TIER = DIFFICULTY_TIERS[DIFFICULTY_TIERS.length - 1]!;
 
+// The first wall that can be a Shift Wall always is one, so every run meets the
+// mechanic on easy letters before it turns up at random.
+export const FIRST_SHIFT_WALL = DIFFICULTY_TIERS.find((tier) => tier.shiftWallChance > 0)?.fromWall ?? null;
+
 export function tierFor(wall: number): DifficultyTier {
   return [...DIFFICULTY_TIERS].reverse().find((tier) => wall >= tier.fromWall) ?? DIFFICULTY_TIERS[0]!;
 }
@@ -48,7 +52,7 @@ export function shiftWallChanceFor(wall: number): number {
 // forceShiftWall is the dev server's ?shiftwall option.
 export function planWall(wall: number, random: Random = Math.random, forceShiftWall = false): WallPlan {
   const tier = tierFor(wall);
-  const shiftWall = random() < shiftWallChanceFor(wall) || forceShiftWall;
+  const shiftWall = random() < shiftWallChanceFor(wall) || wall === FIRST_SHIFT_WALL || forceShiftWall;
   // PLAN.md §4: at most 5 letters, and 4 on Shift Wall rounds, since an arrow
   // and Shift go on top and many keyboards ghost past 7 keys.
   const letters = Math.min(tier.letters, shiftWall ? MAX_LETTERS_SHIFT_WALL : MAX_LETTERS);

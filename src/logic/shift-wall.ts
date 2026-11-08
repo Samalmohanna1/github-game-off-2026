@@ -11,6 +11,9 @@ export type ShiftWallEvent =
 // and then the hole slides SHIFT_WALL_SLIDE lanes, staying on the stage. The
 // hole's target is chosen when the warning starts so the arrow can point at it.
 // From the warning on, the wall holds still for SHIFT_WALL_PAUSE.
+// It also fires early once only one letter is left, and the pose can't lock
+// while it warns, so a quick player can't finish before the shift and every
+// Shift Wall really shifts.
 export class ShiftWall {
   readonly triggerT: number;
   private phase: 'waiting' | 'warning' | 'done';
@@ -37,8 +40,14 @@ export class ShiftWall {
     return this.pauseLeft > 0;
   }
 
-  update(t: number, heldLetters: number, dtMs: number): ShiftWallEvent | null {
-    if (this.phase === 'waiting' && t >= this.triggerT && heldLetters > 0) {
+  get letsPoseLock(): boolean {
+    return this.phase !== 'warning';
+  }
+
+  // lettersLeft counts the letters not held yet, the current one included.
+  update(t: number, heldLetters: number, lettersLeft: number, dtMs: number): ShiftWallEvent | null {
+    const due = t >= this.triggerT || lettersLeft <= 1;
+    if (this.phase === 'waiting' && due && heldLetters > 0) {
       this.phase = 'warning';
       this.warningLeft = SHIFT_WALL_TELEGRAPH;
       this.pauseLeft = SHIFT_WALL_PAUSE;

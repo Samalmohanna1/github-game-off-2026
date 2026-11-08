@@ -7,7 +7,7 @@ import {
   SHIFT_WALL_CHANCE_MAX,
   WALL_TIME_DECAY,
 } from '@/config';
-import { planWall, shiftWallChanceFor, tierFor, wallTimeFor } from '@/logic/difficulty';
+import { FIRST_SHIFT_WALL, planWall, shiftWallChanceFor, tierFor, wallTimeFor } from '@/logic/difficulty';
 import { holeLaneCandidates } from '@/logic/lanes';
 import { seeded } from './seeded';
 
@@ -22,13 +22,13 @@ describe('the tier table (PLAN.md §5)', () => {
   it('matches the plan for walls, letters and Shift letters', () => {
     expect(DIFFICULTY_TIERS.map((t) => [t.fromWall, t.letters, t.shiftLetters])).toEqual([
       [1, 3, [0, 0]],
-      [4, 4, [0, 0]],
+      [4, 3, [0, 0]],
       [6, 4, [0, 0]],
-      [8, 4, [1, 1]],
+      [8, 4, [0, 0]],
       [10, 4, [1, 1]],
-      [12, 5, [1, 1]],
-      [14, 5, [1, 2]],
+      [13, 5, [1, 1]],
       [16, 5, [1, 2]],
+      [19, 5, [1, 2]],
     ]);
   });
 
@@ -55,8 +55,9 @@ describe('the tier table (PLAN.md §5)', () => {
     });
   });
 
-  it('only lets letters sit next to each other on walls 1-3', () => {
-    expect(DIFFICULTY_TIERS.map((t) => t.allowAdjacent)).toEqual([true, ...DIFFICULTY_TIERS.slice(1).map(() => false)]);
+  it('only lets letters sit next to each other on the 3-letter walls 1-5', () => {
+    expect(DIFFICULTY_TIERS.map((t) => t.allowAdjacent)).toEqual([true, true, ...DIFFICULTY_TIERS.slice(2).map(() => false)]);
+    for (const tier of DIFFICULTY_TIERS) expect(tier.allowAdjacent).toBe(tier.letters === 3);
   });
 
   it('keeps one finger per letter until the last tier', () => {
@@ -88,14 +89,15 @@ describe('the tier table (PLAN.md §5)', () => {
 
 describe('tierFor', () => {
   it('maps walls to their band', () => {
-    expect([1, 3, 4, 5, 6, 8, 10, 12, 14, 15, 16, 99].map((w) => tierFor(w).name)).toEqual([
+    expect([1, 3, 4, 5, 6, 8, 10, 12, 13, 16, 18, 19, 99].map((w) => tierFor(w).name)).toEqual([
       'Easy',
       'Easy',
-      'Four letters',
+      'Shift Walls',
+      'Shift Walls',
       'Four letters',
       'Wider stretch',
       'Capitals',
-      'Shift Walls',
+      'Capitals',
       'Five letters',
       'Two capitals',
       'Two capitals',
@@ -130,10 +132,10 @@ describe('wallTimeFor', () => {
 });
 
 describe('shiftWallChanceFor', () => {
-  it('is 0 before wall 10, 30% at wall 10, rising to a cap of 80%', () => {
-    expect(shiftWallChanceFor(9)).toBe(0);
-    expect(shiftWallChanceFor(10)).toBeCloseTo(0.3);
-    expect(shiftWallChanceFor(17)).toBeGreaterThan(shiftWallChanceFor(16));
+  it('is 0 before wall 4, 30% at wall 4, rising to a cap of 80%', () => {
+    expect(shiftWallChanceFor(3)).toBe(0);
+    expect(shiftWallChanceFor(4)).toBeCloseTo(0.3);
+    expect(shiftWallChanceFor(20)).toBeGreaterThan(shiftWallChanceFor(19));
     expect(shiftWallChanceFor(100)).toBeCloseTo(SHIFT_WALL_CHANCE_MAX);
     for (let wall = 2; wall < 100; wall++) expect(shiftWallChanceFor(wall)).toBeGreaterThanOrEqual(shiftWallChanceFor(wall - 1));
   });
@@ -147,8 +149,14 @@ describe('planWall', () => {
     for (const plan of plans) expect(plan.letters).toBe(plan.shiftWall ? MAX_LETTERS_SHIFT_WALL : 5);
   });
 
-  it('never makes a Shift Wall before wall 10', () => {
-    for (let wall = 1; wall <= 9; wall++) expect(planWall(wall, seeded(wall)).shiftWall).toBe(false);
+  it('never makes a Shift Wall before wall 4', () => {
+    for (let wall = 1; wall <= 3; wall++) expect(planWall(wall, seeded(wall)).shiftWall).toBe(false);
+  });
+
+  it('always makes wall 4, the first that can shift, a Shift Wall, and only that one', () => {
+    expect(FIRST_SHIFT_WALL).toBe(4);
+    for (let i = 1; i <= 50; i++) expect(planWall(4, seeded(i)).shiftWall).toBe(true);
+    expect(planWall(5, () => 0.99).shiftWall).toBe(false);
   });
 
   it('gives Shift Wall rounds a stretch range for the trimmed letter count', () => {
@@ -173,7 +181,7 @@ describe('planWall', () => {
 
   it("picks the Shift letter count inside the tier's range", () => {
     for (let i = 1; i <= 200; i++) {
-      const plan = planWall(14, seeded(i));
+      const plan = planWall(16, seeded(i));
       expect(plan.shiftLetters).toBeGreaterThanOrEqual(1);
       expect(plan.shiftLetters).toBeLessThanOrEqual(2);
     }
