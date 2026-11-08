@@ -65,11 +65,23 @@ describe('generateWall', () => {
     }
   });
 
-  it('keeps the silhouette in one piece whenever the torso stays put', () => {
-    for (const seed of SEEDS) {
-      const wall = generateWall(3, ['a', 'b', 'c'], DISTANCE, seeded(seed));
-      if (!Object.values(wall.blockFor).includes('torso')) expect(isOnePiece(wall.targets)).toBe(true);
+  // M10: the hole is always one clean shape, never broken-up pieces.
+  it('always makes a one-piece hole, for every letter count', () => {
+    const letters = ['q', 'w', 'e', 'r', 't'];
+    for (let count = 1; count <= letters.length; count++) {
+      for (const seed of SEEDS) {
+        const wall = generateWall(3, letters.slice(0, count), DISTANCE, seeded(seed));
+        expect(isOnePiece(wall.targets), `${count} letters, seed ${seed}`).toBe(true);
+      }
     }
+  });
+
+  it('still lets every block, the torso included, take a letter', () => {
+    const moved = new Set<BlockId>();
+    for (const seed of SEEDS) {
+      for (const id of Object.values(generateWall(3, ['a', 'b', 'c'], DISTANCE, seeded(seed)).blockFor)) moved.add(id);
+    }
+    expect([...moved].sort()).toEqual([...BLOCK_IDS].sort());
   });
 
   it('puts the hole the requested number of lanes from the figure', () => {

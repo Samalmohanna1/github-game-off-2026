@@ -90,17 +90,23 @@ export function generateWall(
   if (letters.length > BLOCK_IDS.length) {
     throw new Error(`${letters.length} letters but only ${BLOCK_IDS.length} blocks`);
   }
-  const changed = shuffled(BLOCK_IDS, random).slice(0, letters.length);
-  // Prefer a one-piece silhouette. The torso sits between both arms, so turning
-  // it always parts it from one arm; those walls fall back to a hole with a gap.
-  const valid = poseOptions(changed);
-  const onePiece = valid.filter(isOnePiece);
-  const targets = pick(onePiece.length > 0 ? onePiece : valid, random);
-  if (targets === undefined) throw new Error(`No valid pose changes ${changed.join(', ')}`);
+  // The hole is always one clean piece (M10). A few block sets can't make one
+  // (the torso turned on its own parts it from an arm), so the letters go to
+  // the first set, in shuffled order, that can.
+  for (const changed of subsetsInOrder(shuffled(BLOCK_IDS, random), letters.length)) {
+    const targets = pick(poseOptions(changed).filter(isOnePiece), random);
+    if (targets === undefined) continue;
+    const blockFor: Record<string, BlockId> = {};
+    letters.forEach((letter, i) => (blockFor[letter] = changed[i]!));
+    return { holeLane: pickHoleLane(figureLane, holeDistance, random), targets, blockFor };
+  }
+  throw new Error(`No one-piece pose moves ${letters.length} blocks`);
+}
 
-  const blockFor: Record<string, BlockId> = {};
-  letters.forEach((letter, i) => (blockFor[letter] = changed[i]!));
-  return { holeLane: pickHoleLane(figureLane, holeDistance, random), targets, blockFor };
+// Every k-item subset, keeping the items' order and starting with the first k.
+function subsetsInOrder<T>(items: readonly T[], k: number): T[][] {
+  if (k === 0) return [[]];
+  return items.flatMap((item, i) => subsetsInOrder(items.slice(i + 1), k - 1).map((rest) => [item, ...rest]));
 }
 
 // grid[row][col] is true where the hole is.
