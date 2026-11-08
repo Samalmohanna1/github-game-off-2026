@@ -20,6 +20,10 @@ export const COLORS = {
   chipCurrent: 0x1d4fb8,
   chipSlipped: 0xb3243a,
   chipShiftMark: 0xffffff,
+  // The next-letter preview is hollow rather than faded, so its letter keeps
+  // full contrast while still reading as "not yet".
+  chipNext: 0xffffff,
+  chipNextEdge: 0x1d4fb8,
   panel: 0xffffff,
   panelEdge: 0x6e5662,
   labelStroke: 0xffffff,
@@ -40,12 +44,15 @@ export const TEXT_COLORS = {
   accent: '#1d4fb8',
   danger: '#b3243a',
   onChip: '#ffffff',
+  warning: '#a86400', // the Shift Wall callout; matches COLORS.wallWarning
 } as const;
 
 export const FONT_FAMILY = 'Arial, Helvetica, sans-serif';
 // Prompt letters need a capital I that can't be mistaken for a lowercase l;
 // Verdana and Tahoma give the I crossbars, Arial does not.
 export const CHIP_FONT_FAMILY = 'Verdana, Tahoma, sans-serif';
+// Monospace so the debug overlay's columns line up.
+export const DEBUG_FONT_FAMILY = 'Consolas, Menlo, "Courier New", monospace';
 
 // px. Nothing goes below 24 so all text counts as "large" for WCAG contrast.
 export const FONT_SIZES = {
@@ -66,22 +73,30 @@ export const SCREEN_LAYOUT = {
   gameOverStatsLineGap: 0.08,
   gameOverPromptY: 0.85,
   capsWarningY: 0.07,
+  shiftCalloutY: 0.15, // above the wall while it is far enough away to shift
   pauseHeadingY: 0.44,
   pausePromptY: 0.56,
 } as const;
+
+// Debug overlay (PLAN.md §8), toggled with F2: top-left corner, px.
+export const DEBUG_OVERLAY = { x: 12, y: 12, padding: 10 } as const;
 
 export const PAUSE_PANEL = { width: 560, height: 220 } as const; // px
 export const PAUSE_DIM_ALPHA = 0.7; // stage-colored veil over the paused game
 export const PANEL_EDGE_WIDTH = 3;
 
 // Prompt tray chips, px. Held chips line up from the tray's left edge, the
-// current prompt sits in the center, and slipped letters queue to its right.
+// current prompt sits in the center, and to its right come the next-letter
+// preview and then slipped letters, in queue order. When a letter becomes
+// current it slides in from its spot on the right over slideMs.
 export const CHIP = {
   size: 68,
   currentSize: 88,
   gap: 14,
   edgeInset: 40,
   radius: 12,
+  nextEdgeWidth: 3,
+  slideMs: 140,
 } as const;
 
 // The outlined Shift arrow on capital chips, in the top-right corner. Size and
@@ -114,13 +129,16 @@ export const LANE_COUNT = 7;
 export const LANE_MARKER_FRONT_Y = 600; // px; strips run from FIGURE_FLOOR_Y down to here
 export const LANE_MARKER_GAP = 12; // px between strips, at the figure's plane
 export const LANE_MARKER_EDGE_WIDTH = 2;
+// The Shift Wall's target lane: an orange outline with chevrons pointing the
+// way the hole went, until the figure is lined up with it. px.
+export const LANE_TARGET = { edgeWidth: 5, chevronWidth: 12, chevronHeight: 22, chevronGap: 20, chevronLineWidth: 4 } as const;
 
 export const WALL_START_SCALE = 0.35;
 export const WALL_HEIGHT = 380; // px at full scale
 export const WALL_EDGE_WIDTH = 4; // px at full scale
 export const WALL_EASE_POWER = 2; // scale follows t^n, so higher n rushes harder at the end
 
-export const WRONG_KEY_JUMP = 0.06; // added to t
+export const WRONG_KEY_JUMP = 0.03; // added to t
 export const WRONG_KEY_SHAKE_MS = 160;
 export const WRONG_KEY_SHAKE_INTENSITY = 0.006; // fraction of the screen size
 export const WALL_FLASH_MS = 120;
@@ -131,9 +149,17 @@ export const PROMPT_APPEAR_DELAY = 120; // ms after the previous letter is held
 // is held, the wall flashes with an arrow for SHIFT_WALL_TELEGRAPH, then the
 // hole slides SHIFT_WALL_SLIDE lanes in the arrow's direction.
 export const SHIFT_WALL_TELEGRAPH = 300; // ms
-export const SHIFT_WALL_T_RANGE: readonly [number, number] = [0.35, 0.6];
+export const SHIFT_WALL_T_RANGE: readonly [number, number] = [0.3, 0.5];
 export const SHIFT_WALL_SLIDE: readonly [number, number] = [1, 2]; // lanes
 export const SHIFT_WALL_SLIDE_MS = 220; // visual only: the hole's lane changes at once
+// The wall stops approaching from the warning on, for the warning, the slide
+// and time to line up again, then carries on. The SHIFT callout shows for as
+// long as the wall holds.
+export const SHIFT_WALL_PAUSE = 1000; // ms
+// A short sideways camera nudge in the slide's direction as the hole moves.
+export const SHIFT_JOLT = { distance: 16, ms: 90 } as const; // px, ms each way
+// The callout's arrow beside the SHIFT text, px.
+export const SHIFT_CALLOUT_ARROW = { gap: 24, length: 90, shaftThickness: 26, headLength: 44, headWidth: 64 } as const;
 // The warning arrow, px at full scale, centered over the hole in the band of
 // wall above it.
 export const SHIFT_ARROW = { length: 220, shaftThickness: 40, headLength: 90, headWidth: 120 } as const;
@@ -187,17 +213,28 @@ export const HAND_CAPACITY = 3; // letters one hand holds before the other must 
 export const STRETCH_TRIES = 200; // random combos tried per wall before taking the closest
 export const ADJACENT_KEY_DISTANCE = 1.3; // key widths; nearer keys count as "right next to"
 
-// PLAN.md §5, one entry per band of walls. stretch ranges were set from the
-// score distribution of every possible combo: each range catches at least 7%
-// of random combos of its size, so STRETCH_TRIES essentially never misses.
-// From fromWall 13 on, wall time drops by WALL_TIME_DECAY per wall (never
-// below MIN_WALL_TIME) and the Shift Wall chance rises (M6 adds the slide).
+// PLAN.md §5, one entry per band of walls: walls 1-3, two walls each through
+// wall 9, three walls each after that, then an open-ended last tier from wall
+// 19. Each band adds one new demand (Shift Walls, a letter, a wider stretch, a
+// capital or shared fingers) while the wall time eases down by half a second
+// or less, so the curve climbs steadily instead of in cliffs. Shift Walls come
+// first, on easy letters, so the mechanic is learned while the hands are free;
+// the first wall of their band always shifts (difficulty.ts).
+// stretch ranges were set from the score distribution of every combo the tier
+// can draw (one finger per letter before the last tier): each range catches at
+// least 7% of them, so STRETCH_TRIES essentially never misses.
+// In the last tier, wall time drops by WALL_TIME_DECAY per wall (never below
+// MIN_WALL_TIME) and the Shift Wall chance rises by SHIFT_WALL_CHANCE_STEP.
 export interface DifficultyTier {
   readonly fromWall: number;
   readonly name: string;
   readonly letters: number;
   readonly stretch: readonly [number, number];
+  // For Shift Wall rounds, when MAX_LETTERS_SHIFT_WALL trims the letter count:
+  // the same share of combos, scored over the smaller combo size.
+  readonly shiftWallStretch?: readonly [number, number];
   readonly allowAdjacent: boolean; // consecutive prompts may be neighboring keys
+  readonly allowSameFinger: boolean; // two letters may share a touch-typing finger
   readonly wallTime: number; // s
   readonly shiftLetters: readonly [number, number];
   readonly holeDistance: readonly [number, number]; // lanes from the figure
@@ -211,57 +248,101 @@ export const DIFFICULTY_TIERS: readonly DifficultyTier[] = [
     letters: 3,
     stretch: [0, 5],
     allowAdjacent: true,
-    wallTime: 8,
+    allowSameFinger: false,
+    wallTime: 10,
     shiftLetters: [0, 0],
     holeDistance: [1, 2],
     shiftWallChance: 0,
   },
   {
     fromWall: 4,
-    name: 'Medium',
-    letters: 4,
-    stretch: [6, 9],
-    allowAdjacent: false,
-    wallTime: 7,
+    name: 'Shift Walls',
+    letters: 3,
+    stretch: [0, 5],
+    allowAdjacent: true,
+    allowSameFinger: false,
+    wallTime: 10,
     shiftLetters: [0, 0],
-    holeDistance: [1, 3],
-    shiftWallChance: 0,
+    holeDistance: [1, 2],
+    shiftWallChance: 0.3,
   },
   {
-    fromWall: 7,
-    name: 'Medium-high',
+    fromWall: 6,
+    name: 'Four letters',
     letters: 4,
-    stretch: [8.5, 11],
+    stretch: [6, 8.5],
     allowAdjacent: false,
-    wallTime: 6,
-    shiftLetters: [1, 1],
-    holeDistance: [1, 4],
-    shiftWallChance: 0,
+    allowSameFinger: false,
+    wallTime: 10,
+    shiftLetters: [0, 0],
+    holeDistance: [1, 3],
+    shiftWallChance: 0.3,
+  },
+  {
+    fromWall: 8,
+    name: 'Wider stretch',
+    letters: 4,
+    stretch: [7.5, 10],
+    allowAdjacent: false,
+    allowSameFinger: false,
+    wallTime: 9.5,
+    shiftLetters: [0, 0],
+    holeDistance: [1, 3],
+    shiftWallChance: 0.3,
   },
   {
     fromWall: 10,
-    name: 'Hard',
-    letters: 5,
-    stretch: [11, 14],
+    name: 'Capitals',
+    letters: 4,
+    stretch: [7.5, 10],
     allowAdjacent: false,
-    wallTime: 5.5,
-    shiftLetters: [1, 2],
-    holeDistance: [2, 5],
-    shiftWallChance: 0,
+    allowSameFinger: false,
+    wallTime: 9.5,
+    shiftLetters: [1, 1],
+    holeDistance: [1, 3],
+    shiftWallChance: 0.3,
   },
   {
     fromWall: 13,
-    name: 'Hard+',
+    name: 'Five letters',
     letters: 5,
-    stretch: [12.5, 18],
+    stretch: [9.5, 11],
+    shiftWallStretch: [7.5, 10],
     allowAdjacent: false,
-    wallTime: 5.5,
+    allowSameFinger: false,
+    wallTime: 9,
+    shiftLetters: [1, 1],
+    holeDistance: [1, 4],
+    shiftWallChance: 0.35,
+  },
+  {
+    fromWall: 16,
+    name: 'Two capitals',
+    letters: 5,
+    stretch: [9.5, 11],
+    shiftWallStretch: [7.5, 10],
+    allowAdjacent: false,
+    allowSameFinger: false,
+    wallTime: 9,
+    shiftLetters: [1, 2],
+    holeDistance: [2, 5],
+    shiftWallChance: 0.35,
+  },
+  {
+    fromWall: 19,
+    name: 'Shared fingers',
+    letters: 5,
+    stretch: [11, 14.5],
+    shiftWallStretch: [9, 11.5],
+    allowAdjacent: false,
+    allowSameFinger: true,
+    wallTime: 8.5,
     shiftLetters: [1, 2],
     holeDistance: [2, 6],
-    shiftWallChance: 0.5,
+    shiftWallChance: 0.4,
   },
 ];
 
-export const WALL_TIME_DECAY = 0.04; // Hard+: each wall is 4% shorter than the last
-export const SHIFT_WALL_CHANCE_STEP = 0.05; // Hard+: added per wall after the first
+export const WALL_TIME_DECAY = 0.04; // last tier: each wall is 4% shorter than the last
+export const SHIFT_WALL_CHANCE_STEP = 0.05; // last tier: added per wall after the first
 export const SHIFT_WALL_CHANCE_MAX = 0.8;

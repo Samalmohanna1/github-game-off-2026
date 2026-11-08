@@ -8,6 +8,7 @@ import {
   LOCK_RUSH_DURATION,
   RUSH_END_SCALE,
   SCREEN_LAYOUT,
+  SHIFT_JOLT,
   STAGE_BOTTOM_Y,
   WRONG_KEY_SHAKE_INTENSITY,
   WRONG_KEY_SHAKE_MS,
@@ -15,18 +16,21 @@ import {
 import { NEUTRAL_POSE } from '@/data/poses';
 import { KeyboardInput } from '@/input/KeyboardInput';
 import { advanceT, jumpT, wallScale } from '@/logic/approach';
+import { NO_DEV_OPTIONS, parseDevOptions, type DevOptions } from '@/logic/dev-options';
 import { planWall, type WallPlan } from '@/logic/difficulty';
-import { CENTER_LANE, isAligned, laneCenterX, moveLane } from '@/logic/lanes';
+import { CENTER_LANE, cycleLane, isAligned, laneCenterX, moveLane } from '@/logic/lanes';
 import { generateLetters } from '@/logic/letters';
-import { ScoreKeeper } from '@/logic/scoring';
+import { ScoreKeeper, gradeFor } from '@/logic/scoring';
 import { LetterSequence, type SequenceEffect } from '@/logic/sequence';
 import { ShiftWall, type ShiftWallEvent } from '@/logic/shift-wall';
 import { generateWall, holeGrid, type WallSpec } from '@/logic/wall-gen';
+import { DebugOverlay, type DebugRow } from '@/objects/DebugOverlay';
 import { Figure } from '@/objects/Figure';
 import { Floor } from '@/objects/Floor';
 import { LaneMarkers } from '@/objects/LaneMarkers';
 import { PauseOverlay } from '@/objects/PauseOverlay';
 import { PromptTray } from '@/objects/PromptTray';
+import { ShiftCallout } from '@/objects/ShiftCallout';
 import { playSplash } from '@/objects/splash';
 import { TimingLabel } from '@/objects/TimingLabel';
 import { Wall } from '@/objects/Wall';
@@ -47,7 +51,11 @@ const LAYER = {
   tray: 7,
   hud: 8,
   pause: 9,
+  debug: 10,
 } as const;
+
+// Kept in the game registry so the overlay stays on across walls and restarts.
+const DEBUG_VISIBLE = 'debugOverlayVisible';
 
 // approach: the wall is coming and the player can act. rush: the pose locked
 // and the wall is passing. failing: the wall reached the figure first.
@@ -61,6 +69,7 @@ export class PlayScene extends Phaser.Scene {
   private holeLane = CENTER_LANE;
   private plan!: WallPlan;
   private spec!: WallSpec;
+  private stretch = 0;
   private shiftWall!: ShiftWall;
   private sequence!: LetterSequence;
   private scoreKeeper!: ScoreKeeper;
@@ -70,8 +79,13 @@ export class PlayScene extends Phaser.Scene {
   private laneMarkers!: LaneMarkers;
   private tray!: PromptTray;
   private label!: TimingLabel;
+  private callout!: ShiftCallout;
   private capsWarning!: Phaser.GameObjects.Text;
   private pauseOverlay!: PauseOverlay;
+  private debug!: DebugOverlay;
+  // The URL's playtest shortcuts, honored on the dev server only, so a
+  // published build always plays a normal run.
+  private readonly dev = import.meta.env.DEV ? parseDevOptions(window.location.search) : NO_DEV_OPTIONS;
 
   constructor() {
     super(SceneKeys.Play);
@@ -80,13 +94,14 @@ export class PlayScene extends Phaser.Scene {
   create(): void {
     this.figureLane = CENTER_LANE;
     this.sequence = new LetterSequence();
-    this.scoreKeeper = new ScoreKeeper();
+    this.scoreKeeper = new ScoreKeeper(this.dev.startWall);
 
     new Floor(this).setDepth(LAYER.floor);
     this.laneMarkers = new LaneMarkers(this).setDepth(LAYER.laneMarkers);
     this.wall = new Wall(this).setDepth(LAYER.wall);
     this.figure = new Figure(this, this.figureLane).setDepth(LAYER.figure);
     this.label = new TimingLabel(this).setDepth(LAYER.label);
+    this.callout = new ShiftCallout(this).setDepth(LAYER.label);
     this.tray = new PromptTray(this).setDepth(LAYER.tray);
     this.capsWarning = this.add
       .text(
@@ -99,16 +114,19 @@ export class PlayScene extends Phaser.Scene {
       .setDepth(LAYER.hud)
       .setVisible(false);
     this.pauseOverlay = new PauseOverlay(this).setDepth(LAYER.pause);
+    this.debug = new DebugOverlay(this).setDepth(LAYER.debug).setVisible(this.registry.get(DEBUG_VISIBLE) === true);
 
     this.input.on('pointerdown', () => {
       if (this.sequence.paused) this.resume();
     });
     this.keyboard = new KeyboardInput({
-      onMove: (dir) => this.moveFigure(dir),
+      onMove: (dir) => this.moveFigure(moveLane(this.figureLane, dir)),
+      onCycle: () => this.moveFigure(cycleLane(this.figureLane)),
       onKeyDown: (key, code) => this.apply(this.sequence.press(key, code)),
       onKeyUp: (code) => this.apply(this.sequence.release(code)),
       onBlur: () => this.pause(),
       onCapsLock: (on) => this.capsWarning.setVisible(on),
+      onToggleDebug: () => this.toggleDebug(),
     });
     this.events.once('shutdown', () => this.keyboard.destroy());
 
@@ -116,25 +134,42 @@ export class PlayScene extends Phaser.Scene {
   }
 
   update(_time: number, deltaMs: number): void {
+    if (this.debug.visible) this.debug.show(this.debugRows());
     if (this.sequence.paused) return;
     if (this.phase === 'approach') {
       this.sequence.tick(deltaMs);
-      this.applyShift(this.shiftWall.update(this.t, this.sequence.heldCount, deltaMs));
-      this.setT(advanceT(this.t, deltaMs / 1000, this.plan.wallTime));
+      this.applyShift(this.shiftWall.update(this.t, this.sequence.heldCount, this.sequence.leftCount, deltaMs));
+      if (!this.shiftWall.holding) this.setT(advanceT(this.t, deltaMs / 1000, this.plan.wallTime));
     }
+    this.callout.setVisible(this.phase === 'approach' && this.shiftWall.holding);
     this.tray.show(this.sequence.view());
   }
 
   // PLAN.md §2 step 4: held letters keep their blocks, but no new letter shows
-  // until the figure is lined up with the moved hole.
+  // until the figure is lined up with the moved hole. PLAN.md §5: the wall
+  // holds still behind a SHIFT callout, the target lane is marked, and the
+  // screen jolts the slide's way.
   private applyShift(event: ShiftWallEvent | null): void {
     if (event === null) return;
     if (event.type === 'warn') {
       this.wall.warn(event.dir);
+      this.callout.show(event.dir);
+      this.laneMarkers.setTarget({ lane: event.toLane, dir: event.dir });
       return;
     }
+    const dir = event.toLane > this.holeLane ? 1 : -1;
     this.holeLane = event.toLane;
     this.wall.slideHoleTo(event.toLane);
+    if (!prefersReducedMotion()) {
+      // Scrolling the camera against dir moves the scene toward it.
+      this.tweens.add({
+        targets: this.cameras.main,
+        scrollX: -dir * SHIFT_JOLT.distance,
+        duration: SHIFT_JOLT.ms,
+        ease: 'Quad.easeOut',
+        yoyo: true,
+      });
+    }
     this.refreshAlignment();
   }
 
@@ -145,14 +180,16 @@ export class PlayScene extends Phaser.Scene {
   }
 
   private startWall(): void {
-    this.plan = planWall(this.scoreKeeper.wallNumber);
-    const { letters } = generateLetters(this.plan);
+    this.plan = planWall(this.scoreKeeper.wallNumber, Math.random, this.dev.forceShiftWall);
+    const { letters, stretch } = generateLetters(this.plan);
+    this.stretch = stretch;
     this.spec = generateWall(this.figureLane, letters, this.plan.holeDistance);
     this.holeLane = this.spec.holeLane;
     this.shiftWall = new ShiftWall(this.plan.shiftWall, this.holeLane);
     this.wall.setHole(this.holeLane, holeGrid(this.spec.targets));
     this.wall.setAlpha(1).setDepth(LAYER.wall);
     this.figure.resetPose();
+    this.laneMarkers.setTarget(null);
     this.sequence.startWall(letters);
     this.phase = 'approach';
     this.setT(0);
@@ -175,12 +212,15 @@ export class PlayScene extends Phaser.Scene {
     this.maybeLock();
   }
 
-  private moveFigure(dir: -1 | 1): void {
+  private moveFigure(lane: number): void {
     if (this.phase !== 'approach' || this.sequence.paused) return;
-    const lane = moveLane(this.figureLane, dir);
     if (lane === this.figureLane) return;
+    // A wrap from the last lane to the first jumps rather than gliding back
+    // across the whole stage.
+    const wrapped = Math.abs(lane - this.figureLane) > 1;
     this.figureLane = lane;
-    this.figure.slideToLane(lane);
+    if (wrapped) this.figure.jumpToLane(lane);
+    else this.figure.slideToLane(lane);
     this.refreshAlignment();
   }
 
@@ -188,14 +228,17 @@ export class PlayScene extends Phaser.Scene {
     const aligned = isAligned(this.figureLane, this.holeLane);
     this.sequence.setAligned(aligned);
     this.laneMarkers.setLit(aligned ? this.figureLane : null);
+    // The target stays through the warning, while the old lane still counts.
+    if (aligned && !this.shiftWall.warning) this.laneMarkers.setTarget(null);
     this.maybeLock();
   }
 
   // PLAN.md §3: pass = lined up and every letter held, decided from game
-  // state, never from pixels.
+  // state, never from pixels. A Shift Wall's warning holds the lock back, so
+  // the hole still slides; the slide then re-checks.
   private maybeLock(): void {
     if (this.phase !== 'approach' || !this.sequence.complete) return;
-    if (!isAligned(this.figureLane, this.holeLane)) return;
+    if (!isAligned(this.figureLane, this.holeLane) || !this.shiftWall.letsPoseLock) return;
 
     this.phase = 'rush';
     this.sequence.lock();
@@ -242,6 +285,39 @@ export class PlayScene extends Phaser.Scene {
     this.pauseOverlay.setVisible(false);
   }
 
+  private toggleDebug(): void {
+    const visible = !this.debug.visible;
+    this.debug.setVisible(visible);
+    this.registry.set(DEBUG_VISIBLE, visible);
+  }
+
+  // PLAN.md §8's list, plus the tier, wall time and score for tuning.
+  private debugRows(): DebugRow[] {
+    const flags = [
+      this.phase,
+      this.sequence.paused ? 'paused' : '',
+      this.sequence.locked ? 'locked' : '',
+      this.shiftWall.warning ? 'shift warning' : '',
+      this.shiftWall.holding ? 'wall holding' : '',
+    ].filter((flag) => flag !== '');
+    const aligned = isAligned(this.figureLane, this.holeLane);
+    const [lo, hi] = this.plan.stretch;
+    const list = (items: readonly string[]) => (items.length > 0 ? items.join(' ') : '-');
+    return [
+      ['state', flags.join(', ')],
+      ['wall', `#${this.plan.wall}  ${this.plan.tier}  ${this.plan.wallTime.toFixed(2)} s`],
+      ['t', `${this.t.toFixed(3)}  (${gradeFor(this.t)} if locked now)`],
+      ['lanes', `figure ${this.figureLane}  hole ${this.holeLane}  ${aligned ? 'lined up' : 'not lined up'}`],
+      ['prompt', this.sequence.current ?? '-'],
+      ['queue', list(this.sequence.queued)],
+      ['held', list(this.sequence.heldKeys.map((h) => `${h.letter}:${h.code}`))],
+      ['stretch', `${this.stretch.toFixed(2)}  (tier ${lo}-${hi})`],
+      ['shift wall', this.plan.shiftWall ? `yes, at t ${this.shiftWall.triggerT.toFixed(2)} or the last letter` : 'no'],
+      ['score', `${this.scoreKeeper.score}  streak ${this.scoreKeeper.streak}`],
+      ...(this.dev === NO_DEV_OPTIONS ? [] : [devRow(this.dev)]),
+    ];
+  }
+
   private endRun(): void {
     const result: RunResult = {
       wallsCleared: this.scoreKeeper.wallsCleared,
@@ -251,4 +327,8 @@ export class PlayScene extends Phaser.Scene {
     };
     this.scene.start(SceneKeys.GameOver, result);
   }
+}
+
+function devRow({ startWall, forceShiftWall }: DevOptions): DebugRow {
+  return ['dev url', [`runs start at wall ${startWall}`, forceShiftWall ? 'every wall shifts' : ''].filter(Boolean).join(', ')];
 }

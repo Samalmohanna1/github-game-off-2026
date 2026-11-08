@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { DIFFICULTY_TIERS, MAX_LETTERS, MAX_LETTERS_SHIFT_WALL, STRETCH_WEIGHTS } from '@/config';
+import { KEYBOARD } from '@/data/keyboard';
 import { planWall } from '@/logic/difficulty';
-import { generateLetters, isAdjacent, orderLetters, stretchScore, uppercasePositions } from '@/logic/letters';
+import {
+  generateLetters,
+  isAdjacent,
+  onSeparateFingers,
+  orderLetters,
+  stretchScore,
+  uppercasePositions,
+} from '@/logic/letters';
 import { isUppercaseLetter } from '@/logic/sequence';
 import { seeded } from './seeded';
 
@@ -80,14 +88,14 @@ describe('uppercasePositions', () => {
 describe.each(DIFFICULTY_TIERS.map((tier) => [tier.name, tier] as const))('%s walls', (_name, tier) => {
   const walls = SEEDS.map((seed) => {
     const random = seeded(seed);
-    const plan = planWall(tier.fromWall + (seed % 3), random);
+    const plan = planWall(tier.fromWall + (seed % 2), random);
     return { plan, combo: generateLetters(plan, random) };
   });
 
-  it("score inside the tier's stretch range", () => {
-    for (const { combo } of walls) {
-      expect(combo.stretch).toBeGreaterThanOrEqual(tier.stretch[0]);
-      expect(combo.stretch).toBeLessThanOrEqual(tier.stretch[1]);
+  it("score inside the planned stretch range (the tier's, or its Shift Wall one)", () => {
+    for (const { plan, combo } of walls) {
+      expect(combo.stretch).toBeGreaterThanOrEqual(plan.stretch[0]);
+      expect(combo.stretch).toBeLessThanOrEqual(plan.stretch[1]);
     }
   });
 
@@ -116,18 +124,41 @@ describe.each(DIFFICULTY_TIERS.map((tier) => [tier.name, tier] as const))('%s wa
       combo.letters.slice(1).forEach((letter, i) => expect(isAdjacent(combo.letters[i]!, letter)).toBe(false));
     }
   });
+
+  it.runIf(!tier.allowSameFinger)('put every letter on its own finger', () => {
+    for (const { combo } of walls) expect(onSeparateFingers(combo.letters)).toBe(true);
+  });
+});
+
+describe('onSeparateFingers', () => {
+  it('spots two keys under one finger, case or not', () => {
+    expect(onSeparateFingers(['q', 'p', 'z'])).toBe(false); // q and z: left pinky
+    expect(onSeparateFingers(['J', 'm'])).toBe(false); // right index
+    expect(onSeparateFingers(['q', 'p', 'x'])).toBe(true);
+  });
+
+  it('leaves enough fingers for the largest combo', () => {
+    expect(new Set(Object.values(KEYBOARD).map((key) => key.finger)).size).toBeGreaterThanOrEqual(MAX_LETTERS);
+  });
 });
 
 describe('generateLetters', () => {
+  const rules = { stretch: [0, 99] as const, allowAdjacent: true, allowSameFinger: true, shiftLetters: 0 };
+
   it('refuses more letters than the cap', () => {
-    const rules = { letters: MAX_LETTERS + 1, stretch: [0, 99] as const, allowAdjacent: true, shiftLetters: 0 };
-    expect(() => generateLetters(rules, seeded(1))).toThrow();
+    expect(() => generateLetters({ ...rules, letters: MAX_LETTERS + 1 }, seeded(1))).toThrow();
   });
 
   it('falls back to the closest combo when the range is out of reach', () => {
-    const rules = { letters: 3, stretch: [100, 200] as const, allowAdjacent: true, shiftLetters: 0 };
-    const combo = generateLetters(rules, seeded(1));
+    const combo = generateLetters({ ...rules, letters: 3, stretch: [100, 200] }, seeded(1));
     expect(combo.letters).toHaveLength(3);
     expect(combo.stretch).toBeLessThan(100);
+  });
+
+  it('keeps one finger per letter even when falling back', () => {
+    for (const seed of SEEDS) {
+      const combo = generateLetters({ ...rules, letters: MAX_LETTERS, stretch: [100, 200], allowSameFinger: false }, seeded(seed));
+      expect(onSeparateFingers(combo.letters)).toBe(true);
+    }
   });
 });

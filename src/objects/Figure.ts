@@ -55,6 +55,11 @@ export class Figure extends Phaser.GameObjects.Container {
     });
   }
 
+  jumpToLane(lane: number): void {
+    this.slide?.stop();
+    this.setX(laneCenterX(lane));
+  }
+
   // PLAN.md §7: the wall shoves the figure toward the camera and it tips over
   // into the pool below the stage.
   shove(onLanded: () => void): void {

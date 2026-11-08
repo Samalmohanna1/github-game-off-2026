@@ -2,13 +2,13 @@
 
 A keyboard take on Japan's "Human Tetris", made for GitHub Game Off 2026
 (theme: SHIFT). A wall with a hole in it comes toward you. Line up under the
-hole with ← / →, then hold the letters shown to pose your figure so it fits
+hole with ← / → (or Space, which steps right and wraps around), then hold the letters shown to pose your figure so it fits
 through. Capital letters need Shift.
 
-**Status:** Week 1 prototype, built in grey boxes. M0–M6 are done: a full run
-plays from the title through walls that get harder by the difficulty curve,
-Shift Walls whose hole slides mid-approach, scoring and a fail to the
-game-over screen and back. See
+**Status:** Week 1 prototype, built in grey boxes. M0–M7 are done: a full run
+plays from the title through walls that get harder by a playtested difficulty
+curve, Shift Walls whose hole slides mid-approach, scoring and a fail to the
+game-over screen and back, with an F2 debug overlay for tuning. See
 [PLAN.md](./PLAN.md) for the design and milestones, and
 [AGENTS.md](./AGENTS.md) for the working rules.
 
@@ -30,6 +30,18 @@ npm install
 | `npm run check` | Type check |
 | `npm run build` | Type check, then production build to `dist/` |
 | `npm run preview` | Serve the built `dist/` locally |
+
+During play, **F2** toggles a debug overlay with the wall's state, timing,
+lanes, letters and stretch score. Tuning values live in `src/config.ts`.
+
+On the dev server, URL options skip ahead for playtesting (published builds
+ignore them):
+
+| URL | What it does |
+|---|---|
+| http://localhost:5173/?wall=13 | Every run, restarts included, starts at wall 13 |
+| http://localhost:5173/?shiftwall | Every wall is a Shift Wall |
+| http://localhost:5173/?wall=12&shiftwall | Both |
 
 ## Deploy (itch.io)
 

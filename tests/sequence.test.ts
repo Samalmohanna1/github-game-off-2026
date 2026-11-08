@@ -22,15 +22,15 @@ function hold(seq: LetterSequence, letter: string) {
 describe('a normal run', () => {
   it('prompts one letter at a time and holds each in turn', () => {
     const seq = lineUp(['a', 's', 'd']);
-    expect(seq.view()).toEqual({ held: [], current: 'a', slipped: [] });
+    expect(seq.view()).toEqual({ held: [], current: 'a', next: 's', slipped: [] });
 
     expect(hold(seq, 'a')).toEqual({ type: 'held', letter: 'a' });
-    expect(seq.view()).toEqual({ held: ['a'], current: 's', slipped: [] });
+    expect(seq.view()).toEqual({ held: ['a'], current: 's', next: 'd', slipped: [] });
 
     hold(seq, 's');
     hold(seq, 'd');
     expect(seq.complete).toBe(true);
-    expect(seq.view()).toEqual({ held: ['a', 's', 'd'], current: null, slipped: [] });
+    expect(seq.view()).toEqual({ held: ['a', 's', 'd'], current: null, next: null, slipped: [] });
   });
 
   it('waits PROMPT_APPEAR_DELAY before showing the next letter', () => {
@@ -41,6 +41,38 @@ describe('a normal run', () => {
     expect(seq.current).toBeNull();
     seq.tick(1);
     expect(seq.current).toBe('s');
+  });
+});
+
+describe('next-letter preview', () => {
+  it('previews the letter after the current one, only while lined up', () => {
+    const seq = new LetterSequence();
+    seq.startWall(['a', 's', 'd']);
+    expect(seq.view().next).toBeNull();
+    seq.setAligned(true);
+    expect(seq.view().next).toBe('s');
+  });
+
+  it('keeps the upcoming letter previewed through the appear delay, then makes it current', () => {
+    const seq = lineUp(['a', 's', 'd']);
+    seq.press('a', 'KeyA');
+    expect(seq.view()).toMatchObject({ current: null, next: 's' });
+    seq.tick(PROMPT_APPEAR_DELAY);
+    expect(seq.view()).toMatchObject({ current: 's', next: 'd' });
+  });
+
+  it('never previews a letter that is already shown as slipped', () => {
+    const seq = lineUp(['a', 's', 'd']);
+    hold(seq, 'a');
+    hold(seq, 's');
+    seq.release('KeyS');
+    expect(seq.view()).toMatchObject({ current: 'd', next: null, slipped: ['s'] });
+  });
+
+  it('previews nothing while paused', () => {
+    const seq = lineUp(['a', 's']);
+    seq.blur();
+    expect(seq.view().next).toBeNull();
   });
 });
 
@@ -63,7 +95,7 @@ describe('lining up', () => {
     const seq = lineUp(['a', 's']);
     hold(seq, 'a');
     seq.setAligned(false);
-    expect(seq.view()).toEqual({ held: ['a'], current: null, slipped: [] });
+    expect(seq.view()).toEqual({ held: ['a'], current: null, next: null, slipped: [] });
   });
 });
 
@@ -74,12 +106,22 @@ describe('slips', () => {
     hold(seq, 's');
 
     expect(seq.release('KeyS')).toEqual({ type: 'slipped', letter: 's' });
-    expect(seq.view()).toEqual({ held: ['a'], current: 'd', slipped: ['s'] });
+    expect(seq.view()).toEqual({ held: ['a'], current: 'd', next: null, slipped: ['s'] });
 
     hold(seq, 'd');
-    expect(seq.view()).toEqual({ held: ['a', 'd'], current: 's', slipped: [] });
+    expect(seq.view()).toEqual({ held: ['a', 'd'], current: 's', next: null, slipped: [] });
     hold(seq, 's');
     expect(seq.complete).toBe(true);
+  });
+
+  it('counts a slipped letter as still left to hold', () => {
+    const seq = lineUp(['a', 's', 'd']);
+    expect(seq.leftCount).toBe(3);
+    hold(seq, 'a');
+    hold(seq, 's');
+    expect(seq.leftCount).toBe(1);
+    seq.release('KeyS');
+    expect(seq.leftCount).toBe(2);
   });
 
   it('brings back a slip on the last letter as the current prompt', () => {
@@ -91,7 +133,7 @@ describe('slips', () => {
 
     expect(seq.release('KeyD')).toEqual({ type: 'slipped', letter: 'd' });
     expect(seq.complete).toBe(false);
-    expect(seq.view()).toEqual({ held: ['a', 's'], current: 'd', slipped: [] });
+    expect(seq.view()).toEqual({ held: ['a', 's'], current: 'd', next: null, slipped: [] });
     expect(hold(seq, 'd')).toEqual({ type: 'held', letter: 'd' });
     expect(seq.complete).toBe(true);
   });
@@ -103,7 +145,7 @@ describe('slips', () => {
     expect(seq.view().current).toBe('s');
 
     expect(seq.press('a', 'KeyA')).toEqual({ type: 'wrongKey', key: 'a' });
-    expect(seq.view()).toEqual({ held: [], current: 's', slipped: ['a'] });
+    expect(seq.view()).toEqual({ held: [], current: 's', next: 'd', slipped: ['a'] });
   });
 
   it('ignores releasing a key that was never held', () => {
@@ -197,7 +239,7 @@ describe('blur', () => {
       { type: 'slipped', letter: 's' },
     ]);
     expect(seq.paused).toBe(true);
-    expect(seq.view()).toEqual({ held: [], current: null, slipped: ['a', 's'] });
+    expect(seq.view()).toEqual({ held: [], current: null, next: null, slipped: ['a', 's'] });
   });
 
   it('ignores every key while paused, then picks up where it left off', () => {
@@ -208,7 +250,7 @@ describe('blur', () => {
     expect(seq.release('KeyA')).toBeNull();
 
     seq.resume();
-    expect(seq.view()).toEqual({ held: [], current: 's', slipped: ['a'] });
+    expect(seq.view()).toEqual({ held: [], current: 's', next: 'd', slipped: ['a'] });
   });
 
   it('does nothing on a second blur', () => {
@@ -216,6 +258,15 @@ describe('blur', () => {
     hold(seq, 'a');
     seq.blur();
     expect(seq.blur()).toEqual([]);
+  });
+});
+
+describe('debug view', () => {
+  it('lists every queued letter and each held letter with its key code', () => {
+    const seq = lineUp(['a', 'S', 'd']);
+    hold(seq, 'a');
+    expect(seq.queued).toEqual(['S', 'd']);
+    expect(seq.heldKeys).toEqual([{ letter: 'a', code: 'KeyA' }]);
   });
 });
 
@@ -258,7 +309,7 @@ describe('a new wall', () => {
     seq.setAligned(true);
 
     expect(seq.release('KeyA')).toBeNull();
-    expect(seq.view()).toEqual({ held: [], current: 'q', slipped: [] });
+    expect(seq.view()).toEqual({ held: [], current: 'q', next: 'w', slipped: [] });
     expect(seq.press('a', 'KeyA')).toEqual({ type: 'wrongKey', key: 'a' });
   });
 
@@ -266,6 +317,6 @@ describe('a new wall', () => {
     const seq = lineUp(['a', 's']);
     seq.press('a', 'KeyA');
     seq.startWall(['q', 'w']);
-    expect(seq.view()).toEqual({ held: [], current: 'q', slipped: [] });
+    expect(seq.view()).toEqual({ held: [], current: 'q', next: 'w', slipped: [] });
   });
 });

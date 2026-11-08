@@ -1,9 +1,11 @@
 export interface KeyboardHandlers {
   onMove(dir: -1 | 1): void;
+  onCycle(): void;
   onKeyDown(key: string, code: string): void;
   onKeyUp(code: string): void;
   onBlur(): void;
   onCapsLock(on: boolean): void;
+  onToggleDebug(): void;
 }
 
 // Native window listeners rather than Phaser key objects, as PLAN.md §2
@@ -22,6 +24,9 @@ export class KeyboardInput {
     if (event.ctrlKey || event.metaKey || event.altKey) return;
     if (event.key === 'ArrowLeft') this.handlers.onMove(-1);
     else if (event.key === 'ArrowRight') this.handlers.onMove(1);
+    else if (event.code === 'Space') this.handlers.onCycle();
+    // F2 is the debug overlay and never reaches the letter rules (PLAN.md §8).
+    else if (event.code === 'F2') this.handlers.onToggleDebug();
     else this.handlers.onKeyDown(event.key, event.code);
   };
 

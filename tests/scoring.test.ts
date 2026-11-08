@@ -28,6 +28,14 @@ describe('ScoreKeeper', () => {
     expect(k.wallNumber).toBe(3);
   });
 
+  it('can start further in, counting only the walls actually cleared', () => {
+    const k = new ScoreKeeper(13);
+    expect(k.wallNumber).toBe(13);
+    k.clearWall(0.6);
+    expect(k.wallNumber).toBe(14);
+    expect(k.wallsCleared).toBe(1);
+  });
+
   it('grows the multiplier by 0.5 per PERFECT already in the streak', () => {
     const k = new ScoreKeeper();
     expect(k.clearWall(0.1).multiplier).toBe(1);

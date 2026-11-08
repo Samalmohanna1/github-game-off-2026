@@ -22,8 +22,11 @@ export class ScoreKeeper {
   wallsCleared = 0;
   streak = 0;
 
+  // firstWall is 1 except for a dev-server run started further in.
+  constructor(private readonly firstWall = 1) {}
+
   get wallNumber(): number {
-    return this.wallsCleared + 1;
+    return this.firstWall + this.wallsCleared;
   }
 
   clearWall(t: number): WallScore {
