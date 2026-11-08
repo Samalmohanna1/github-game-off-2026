@@ -12,7 +12,7 @@ when in doubt; keep shared instructions here and keep CLAUDE.md as a pointer.
 SHAPE SHIFT is a browser game for GitHub Game Off 2026, whose theme is
 **SHIFT**. It is a keyboard take on Japan's "Human Tetris". A wall with a hole
 cut in it comes toward the player. They slide a block figure under the hole
-with ← / → (or Space, which steps right and wraps around), then hold a growing set of letter keys (Shift for capitals) to pose
+with ← / → (or Space, which steps toward the hole), then hold a growing set of letter keys (Shift for capitals) to pose
 the figure so it fits through. If it doesn't fit, the wall shoves the figure
 into the pool. It ships on itch.io as an HTML5 game, played on a desktop
 keyboard.
@@ -27,7 +27,7 @@ Scenes, one per screen:
 |---|---|---|
 | `BootScene` | Final for Week 1 | Hands off to Title. Loads nothing until Week 2 art. |
 | `TitleScene` | Interim | Game name, one-line how-to, "Click to play". The click gives the page keyboard focus inside the itch.io iframe. Restyled in Week 2. |
-| `PlayScene` | Interim (M7) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). ← / → line the figure up, and so does Space, one lane right with a wrap from the last lane to the first; the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 4+), the wall stops behind a SHIFT callout, turns orange with an arrow, and the hole slides 1–2 lanes with a sideways jolt while the new lane is marked on the floor; then the wall carries on; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: the wall rushes past, a PERFECT / GREAT / CLOSE CALL label pops over the figure, and the next wall starts. If the wall arrives first, it shoves the figure into a placeholder splash and the run ends. Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses behind a "Click to resume" panel. F2 toggles the debug overlay. |
+| `PlayScene` | Interim (M7) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). ← / → line the figure up, and so does Space, one lane toward the hole (during a Shift Wall's warning, toward the lane it is about to slide to); the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 4+), the wall stops behind a SHIFT callout, turns orange with an arrow, and the hole slides 1 lane with a sideways jolt while the new lane is marked on the floor; then the wall carries on; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: the wall rushes past, a PERFECT / GREAT / CLOSE CALL label pops over the figure, and the next wall starts. If the wall arrives first, it shoves the figure into a placeholder splash and the run ends. Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses behind a "Click to resume" panel. F2 toggles the debug overlay. |
 | `GameOverScene` | Interim | Walls cleared, score, best (saved in `localStorage`) and the wall reached. Restart follows PLAN.md §7: input is ignored for `RESTART_LOCKOUT`, then every key must be up ("Let go of every key" shows meanwhile) before a key or click restarts. |
 
 Shared scene helpers live in `src/scenes/` (`ui.ts`, `text-styles.ts`,
@@ -114,7 +114,7 @@ src/
     prevent-page-scroll.ts # arrows/Space never scroll the host page
   logic/                   # PURE: no Phaser imports
     approach.ts            # t clock, wrong-key jump, ease-in, wall scale
-    lanes.ts               # lane moves (arrows clamp, Space wraps), alignment, hole lane, lane x
+    lanes.ts               # lane moves (arrows clamp, Space steps toward the hole), alignment, hole lane, lane x
     dev-options.ts         # dev-server URL options: ?wall=N, ?shiftwall
     difficulty.ts          # wall # -> tier, wall time, Shift Wall roll, WallPlan
     letters.ts             # stretchScore, combo generator, ordering, capitals
@@ -432,8 +432,9 @@ Work through **PLAN.md §10** one milestone at a time.
 - **Lane** — one of `LANE_COUNT` (7) columns across the stage. The figure and
   the hole each sit in one lane. The figure starts a run in the center lane and
   keeps its lane between walls (`src/logic/lanes.ts`). ← / → stop at the
-  edges (`moveLane()`); Space steps right and wraps from the last lane to the
-  first (`cycleLane()`), and the figure jumps rather than gliding back across.
+  edges (`moveLane()`); Space steps one lane toward the hole (`stepToward()`),
+  or during a Shift Wall's warning toward the lane the hole is about to slide
+  to (`ShiftWall.upcomingLane`), and does nothing once lined up.
 - **Lane marker** — the floor strip under each lane. The one under the figure
   lights up green (filled, not just outlined) when the player is lined up.
   On a Shift Wall, the hole's new lane is the **target lane**: a thick orange
@@ -505,7 +506,7 @@ Work through **PLAN.md §10** one milestone at a time.
   every key held from the run must be released before a fresh key or a click
   restarts (`src/logic/restart.ts`).
 - **Shift Wall** — from wall 4, partway through the approach, the hole slides
-  `SHIFT_WALL_SLIDE` (1–2) lanes, staying on the stage. It fires once, at a
+  `SHIFT_WALL_SLIDE` (1) lane, staying on the stage. It fires once, at a
   random `t` in `SHIFT_WALL_T_RANGE` but not before a letter is held, or
   earlier, as soon as only one letter is left to hold. While it warns, the pose
   can't lock (`ShiftWall.letsPoseLock`), so a quick player can't finish before
