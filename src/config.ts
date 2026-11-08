@@ -221,7 +221,7 @@ export const AUDIO = {
   // playtest.
   whomp: {
     gain: 0.35,
-    rootHz: 233.08,
+    rootHz: 196, // G3; 233 Hz (Bb3) played a bit high
     semitones: [0, -1, -2],
     noteMs: 260,
     gapMs: 320,
