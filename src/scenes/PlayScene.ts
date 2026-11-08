@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import {
+  CLOSE_CALL_SLOWMO,
   FAIL_SHAKE_INTENSITY,
   FAIL_SHAKE_MS,
   FAIL_TO_GAME_OVER_MS,
@@ -10,8 +11,6 @@ import {
   SCREEN_LAYOUT,
   SHIFT_JOLT,
   STAGE_BOTTOM_Y,
-  WRONG_KEY_SHAKE_INTENSITY,
-  WRONG_KEY_SHAKE_MS,
 } from '@/config';
 import { NEUTRAL_POSE } from '@/data/poses';
 import { KeyboardInput } from '@/input/KeyboardInput';
@@ -92,6 +91,8 @@ export class PlayScene extends Phaser.Scene {
   }
 
   create(): void {
+    // A restart can land mid slow-motion; the tween clock outlives the run.
+    this.tweens.timeScale = 1;
     this.figureLane = CENTER_LANE;
     this.sequence = new LetterSequence();
     this.scoreKeeper = new ScoreKeeper(this.dev.startWall);
@@ -202,13 +203,14 @@ export class PlayScene extends Phaser.Scene {
     if (effect === null || this.phase !== 'approach') return;
     if (effect.type === 'wrongKey') {
       this.wall.flash();
-      if (!prefersReducedMotion()) this.cameras.main.shake(WRONG_KEY_SHAKE_MS, WRONG_KEY_SHAKE_INTENSITY);
+      if (!prefersReducedMotion()) this.wall.rattle();
       this.setT(jumpT(this.t));
       return;
     }
     const block = this.spec.blockFor[effect.letter];
     if (block === undefined) return;
-    this.figure.setBlockPose(block, effect.type === 'held' ? this.spec.targets[block] : NEUTRAL_POSE[block]);
+    if (effect.type === 'held') this.figure.snapBlock(block, this.spec.targets[block]);
+    else this.figure.slumpBlock(block, NEUTRAL_POSE[block]);
     this.maybeLock();
   }
 
@@ -238,7 +240,9 @@ export class PlayScene extends Phaser.Scene {
 
     this.phase = 'rush';
     this.sequence.lock();
-    this.label.show(this.scoreKeeper.clearWall(this.t), laneCenterX(this.figureLane));
+    const score = this.scoreKeeper.clearWall(this.t);
+    this.label.show(score, laneCenterX(this.figureLane));
+    if (score.grade === 'closeCall') this.slowMotion();
     this.tweens.addCounter({
       from: wallScale(this.t),
       to: RUSH_END_SCALE,
@@ -246,6 +250,15 @@ export class PlayScene extends Phaser.Scene {
       ease: 'Quad.easeIn',
       onUpdate: (tween) => this.rushWall(tween.getValue() ?? RUSH_END_SCALE),
       onComplete: () => this.startWall(),
+    });
+  }
+
+  // CLOSE CALL (M8): the rush and the label pop play in slow motion for a
+  // moment of real time. The pose is already locked, so no rule is affected.
+  private slowMotion(): void {
+    this.tweens.timeScale = CLOSE_CALL_SLOWMO.scale;
+    this.time.delayedCall(CLOSE_CALL_SLOWMO.ms, () => {
+      this.tweens.timeScale = 1;
     });
   }
 

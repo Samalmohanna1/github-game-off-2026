@@ -100,6 +100,34 @@ describe('config', () => {
   });
 });
 
+describe('feel (M8)', () => {
+  it('squashes and tilts blocks only a little, so a pose still reads', () => {
+    expect(C.BLOCK_SNAP.squash).toBeGreaterThan(0);
+    expect(C.BLOCK_SNAP.squash).toBeLessThan(0.5);
+    expect(C.BLOCK_LIMP.tiltDeg).toBeLessThan(45);
+  });
+
+  it('rattles the wall by less than one cell, so the hole never looks moved', () => {
+    expect(C.WALL_RATTLE.distance).toBeLessThan(C.CELL_SIZE);
+  });
+
+  it('ends the CLOSE CALL slow motion before the rush does, so the next wall runs at full speed', () => {
+    expect(C.CLOSE_CALL_SLOWMO.scale).toBeGreaterThan(0);
+    expect(C.CLOSE_CALL_SLOWMO.scale).toBeLessThan(1);
+    expect(C.CLOSE_CALL_SLOWMO.ms * C.CLOSE_CALL_SLOWMO.scale).toBeLessThan(C.LOCK_RUSH_DURATION);
+  });
+
+  it('lets every splash drop land back before it expires, without leaving the screen', () => {
+    const fastestUp = Math.max(C.SPLASH.column.speed[1], C.SPLASH.spray.speed[1]);
+    expect(((2 * fastestUp) / C.SPLASH.gravity) * 1000).toBeLessThanOrEqual(C.SPLASH.lifespan);
+    expect(fastestUp ** 2 / (2 * C.SPLASH.gravity)).toBeLessThan(C.STAGE_BOTTOM_Y);
+  });
+
+  it('draws the spray smaller than the column', () => {
+    expect(C.SPLASH.spray.radius).toBeLessThan(C.SPLASH.column.radius);
+  });
+});
+
 describe('graphics contrast', () => {
   it.each(['wall', 'floorLine', 'trayEdge', 'laneMarker', 'laneMarkerLit', 'figure'] as const)(
     '%s stands out from the stage',
