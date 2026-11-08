@@ -12,7 +12,7 @@ import {
 } from '@/config';
 import { isUppercaseLetter, type SequenceView } from '@/logic/sequence';
 import { tornLine } from '@/logic/torn';
-import { toVectors } from '@/objects/paper';
+import { pencil, toVectors } from '@/objects/pencil';
 import { textStyle } from '@/scenes/text-styles';
 import { prefersReducedMotion } from '@/scenes/ui';
 
@@ -85,14 +85,15 @@ export class PromptTray extends Phaser.GameObjects.Container {
     super(scene);
     scene.add.existing(this);
 
-    // A black strip with a torn top edge, like the mocks' prompt bar.
+    // A black strip with a torn, pencilled top edge, like the mocks' prompt bar.
     const background = new Phaser.GameObjects.Graphics(scene);
     const left = { x: 0, y: STAGE_BOTTOM_Y };
     const right = { x: GAME_WIDTH, y: STAGE_BOTTOM_Y };
     const bottom = STAGE_BOTTOM_Y + TRAY_HEIGHT;
-    const outline = [...tornLine(left, right, TEAR.step, TEAR.jag, Math.random), right, { x: GAME_WIDTH, y: bottom }, { x: 0, y: bottom }];
+    const top = [...tornLine(left, right, TEAR.step, TEAR.jag, Math.random), right];
     background.fillStyle(COLORS.tray);
-    background.fillPoints(toVectors(outline), true);
+    background.fillPoints(toVectors([...top, { x: GAME_WIDTH, y: bottom }, { x: 0, y: bottom }]), true);
+    pencil(background, top, false);
     this.add(background);
   }
 

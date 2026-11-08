@@ -1,77 +1,92 @@
 export const GAME_WIDTH = 1280;
 export const GAME_HEIGHT = 720;
 
-// The collage palette of the design mocks (M10), sampled from the asset
-// sheet's swatches: cream paper, a bright and a dark green, near-black, and a
-// warm gray.
-const PALETTE = {
-  green: 0x49a443,
-  darkGreen: 0x17472d,
-  cream: 0xefdfca,
-  black: 0x20201f,
-  gray: 0xc0bcad,
+// The color system (M10). Every color the game draws is named once in PALETTE,
+// and components only use the roles in COLORS and TEXT_COLORS, never a raw
+// value (tests/config.test.ts checks both). The base swatches were sampled
+// from the design mocks (cream, warm gray, near-black, the two greens), and the
+// yellow and coral accents from the mock's logo. The other entries are darker
+// steps of those, so each can be used on cream, where the logo accents are too
+// light to read.
+export const PALETTE = {
+  paper: 0xf8f0e3, // cards: a lighter sheet than the stage
+  cream: 0xefdfca, // mock swatch: the stage
+  sand: 0xd1d0a8, // the mocks' pale disc
+  stone: 0xc0bcad, // mock swatch: warm gray
+  graphite: 0x4a433b, // pencil: every outline, and quiet text
+  ink: 0x20201f, // mock swatch
+  green: 0x49a443, // mock swatch
+  greenDeep: 0x2f7f3a, // green, deepened to hold 3:1 on cream
+  greenDark: 0x17472d, // mock swatch
+  yellow: 0xffff7f, // mock logo
+  ochre: 0x8f6a00, // yellow, darkened to hold 3:1 on cream
+  ochreDark: 0x6f5200, // yellow, darkened for text
+  coral: 0xff7f7f, // mock logo
+  red: 0xd8453c, // coral, darkened to hold 3:1 on cream
+  redDark: 0xa32a22, // coral, darkened for text
 } as const;
 
-// Non-text graphics that carry meaning (wall and hole, floor, tray edge, lane
-// markers, figure) must stay at or above 3:1 against COLORS.stage, and the
-// figure's cream edge against the wall it passes in front of
-// (tests/config.test.ts). The bright green only reaches 2.4:1 on cream, so it
-// decorates (verges, collage, held chips on the black tray) and a deeper green
-// marks the lined-up lane.
+// What each color means. Graphics that carry meaning (the wall and its hole,
+// the floor edges, the tray, the lane markers, the figure, pencil outlines)
+// must stay at or above 3:1 against COLORS.stage; the figure's cream edge
+// outlines it against the dark green wall, where its black can't. The bright
+// green only reaches 2.4:1 on cream, so it decorates (verges, held chips on the
+// black tray) and a deeper green marks the lined-up lane. The two accent
+// families are the alerts: yellow means the hole is moving (Shift Walls), and
+// coral means a mistake (a wrong key, a slip, a close call, Caps Lock).
 export const COLORS = {
   stage: PALETTE.cream,
-  floorLine: PALETTE.darkGreen,
-  floorSeam: PALETTE.gray, // decorative tile seams
+  floor: PALETTE.cream,
+  floorLine: PALETTE.graphite,
+  floorSeam: PALETTE.stone, // decorative tile seams
   verge: PALETTE.green, // decorative grass strips beside the floor
-  vergeOuter: PALETTE.darkGreen,
-  wall: PALETTE.darkGreen,
-  wallEdge: 0x0e2e1c,
-  tray: PALETTE.black,
-  laneMarker: 0x736757,
-  laneMarkerLit: 0x2f7f3a,
-  // Black blocks with cream seams, as in the mocks; the seams also outline the
-  // figure against the dark green wall, which the black alone can't.
-  figure: PALETTE.black,
+  vergeOuter: PALETTE.greenDark,
+  backdropDisc: PALETTE.sand,
+  pencil: PALETTE.graphite,
+  wall: PALETTE.greenDark,
+  holeFill: PALETTE.cream, // the hole reads as one clean cutout of paper
+  tray: PALETTE.ink,
+  laneMarker: PALETTE.graphite,
+  laneMarkerLit: PALETTE.greenDeep,
+  figure: PALETTE.ink,
   figureEdge: PALETTE.cream,
-  figureShadow: PALETTE.black,
-  wallFlash: 0xc8402f,
+  figureShadow: PALETTE.ink,
+  // Shift Wall warning. It's as bright as the wrong-key flash, so the arrow is
+  // what tells the two apart, not the color.
+  wallWarning: PALETTE.ochre,
+  shiftArrow: PALETTE.yellow,
+  wallFlash: PALETTE.red,
   // Key caps on the black tray, each with black letters.
   chipHeld: PALETTE.green,
   chipCurrent: PALETTE.cream,
-  chipSlipped: 0xef6f5a,
-  chipShiftMark: PALETTE.black,
+  chipSlipped: PALETTE.coral,
+  chipShiftMark: PALETTE.ink,
   // The next-letter preview is hollow rather than faded, so its letter keeps
   // full contrast while still reading as "not yet".
-  chipNext: PALETTE.black,
+  chipNext: PALETTE.ink,
   chipNextEdge: PALETTE.cream,
-  // Paper cards: the HUD, the timing label, the SHIFT callout, the pause panel.
-  panel: 0xf8f0e3,
-  panelEdge: PALETTE.black,
-  splash: 0x3d8fd6,
-  // Shift Wall warning. It's as bright as the wrong-key flash, so the arrow is
-  // what tells the two apart, not the color.
-  wallWarning: 0xa86400,
-  shiftArrow: 0xf8f0e3,
-  // Collage decoration behind the stage; decorative only.
-  decorGreen: PALETTE.green,
-  decorDarkGreen: PALETTE.darkGreen,
-  decorPale: 0xd1d0a8,
-  decorPaper: 0xe4d3bb,
-  gridLine: 0xb9b0a0,
-  grain: PALETTE.black,
+  // Paper cards: the HUD, the timing label, the SHIFT callout, the Caps Lock
+  // warning, the pause panel.
+  panel: PALETTE.paper,
+  splash: PALETTE.green,
+  splashRipple: PALETTE.greenDark,
+  grain: PALETTE.ink,
+  grainLight: PALETTE.paper,
 } as const;
+
+const css = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
 
 // CSS strings because Phaser text styles take CSS colors. ink, muted, accent
 // and danger sit on the stage or a paper card (COLORS.panel); warning is the
 // SHIFT callout on its card; ink also sits on the chips, and paper on the black
 // tray. Every pair must reach 4.5:1 (tests/config.test.ts).
 export const TEXT_COLORS = {
-  ink: '#20201f',
-  muted: '#5f5446',
-  accent: '#17472d',
-  danger: '#a82a22',
-  paper: '#efdfca',
-  warning: '#8a5200', // the SHIFT callout: COLORS.wallWarning, darkened for text
+  ink: css(PALETTE.ink),
+  muted: css(PALETTE.graphite),
+  accent: css(PALETTE.greenDark),
+  danger: css(PALETTE.redDark),
+  paper: css(PALETTE.cream),
+  warning: css(PALETTE.ochreDark),
 } as const;
 
 // Anton for display text (titles, grades, big numbers) and IBM Plex Mono for
@@ -126,7 +141,6 @@ export const DEBUG_OVERLAY = { x: 12, y: 12, padding: 10 } as const;
 
 export const PAUSE_PANEL = { width: 560, height: 220 } as const; // px
 export const PAUSE_DIM_ALPHA = 0.7; // stage-colored veil over the paused game
-export const PANEL_EDGE_WIDTH = 3;
 
 // Prompt tray chips, px. Held chips line up from the tray's left edge, the
 // current prompt sits in the center, and to its right come the next-letter
@@ -162,7 +176,12 @@ export const FLOOR_LINE_WIDTH = 3;
 // Art (PLAN.md §10, M10): the paper collage of the design mocks, all drawn in
 // code. Grain is sparse dark and light specks, tiled over the stage under the
 // HUD, tray and labels, so the scene reads as printed on one sheet of paper.
-export const GRAIN = { size: 256, darkShare: 0.09, lightShare: 0.05, maxAlpha: 0.22 } as const;
+// It shifts to a new random offset every boilMs, like the boil of hand-drawn
+// animation (still for reduced motion).
+export const GRAIN = { size: 256, darkShare: 0.09, lightShare: 0.05, maxAlpha: 0.22, boilMs: 160 } as const;
+// Every outline is a pencil line: a firm stroke plus a fainter ghost stroke,
+// each wobbling a little off the true line (src/logic/sketch.ts), px.
+export const PENCIL = { width: 2.5, step: 10, jitter: 0.8, ghostJitter: 1.8, ghostWidth: 1.5, ghostAlpha: 0.35 } as const;
 // Torn edges on paper cards: a point about every `step` px, pushed up to `jag`
 // px across the edge (src/logic/torn.ts).
 export const TEAR = { step: 14, jag: 3 } as const;
@@ -178,23 +197,10 @@ export const HUD = { margin: 18, width: 210, height: 98, labelY: -24, valueY: 14
 // bunch up into the distance like real tiles.
 export const FLOOR = { vergeWidth: 0.22, vergeOuterShare: 0.45, seamWidth: 2, tileDepth: 0.2 } as const;
 
-// The collage behind the stage, px, drawn once from a fixed seed so it tears
-// the same way every run. It keeps to the corners and sides, clear of the far
-// wall at the center; the HUD cards sit over the top corners. Piece colors
-// are COLORS keys.
-export const BACKDROP = {
-  seed: 7,
-  tear: { step: 22, jag: 6 },
-  circles: [{ color: 'decorPale', x: 120, y: 330, r: 165 }],
-  torn: [
-    { color: 'decorPaper', points: [[0, 130], [330, 96], [340, 150], [0, 196]] },
-    { color: 'decorGreen', points: [[840, 0], [1280, 0], [1280, 150], [1110, 120], [960, 64]] },
-    { color: 'decorDarkGreen', points: [[1090, 0], [1280, 0], [1280, 70], [1170, 46]] },
-    { color: 'decorDarkGreen', points: [[1210, 300], [1280, 290], [1280, 372], [1196, 360]] },
-  ],
-  grid: { x: 1085, y: 120, width: 195, height: 175, cell: 16, lineWidth: 1 },
-  halftone: { x: 250, y: 36, width: 170, height: 64, spacing: 10, radius: 2.4, alpha: 0.35 },
-} as const;
+// The backdrop: one pale disc behind the far end of the stage, framing where
+// every wall comes from like a stage light. The floor covers its lower half.
+// It breathes (scale) and drifts (x) very slowly, still for reduced motion.
+export const BACKDROP = { x: 640, y: 210, r: 280, breatheScale: 1.025, breatheMs: 7000, driftX: 8, driftMs: 11000 } as const;
 
 // The figure's pose grid (PLAN.md §3).
 export const FIGURE_GRID = { cols: 6, rows: 8 } as const;

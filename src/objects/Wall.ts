@@ -15,6 +15,7 @@ import {
 import { laneCenterX } from '@/logic/lanes';
 import { FLOOR_HALF_WIDTH, VANISHING_POINT } from '@/logic/perspective';
 import { holeOutline, type HoleGrid } from '@/logic/wall-gen';
+import { pencil } from '@/objects/pencil';
 
 const FLOOR = FIGURE_FLOOR_Y - VANISHING_POINT.y;
 const TOP = FLOOR - WALL_HEIGHT;
@@ -27,7 +28,11 @@ const ARROW_Y = (TOP + GRID_TOP) / 2;
 // setScale(s) places it at depth s exactly as project() does. The hole is cut
 // from the same pose grid the figure uses (PLAN.md §3), at the hole's lane;
 // during a Shift Wall slide that lane is fractional. It is redrawn only when
-// something changes, never every frame.
+// something changes, never every frame. While the wall is behind the figure,
+// the hole is filled with clean paper (M10), so it reads as one cut-out shape
+// rather than showing the floor through it; once the wall passes in front of
+// the figure the fill goes, so the figure shows through. Its edges and the
+// hole's are pencil lines.
 export class Wall extends Phaser.GameObjects.Graphics {
   private holeLane = 0;
   private grid: HoleGrid = [];
@@ -36,6 +41,7 @@ export class Wall extends Phaser.GameObjects.Graphics {
   private flashTimer?: Phaser.Time.TimerEvent;
   private slide?: Phaser.Tweens.Tween;
   private rattling?: Phaser.Tweens.Tween;
+  private holeFilled = true;
 
   constructor(scene: Phaser.Scene) {
     super(scene);
@@ -49,6 +55,13 @@ export class Wall extends Phaser.GameObjects.Graphics {
     this.holeLane = lane;
     this.grid = grid;
     this.warningDir = null;
+    this.holeFilled = true;
+    this.redraw();
+  }
+
+  setHoleFilled(filled: boolean): void {
+    if (filled === this.holeFilled) return;
+    this.holeFilled = filled;
     this.redraw();
   }
 
@@ -129,12 +142,31 @@ export class Wall extends Phaser.GameObjects.Graphics {
       for (const [x1, x2] of solidSpans(cells)) this.fillRect(x1, cellY(row), x2 - x1, CELL_SIZE);
     });
 
-    this.lineStyle(WALL_EDGE_WIDTH, COLORS.wallEdge);
-    this.lineBetween(LEFT, FLOOR, LEFT, TOP);
-    this.lineBetween(LEFT, TOP, RIGHT, TOP);
-    this.lineBetween(RIGHT, TOP, RIGHT, FLOOR);
-    for (const [x1, x2] of solidSpans(this.grid[this.grid.length - 1] ?? [])) this.lineBetween(x1, FLOOR, x2, FLOOR);
-    for (const s of holeOutline(this.grid)) this.lineBetween(cellX(s.x1), cellY(s.y1), cellX(s.x2), cellY(s.y2));
+    if (this.holeFilled) {
+      this.fillStyle(COLORS.holeFill);
+      this.grid.forEach((cells, row) =>
+        cells.forEach((hole, col) => {
+          if (hole) this.fillRect(cellX(col), cellY(row), CELL_SIZE, CELL_SIZE);
+        }),
+      );
+    }
+
+    const edge = { width: WALL_EDGE_WIDTH };
+    const outer = [
+      { x: LEFT, y: FLOOR },
+      { x: LEFT, y: TOP },
+      { x: RIGHT, y: TOP },
+      { x: RIGHT, y: FLOOR },
+    ];
+    pencil(this, outer, false, edge);
+    for (const [x1, x2] of solidSpans(this.grid[this.grid.length - 1] ?? [])) {
+      pencil(this, [{ x: x1, y: FLOOR }, { x: x2, y: FLOOR }], false, edge);
+    }
+    // Anchored to the hole, so its wobble rides along when a Shift Wall slides it.
+    const hole = { ...edge, anchor: { x: gridLeft, y: GRID_TOP } };
+    for (const s of holeOutline(this.grid)) {
+      pencil(this, [{ x: cellX(s.x1), y: cellY(s.y1) }, { x: cellX(s.x2), y: cellY(s.y2) }], false, hole);
+    }
 
     if (this.warningDir !== null) this.drawArrow(holeCenter, this.warningDir);
   }

@@ -165,8 +165,26 @@ describe('audio (M9)', () => {
   });
 });
 
+// M10: one color system. Every role takes its color from PALETTE, so no
+// one-off value can creep in.
+describe('color system', () => {
+  const palette = new Set<number>(Object.values(C.PALETTE));
+
+  it.each(Object.entries(C.COLORS))('COLORS.%s comes from the palette', (_name, color) => {
+    expect(palette.has(color)).toBe(true);
+  });
+
+  it.each(Object.entries(C.TEXT_COLORS))('TEXT_COLORS.%s comes from the palette', (_name, color) => {
+    expect(palette.has(css(color))).toBe(true);
+  });
+
+  it('names every palette color once', () => {
+    expect(palette.size).toBe(Object.keys(C.PALETTE).length);
+  });
+});
+
 describe('graphics contrast', () => {
-  it.each(['wall', 'floorLine', 'tray', 'laneMarker', 'laneMarkerLit', 'figure'] as const)(
+  it.each(['wall', 'floorLine', 'tray', 'laneMarker', 'laneMarkerLit', 'figure', 'pencil'] as const)(
     '%s stands out from the stage',
     (name) => {
       expect(contrastRatio(C.COLORS[name], C.COLORS.stage)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
@@ -180,9 +198,15 @@ describe('graphics contrast', () => {
     expect(contrastRatio(C.COLORS.figureEdge, C.COLORS.figure)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
-  it('keeps the Shift Wall warning readable: wall on the stage, arrow on the wall', () => {
+  it('keeps the Shift Wall warning readable: wall on the stage, arrow on the wall, arrow on its card', () => {
     expect(contrastRatio(C.COLORS.wallWarning, C.COLORS.stage)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
     expect(contrastRatio(C.COLORS.shiftArrow, C.COLORS.wallWarning)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(contrastRatio(C.COLORS.wallWarning, C.COLORS.panel)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  });
+
+  it('cuts the hole out clearly from the wall, and pencils the paper cards', () => {
+    expect(contrastRatio(C.COLORS.holeFill, C.COLORS.wall)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(contrastRatio(C.COLORS.pencil, C.COLORS.panel)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
   it.each(['chipHeld', 'chipCurrent', 'chipSlipped'] as const)('%s chips stand out from the tray', (name) => {

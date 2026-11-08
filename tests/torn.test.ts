@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { seededRandom } from '@/logic/random';
 import { tornLine, tornOutline, tornRect } from '@/logic/torn';
+import { seeded } from './seeded';
 
 const SEEDS = Array.from({ length: 30 }, (_, i) => i + 1);
 
@@ -15,7 +15,7 @@ describe('tornLine', () => {
   const b = { x: 200, y: 0 };
 
   it('starts exactly at a, leaves b out, and steps about `step` apart', () => {
-    const points = tornLine(a, b, 20, 4, seededRandom(1));
+    const points = tornLine(a, b, 20, 4, seeded(1));
     expect(points[0]).toEqual(a);
     expect(points).toHaveLength(10);
     points.forEach((p, i) => expect(p.x).toBeCloseTo(i * 20));
@@ -23,12 +23,12 @@ describe('tornLine', () => {
 
   it('never strays more than `jag` from the straight cut', () => {
     for (const seed of SEEDS) {
-      for (const p of tornLine(a, b, 15, 5, seededRandom(seed))) expect(Math.abs(p.y)).toBeLessThanOrEqual(5);
+      for (const p of tornLine(a, b, 15, 5, seeded(seed))) expect(Math.abs(p.y)).toBeLessThanOrEqual(5);
     }
   });
 
   it('is a straight line with no jag', () => {
-    for (const p of tornLine(a, b, 15, 0, seededRandom(3))) expect(p.y).toBeCloseTo(0);
+    for (const p of tornLine(a, b, 15, 0, seeded(3))) expect(p.y).toBeCloseTo(0);
   });
 });
 
@@ -40,7 +40,7 @@ describe('tornOutline and tornRect', () => {
       { x: 260, y: 200 },
     ];
     for (const seed of SEEDS) {
-      const points = tornOutline(corners, 18, 6, seededRandom(seed));
+      const points = tornOutline(corners, 18, 6, seeded(seed));
       for (const corner of corners) expect(points).toContainEqual(corner);
       for (const p of points) {
         const nearest = Math.min(...corners.map((c, i) => offLine(p, c, corners[(i + 1) % corners.length]!)));
@@ -51,7 +51,7 @@ describe('tornOutline and tornRect', () => {
 
   it('centers a torn rectangle on the origin, within its jag', () => {
     for (const seed of SEEDS) {
-      for (const p of tornRect(200, 100, 16, 4, seededRandom(seed))) {
+      for (const p of tornRect(200, 100, 16, 4, seeded(seed))) {
         expect(Math.abs(p.x)).toBeLessThanOrEqual(104);
         expect(Math.abs(p.y)).toBeLessThanOrEqual(54);
       }
@@ -59,6 +59,6 @@ describe('tornOutline and tornRect', () => {
   });
 
   it('tears the same way for the same seed', () => {
-    expect(tornRect(200, 100, 16, 4, seededRandom(9))).toEqual(tornRect(200, 100, 16, 4, seededRandom(9)));
+    expect(tornRect(200, 100, 16, 4, seeded(9))).toEqual(tornRect(200, 100, 16, 4, seeded(9)));
   });
 });

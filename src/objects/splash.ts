@@ -41,7 +41,7 @@ export function playSplash(scene: Phaser.Scene, x: number, y: number, depth: num
 
   const { width, height, lineWidth, ms } = SPLASH.ripple;
   const ripple = scene.add.graphics({ x, y }).setDepth(depth);
-  ripple.lineStyle(lineWidth, COLORS.splash).strokeEllipse(0, 0, width, height);
+  ripple.lineStyle(lineWidth, COLORS.splashRipple).strokeEllipse(0, 0, width, height);
   ripple.setScale(0.2);
   scene.tweens.add({
     targets: ripple,

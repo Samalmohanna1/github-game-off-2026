@@ -7,6 +7,7 @@ import {
   FAIL_TO_GAME_OVER_MS,
   GAME_HEIGHT,
   GAME_WIDTH,
+  GRAIN,
   LOCK_RUSH_DURATION,
   RUSH_END_SCALE,
   SCREEN_LAYOUT,
@@ -111,7 +112,7 @@ export class PlayScene extends Phaser.Scene {
 
     new Backdrop(this).setDepth(LAYER.backdrop);
     new Floor(this).setDepth(LAYER.floor);
-    this.add.tileSprite(0, 0, GAME_WIDTH, STAGE_BOTTOM_Y, GRAIN_TEXTURE).setOrigin(0).setDepth(LAYER.grain);
+    this.boilGrain(this.add.tileSprite(0, 0, GAME_WIDTH, STAGE_BOTTOM_Y, GRAIN_TEXTURE).setOrigin(0).setDepth(LAYER.grain));
     this.laneMarkers = new LaneMarkers(this).setDepth(LAYER.laneMarkers);
     this.wall = new Wall(this).setDepth(LAYER.wall);
     this.figure = new Figure(this, this.figureLane).setDepth(LAYER.figure);
@@ -293,10 +294,23 @@ export class PlayScene extends Phaser.Scene {
 
   private rushWall(scale: number): void {
     this.wall.setScale(scale);
-    // Past the figure's plane the wall is in front of it, fading toward the camera.
+    // Past the figure's plane the wall is in front of it, fading toward the
+    // camera, and its hole opens so the figure shows through.
     if (scale >= 1) {
+      this.wall.setHoleFilled(false);
       this.wall.setDepth(LAYER.wallPassed).setAlpha(1 - (scale - 1) / (RUSH_END_SCALE - 1));
     }
+  }
+
+  // The paper grain jumps to a new offset every GRAIN.boilMs, like the boil of
+  // hand-drawn animation (M10). Still for reduced motion.
+  private boilGrain(grain: Phaser.GameObjects.TileSprite): void {
+    if (prefersReducedMotion()) return;
+    this.time.addEvent({
+      delay: GRAIN.boilMs,
+      loop: true,
+      callback: () => grain.setTilePosition(Phaser.Math.Between(0, GRAIN.size), Phaser.Math.Between(0, GRAIN.size)),
+    });
   }
 
   private fail(): void {

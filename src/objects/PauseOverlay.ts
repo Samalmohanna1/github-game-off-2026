@@ -14,7 +14,7 @@ export class PauseOverlay extends Phaser.GameObjects.Container {
     const veil = new Phaser.GameObjects.Rectangle(scene, 0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.stage, PAUSE_DIM_ALPHA);
     veil.setOrigin(0, 0);
     const panel = new Phaser.GameObjects.Graphics(scene).setPosition(GAME_WIDTH / 2, GAME_HEIGHT / 2);
-    drawTornCard(panel, PAUSE_PANEL.width, PAUSE_PANEL.height, Math.random, COLORS.panelEdge);
+    drawTornCard(panel, PAUSE_PANEL.width, PAUSE_PANEL.height, Math.random);
     const heading = new Phaser.GameObjects.Text(
       scene,
       GAME_WIDTH / 2,
