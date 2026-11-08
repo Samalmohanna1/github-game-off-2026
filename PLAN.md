@@ -34,7 +34,7 @@ SPAWN → ALIGN → POSE → (SHIFT WALL?) → RESOLVE → next wall | GAME OVER
 1. **SPAWN.** A wall appears far away, with its hole at a random lane. It starts moving toward the camera immediately. The hole's shape is visible from the start.
 2. **ALIGN.** The player taps **← / →** to slide the whole figure one lane per tap, or **Space** to step one lane right, wrapping from the last lane back to the first. Space lets a thumb line up without the hands leaving the letters (added in the M7 tuning pass). **No letters appear until the figure's lane matches the hole's lane.** When they match, the lane marker under the figure lights up.
 3. **POSE.** Letters appear **one at a time** in the prompt tray. Holding the current letter moves its body block into the target pose, and the letter turns green. The next letter appears once the current one is held. While lined up, that next letter waits on the right as a hollow preview chip and slides to the center when it becomes current, so the player can get a finger ready (added in the M7 tuning pass).
-4. **SHIFT WALL** (walls 10+). Partway through the approach, the hole slides 1–2 lanes. Held letters keep their blocks in place, but **new letters stop appearing until the player lines up again**, which they have to do while still holding letters.
+4. **SHIFT WALL** (walls 4+). Partway through the approach, the hole slides 1–2 lanes. Held letters keep their blocks in place, but **new letters stop appearing until the player lines up again**, which they have to do while still holding letters.
 5. **RESOLVE.**
    - **Pass:** once every letter is held and the figure is lined up, the pose **locks**. The wall rushes past (about 0.4s), and the player gets a timing bonus.
    - **Fail:** the wall reaches the figure first. It shoves the figure into the pool with a splash, and the run ends.
@@ -113,8 +113,8 @@ The goal is combos that make hands cross and fingers stretch, starting easy and 
   - plus a cross penalty: points when the letters are split unevenly between the two sides, which forces one hand to reach across
   - plus a same-column penalty: two keys in the same finger column
 - Each difficulty tier has a `[minScore, maxScore]` range. Generate random combos without repeated letters and **reject** any outside the range (about 200 tries max, then take the closest).
-- **One finger per letter (walls 1–15):** before the last tier, never put two letters on the same touch-typing finger (e.g. C + D, J + M). Those pairs force a finger off its key into a cramped grip, while spread alone (Q + P) is easy because each hand takes one side. The last tier allows them, and the same-column penalty prices them in. (Added in the M7 tuning pass: before it, 59% of wall 7–9 combos and 89% of wall 10–12 combos had such a pair.)
-- **Order** the letters so that each new one isn't right next to the last one. Next to each other is fine on walls 1–3.
+- **One finger per letter (walls 1–18):** before the last tier, never put two letters on the same touch-typing finger (e.g. C + D, J + M). Those pairs force a finger off its key into a cramped grip, while spread alone (Q + P) is easy because each hand takes one side. The last tier allows them, and the same-column penalty prices them in. (Added in the M7 tuning pass: before it, 59% of wall 7–9 combos and 89% of wall 10–12 combos had such a pair.)
+- **Order** the letters so that each new one isn't right next to the last one. Next to each other is fine on the 3-letter walls 1–5.
 - **Uppercase:** turn the tier's number of Shift letters into uppercase. **Never put two uppercase letters back to back.** (Windows opens a Sticky Keys pop-up if Shift is pressed 5 times quickly.)
 - **Key limit:** never ask for more than **5 letters**, and use at most **4** on Shift Wall rounds. With an arrow key (or Space) and Shift on top, that's up to 7 keys pressed at once. Many keyboards can't register that many keys together ("key ghosting").
 
@@ -124,25 +124,26 @@ The goal is combos that make hands cross and fingers stretch, starting easy and 
 
 All numbers live in `src/config.ts`.
 
-Each tier after the first adds **one** new demand (in bold), while the wall time eases down by half a second or less.
+Each tier after the first adds **one** new demand (in bold), while the wall time eases down by half a second or less. Bands are two walls long through wall 9 and three walls long after that, where each new demand is a bigger step.
 
 | Walls | Tier | Letters | Stretch | Wall time | Shift letters | Hole distance (lanes) | Shift Wall |
 |---|---|---|---|---|---|---|---|
 | 1–3 | Easy | 3 | Easy (close together, one hand OK) | 10.0s | 0 | 1–2 | No |
-| 4–5 | Four letters | **4** | Easy for four | 9.5s | 0 | 1–3 | No |
-| 6–7 | Wider stretch | 4 | **Medium (hands start crossing)** | 9.0s | 0 | 1–3 | No |
-| 8–9 | Capitals | 4 | Medium | 9.0s | **1** | 1–3 | No |
-| 10–11 | Shift Walls | 4 | Medium | 8.5s | 1 | 1–4 | **30% of walls** |
-| 12–13 | Five letters | **5** (4 on Shift Wall rounds) | Medium for five | 8.5s | 1 | 1–4 | 35% |
-| 14–15 | Two capitals | 5 (4 on Shift Wall rounds) | Medium for five | 8.0s | **1–2** | 2–5 | 40% |
-| 16+ | Shared fingers | 5 (4 on Shift Wall rounds) | **Hard: two letters may share a finger** | −4% per wall from 8.0s, never under 3.5s | 1–2 | 2–6 | 45%, +5% per wall to 80% |
+| 4–5 | Shift Walls | 3 | Easy | 10.0s | 0 | 1–2 | **Wall 4 always, then 30% of walls** |
+| 6–7 | Four letters | **4** | Easy for four | 10.0s | 0 | 1–3 | 30% |
+| 8–9 | Wider stretch | 4 | **Medium (hands start crossing)** | 9.5s | 0 | 1–3 | 30% |
+| 10–12 | Capitals | 4 | Medium | 9.5s | **1** | 1–3 | 30% |
+| 13–15 | Five letters | **5** (4 on Shift Wall rounds) | Medium for five | 9.0s | 1 | 1–4 | 35% |
+| 16–18 | Two capitals | 5 (4 on Shift Wall rounds) | Medium for five | 9.0s | **1–2** | 2–5 | 35% |
+| 19+ | Shared fingers | 5 (4 on Shift Wall rounds) | **Hard: two letters may share a finger** | −4% per wall from 8.5s, never under 3.5s | 1–2 | 2–6 | 40%, +5% per wall to 80% |
 
-Lining up is in from wall 1. Early walls are slow enough that new players learn the whole mechanic at once. Walls 1–15 keep one finger per letter (§4), so their stretch ranges are set from those combos alone.
+Lining up is in from wall 1. Early walls are slow enough that new players learn the whole mechanic at once. Shift Walls come first, on easy letters, so players learn the theme mechanic while their hands are still free. Walls 1–18 keep one finger per letter (§4), so their stretch ranges are set from those combos alone.
 
-(M7 tuning history: wall times were first raised from 8 / 7 / 6 / 5.5s after playtesting stalled at walls 7–8. The table was then re-cut from five 3-wall bands into the eight above, because several demands landed together at walls 10 and 13 and the curve felt flat, then sudden. Shift Walls moved earlier, from wall 13 to wall 10, and shared fingers later, from wall 13 to wall 16.)
+(M7 tuning history: wall times were first raised from 8 / 7 / 6 / 5.5s after playtesting stalled at walls 7–8. The table was then re-cut from five 3-wall bands into eight 2-wall bands, because several demands landed together at walls 10 and 13 and the curve felt flat, then sudden. Walls 9+ were still too hard after that, so the next round moved Shift Walls to wall 4 (they started at wall 13 before the pass), moved every finger demand two walls later, grew the bands from wall 10 to three walls, and gave walls 9 and up more time.)
 
 ### Shift Wall details
 - Triggers at a random `t ∈ [0.3, 0.5]`, but only once at least one letter is held. (Moved earlier from `[0.35, 0.6]` in the M7 tuning pass, to leave more time after the shift.)
+- **Every Shift Wall shifts:** it also triggers early once only one letter is left to hold, and the pose can't lock during the warning. Otherwise a quick player could finish an easy wall before `t` reached the trigger, and the shift would never happen. (Added in the M7 tuning pass, with Shift Walls moving to 3-letter walls.)
 - **Warning first:** the wall flashes and an arrow appears on it for 0.3s before the hole slides.
 - **The wall holds still** for 1s from the warning: through the warning, the slide and time to line up again, then it carries on.
 - **It reads as a change:** while the wall holds, a big **SHIFT** callout with an arrow pointing the hole's way pops up above the wall. The lane marker under the hole's new lane gets an orange outline and chevrons until the player is lined up with it. As the hole slides, the screen gives a short sideways jolt the same way (skipped for reduced motion).
