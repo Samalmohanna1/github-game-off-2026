@@ -128,6 +128,28 @@ describe('feel (M8)', () => {
   });
 });
 
+describe('audio (M9)', () => {
+  const { master, rumble, click, slip, fanfare, splash, ooh } = C.AUDIO;
+
+  it('keeps every gain above silence and at most full scale', () => {
+    // Above zero too: the envelopes ramp exponentially, which can't reach 0.
+    for (const gain of [master, rumble.minGain, rumble.maxGain, click.gain, slip.gain, fanfare.gain, splash.gain, ooh.gain]) {
+      expect(gain).toBeGreaterThan(0);
+      expect(gain).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('finishes the PERFECT fanfare while the PERFECT label is still up', () => {
+    const length = (fanfare.semitones.length - 1) * fanfare.noteMs + fanfare.lastMs;
+    expect(length).toBeLessThanOrEqual(C.LABEL_HOLD_MS);
+  });
+
+  it('lets the crowd swell before it sinks, and the plunk end inside the splash', () => {
+    expect(ooh.swellMs).toBeLessThan(ooh.ms);
+    expect(splash.plunkMs).toBeLessThanOrEqual(splash.ms);
+  });
+});
+
 describe('graphics contrast', () => {
   it.each(['wall', 'floorLine', 'trayEdge', 'laneMarker', 'laneMarkerLit', 'figure'] as const)(
     '%s stands out from the stage',

@@ -191,6 +191,39 @@ export const BLOCK_LIMP = { ms: 450, tiltDeg: 14 } as const;
 // `ms` of real time.
 export const CLOSE_CALL_SLOWMO = { scale: 0.3, ms: 650 } as const;
 
+// Audio (PLAN.md §10, M9): every sound is synthesized with Web Audio, with no
+// sound files. Gains are 0-1 under `master`; Hz for pitches, ms for times.
+export const AUDIO = {
+  master: 0.5,
+  // A low noise rumble while the wall approaches: louder (gain^curve) and
+  // brighter (filter cutoff) as t rises. `smoothing` is how fast it follows.
+  rumble: { minGain: 0.04, maxGain: 0.5, curve: 2, minCutoff: 90, maxCutoff: 420, smoothingMs: 60 },
+  // Each held letter clicks a step higher than the last.
+  click: { gain: 0.3, baseHz: 660, stepSemitones: 2, ms: 50 },
+  // A slip: a sad note sagging down a fifth.
+  slip: { gain: 0.3, fromHz: 330, toHz: 220, ms: 450 },
+  // PERFECT: a quick major arpeggio, the last note held.
+  fanfare: { gain: 0.22, rootHz: 523.25, semitones: [0, 4, 7, 12], noteMs: 90, lastMs: 360 },
+  // The pool: a hiss sweeping down plus a low plunk.
+  splash: { gain: 0.6, ms: 750, fromHz: 2000, toHz: 260, plunkFromHz: 200, plunkToHz: 60, plunkMs: 260 },
+  // A fail: a crowd's "oooh", detuned voices through "oo" vowel formants,
+  // swelling then sinking.
+  ooh: {
+    gain: 0.35,
+    voices: 8,
+    centerHz: 200,
+    spreadSemitones: 3,
+    riseSemitones: 1,
+    fallSemitones: 5,
+    swellMs: 300,
+    ms: 1500,
+    formantsHz: [320, 880],
+    formantQ: 5,
+    vibratoHz: 5,
+    vibratoDepthHz: 3,
+  },
+} as const;
+
 // The timing label over the figure, px and ms.
 export const LABEL_Y = 300;
 export const LABEL_POP_FROM = 0.5; // starting scale of the pop

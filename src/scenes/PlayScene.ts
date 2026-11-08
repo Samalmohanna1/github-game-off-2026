@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { Synth } from '@/audio/Synth';
 import {
   CLOSE_CALL_SLOWMO,
   FAIL_SHAKE_INTENSITY,
@@ -82,6 +83,8 @@ export class PlayScene extends Phaser.Scene {
   private capsWarning!: Phaser.GameObjects.Text;
   private pauseOverlay!: PauseOverlay;
   private debug!: DebugOverlay;
+  // Null when the browser has no Web Audio; the game then plays silent.
+  private synth: Synth | null = null;
   // The URL's playtest shortcuts, honored on the dev server only, so a
   // published build always plays a normal run.
   private readonly dev = import.meta.env.DEV ? parseDevOptions(window.location.search) : NO_DEV_OPTIONS;
@@ -129,13 +132,22 @@ export class PlayScene extends Phaser.Scene {
       onCapsLock: (on) => this.capsWarning.setVisible(on),
       onToggleDebug: () => this.toggleDebug(),
     });
-    this.events.once('shutdown', () => this.keyboard.destroy());
+    // Phaser's own context and master node: Phaser unlocks audio on the first
+    // click and suspends it while the window is blurred (PLAN.md §10, M9).
+    const sound = this.sound;
+    this.synth = sound instanceof Phaser.Sound.WebAudioSoundManager ? new Synth(sound.context, sound.destination) : null;
+    this.events.once('shutdown', () => {
+      this.keyboard.destroy();
+      this.synth?.destroy();
+    });
 
     this.startWall();
   }
 
   update(_time: number, deltaMs: number): void {
     if (this.debug.visible) this.debug.show(this.debugRows());
+    // The rumble follows t only while the wall is coming at a player who can act.
+    this.synth?.setRumble(this.phase === 'approach' && !this.sequence.paused ? this.t : null);
     if (this.sequence.paused) return;
     if (this.phase === 'approach') {
       this.sequence.tick(deltaMs);
@@ -199,7 +211,8 @@ export class PlayScene extends Phaser.Scene {
     if (!document.hasFocus()) this.pause();
   }
 
-  private apply(effect: SequenceEffect | null): void {
+  // quiet: the slips a blur forces are part of pausing, not the player's doing.
+  private apply(effect: SequenceEffect | null, quiet = false): void {
     if (effect === null || this.phase !== 'approach') return;
     if (effect.type === 'wrongKey') {
       this.wall.flash();
@@ -209,8 +222,13 @@ export class PlayScene extends Phaser.Scene {
     }
     const block = this.spec.blockFor[effect.letter];
     if (block === undefined) return;
-    if (effect.type === 'held') this.figure.snapBlock(block, this.spec.targets[block]);
-    else this.figure.slumpBlock(block, NEUTRAL_POSE[block]);
+    if (effect.type === 'held') {
+      this.figure.snapBlock(block, this.spec.targets[block]);
+      this.synth?.click(this.sequence.heldCount);
+    } else {
+      this.figure.slumpBlock(block, NEUTRAL_POSE[block]);
+      if (!quiet) this.synth?.slip();
+    }
     this.maybeLock();
   }
 
@@ -243,6 +261,7 @@ export class PlayScene extends Phaser.Scene {
     const score = this.scoreKeeper.clearWall(this.t);
     this.label.show(score, laneCenterX(this.figureLane));
     if (score.grade === 'closeCall') this.slowMotion();
+    if (score.grade === 'perfect') this.synth?.fanfare();
     this.tweens.addCounter({
       from: wallScale(this.t),
       to: RUSH_END_SCALE,
@@ -274,8 +293,10 @@ export class PlayScene extends Phaser.Scene {
     if (this.phase === 'failing') return;
     this.phase = 'failing';
     this.sequence.lock();
+    this.synth?.ooh();
     this.figure.shove(() => {
       playSplash(this, this.figure.x, STAGE_BOTTOM_Y, LAYER.splash);
+      this.synth?.splash();
       if (!prefersReducedMotion()) this.cameras.main.shake(FAIL_SHAKE_MS, FAIL_SHAKE_INTENSITY);
     });
     this.time.delayedCall(FAIL_TO_GAME_OVER_MS, () => this.endRun());
@@ -283,7 +304,7 @@ export class PlayScene extends Phaser.Scene {
 
   private pause(): void {
     if (this.phase !== 'approach' || this.sequence.paused) return;
-    for (const effect of this.sequence.blur()) this.apply(effect);
+    for (const effect of this.sequence.blur()) this.apply(effect, true);
     this.tray.show(this.sequence.view());
     this.pauseOverlay.setVisible(true);
   }
