@@ -1,5 +1,5 @@
 import { AUDIO } from '@/config';
-import { clickHz, fanfareHz, noteHz } from '@/logic/sound-levels';
+import { clickHz, fanfareHz } from '@/logic/sound-levels';
 
 const SILENT = 0.0001; // exponential ramps can't reach 0
 const STOP_MARGIN = 0.05; // s a source runs past its envelope, so it never clicks off
@@ -110,32 +110,6 @@ export class Synth {
     thump.frequency.exponentialRampToValueAtTime(toHz, at + sec(ms));
     thump.connect(this.envelope(gain, 2, ms, at));
     this.noiseBurst(at, smackMs).connect(this.filter('lowpass', smackCutoffHz)).connect(this.envelope(gain, 1, smackMs, at));
-  }
-
-  // The crowd goes "oooh" just after the hit. Detuned voices with their own
-  // vibrato rise a little as the sound swells, then sink, through a dark "oo".
-  ooh(): void {
-    if (!this.running) return;
-    const o = AUDIO.ooh;
-    const at = this.ctx.currentTime + sec(o.delayMs);
-    const swelled = at + sec(o.swellMs);
-    const end = at + sec(o.ms);
-
-    const envelope = this.envelope(o.gain, o.swellMs, o.ms, at);
-    const crowd = this.ctx.createGain();
-    crowd.gain.value = 1 / Math.sqrt(o.voices);
-    // The "oo" vowel: mostly dark, with a lift around its first formant.
-    crowd.connect(this.filter('lowpass', o.cutoffHz)).connect(envelope);
-    crowd.connect(this.filter('bandpass', o.formantHz, o.formantQ)).connect(envelope);
-
-    for (let i = 0; i < o.voices; i++) {
-      const hz = noteHz(o.centerHz, (Math.random() * 2 - 1) * o.spreadSemitones);
-      const voice = this.tone('sawtooth', hz, at, o.ms);
-      voice.frequency.linearRampToValueAtTime(noteHz(hz, o.riseSemitones), swelled);
-      voice.frequency.exponentialRampToValueAtTime(noteHz(hz, -o.fallSemitones), end);
-      this.wobble(voice, o.vibratoHz * (0.8 + Math.random() * 0.4), o.vibratoDepthHz, at, o.ms);
-      voice.connect(crowd);
-    }
   }
 
   // The figure lands in the pool: a hiss sweeping down, a low plunk, then

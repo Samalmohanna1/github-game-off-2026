@@ -129,11 +129,11 @@ describe('feel (M8)', () => {
 });
 
 describe('audio (M9)', () => {
-  const { master, tick, click, slip, fanfare, shiftAlert, whoosh, hit, ooh, splash } = C.AUDIO;
+  const { master, tick, click, slip, fanfare, shiftAlert, whoosh, hit, splash } = C.AUDIO;
 
   it('keeps every gain above silence and at most full scale', () => {
     // Above zero too: the envelopes ramp exponentially, which can't reach 0.
-    const gains = [master, tick.gain, click.gain, slip.gain, fanfare.gain, shiftAlert.gain, whoosh.gain, hit.gain, ooh.gain, splash.gain];
+    const gains = [master, tick.gain, click.gain, slip.gain, fanfare.gain, shiftAlert.gain, whoosh.gain, hit.gain, splash.gain];
     for (const gain of gains) {
       expect(gain).toBeGreaterThan(0);
       expect(gain).toBeLessThanOrEqual(1);
@@ -150,9 +150,8 @@ describe('audio (M9)', () => {
     expect(C.SHIFT_WALL_TELEGRAPH + whoosh.ms).toBeLessThanOrEqual(C.SHIFT_WALL_PAUSE);
   });
 
-  it('hits at once, then lets the crowd swell before it sinks', () => {
-    expect(ooh.delayMs).toBeLessThan(hit.ms);
-    expect(ooh.swellMs).toBeLessThan(ooh.ms);
+  it('ends the hit before the figure lands, so the hit and the splash never blur together', () => {
+    expect(hit.ms).toBeLessThan(C.FAIL_SHOVE_MS);
   });
 
   it('keeps every part of the splash inside it', () => {

@@ -210,26 +210,10 @@ export const AUDIO = {
   // then a whoosh that way as it slides.
   shiftAlert: { gain: 0.28, fromHz: 520, toHz: 1040, chirps: 2, chirpMs: 90, gapMs: 120, pan: 0.7 },
   whoosh: { gain: 0.22, fromHz: 400, toHz: 2400, ms: 220, pan: 0.7 },
-  // The wall hits the figure: a low thump under a short smack, at once.
-  hit: { gain: 0.8, fromHz: 160, toHz: 45, ms: 200, smackMs: 90, smackCutoffHz: 1800 },
-  // Then the crowd goes "oooh": detuned voices through a dark "oo" vowel,
-  // swelling then sinking.
-  ooh: {
-    gain: 0.5,
-    delayMs: 80,
-    voices: 8,
-    centerHz: 210,
-    spreadSemitones: 3,
-    riseSemitones: 1,
-    fallSemitones: 5,
-    swellMs: 200,
-    ms: 1400,
-    cutoffHz: 1100,
-    formantHz: 350,
-    formantQ: 1.5,
-    vibratoHz: 5,
-    vibratoDepthHz: 3,
-  },
+  // The wall hits the figure: a thump under a short smack, at once. The thump
+  // stays above ~80 Hz so laptop speakers still play it. (A crowd "oooh" after
+  // it was cut after the second M9 playtest.)
+  hit: { gain: 0.8, fromHz: 300, toHz: 80, ms: 200, smackMs: 110, smackCutoffHz: 2500 },
   // The figure lands in the pool: a hiss sweeping down, a low plunk, and a
   // few droplets after.
   splash: {

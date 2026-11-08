@@ -297,7 +297,6 @@ export class PlayScene extends Phaser.Scene {
     this.phase = 'failing';
     this.sequence.lock();
     this.synth?.hit();
-    this.synth?.ooh();
     this.figure.shove(() => {
       playSplash(this, this.figure.x, STAGE_BOTTOM_Y, LAYER.splash);
       this.synth?.splash();
