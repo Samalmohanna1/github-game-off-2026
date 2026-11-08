@@ -274,7 +274,7 @@ shape-shift/
 - The warning, the hole sliding, letters pausing until lined up again, and the 4-letter cap.
 - ✅ Holding 3 letters while tapping an arrow to line up again works, and the next letter appears right away.
 
-**M7: Debug overlay and tuning pass**
+**M7: Debug overlay and tuning pass** (done)
 - F2 overlay. Playtest 10 runs and adjust `config.ts`.
 - ✅ Wall 1 can be cleared by a new player, and wall 12+ is hard but doable.
 

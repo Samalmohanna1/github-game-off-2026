@@ -5,10 +5,10 @@ A keyboard take on Japan's "Human Tetris", made for GitHub Game Off 2026
 hole with ← / → (or Space, which steps right and wraps around), then hold the letters shown to pose your figure so it fits
 through. Capital letters need Shift.
 
-**Status:** Week 1 prototype, built in grey boxes. M0–M6 are done: a full run
-plays from the title through walls that get harder by the difficulty curve,
-Shift Walls whose hole slides mid-approach, scoring and a fail to the
-game-over screen and back. See
+**Status:** Week 1 prototype, built in grey boxes. M0–M7 are done: a full run
+plays from the title through walls that get harder by a playtested difficulty
+curve, Shift Walls whose hole slides mid-approach, scoring and a fail to the
+game-over screen and back, with an F2 debug overlay for tuning. See
 [PLAN.md](./PLAN.md) for the design and milestones, and
 [AGENTS.md](./AGENTS.md) for the working rules.
 
