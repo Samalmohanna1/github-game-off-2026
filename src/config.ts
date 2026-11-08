@@ -214,20 +214,13 @@ export const AUDIO = {
   // stays above ~80 Hz so laptop speakers still play it. (A crowd "oooh" after
   // it was cut after the second M9 playtest.)
   hit: { gain: 0.8, fromHz: 300, toHz: 80, ms: 200, smackMs: 110, smackCutoffHz: 2500 },
-  // The figure lands in the pool: a hiss sweeping down, a low plunk, and a
-  // few droplets after.
+  // The figure lands in the pool: a bright fizz that fades, and bubbles, each a
+  // tiny rising blip, scattered across the stereo field and bunched near the
+  // start. No low tone, so it never sounds like a second hit (the first
+  // version's low plunk did). [min, max] ranges are picked per bubble.
   splash: {
-    gain: 0.6,
-    ms: 750,
-    fromHz: 2000,
-    toHz: 260,
-    plunkFromHz: 200,
-    plunkToHz: 60,
-    plunkMs: 260,
-    droplets: 5,
-    dropletHz: [600, 1400],
-    dropletMs: 45,
-    dropletSpreadMs: 450,
+    fizz: { gain: 0.3, attackMs: 25, ms: 800, highpassHz: 1200, fromHz: 4000, toHz: 1500, q: 0.7 },
+    bubbles: { count: 18, gain: [0.06, 0.18], hz: [400, 1600], rise: [1.6, 2.4], ms: [30, 70], spreadMs: 650, pan: 0.4 },
   },
 } as const;
 

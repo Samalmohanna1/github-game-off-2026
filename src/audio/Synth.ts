@@ -4,6 +4,7 @@ import { clickHz, fanfareHz } from '@/logic/sound-levels';
 const SILENT = 0.0001; // exponential ramps can't reach 0
 const STOP_MARGIN = 0.05; // s a source runs past its envelope, so it never clicks off
 const sec = (ms: number) => ms / 1000;
+const between = ([min, max]: readonly [number, number]) => min + Math.random() * (max - min);
 
 function whiteNoise(ctx: BaseAudioContext, seconds: number): AudioBuffer {
   const buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * seconds), ctx.sampleRate);
@@ -112,29 +113,30 @@ export class Synth {
     this.noiseBurst(at, smackMs).connect(this.filter('lowpass', smackCutoffHz)).connect(this.envelope(gain, 1, smackMs, at));
   }
 
-  // The figure lands in the pool: a hiss sweeping down, a low plunk, then
-  // scattered droplets.
+  // The figure lands in the pool: a bright fizz, and bubbles that each blip
+  // upward in pitch, the way a real bubble sounds as it shrinks.
   splash(): void {
     if (!this.running) return;
-    const s = AUDIO.splash;
+    const { fizz, bubbles } = AUDIO.splash;
     const at = this.ctx.currentTime;
 
-    const band = this.filter('bandpass', s.fromHz, 0.8);
-    band.frequency.setValueAtTime(s.fromHz, at);
-    band.frequency.exponentialRampToValueAtTime(s.toHz, at + sec(s.ms));
-    this.noiseBurst(at, s.ms).connect(band).connect(this.envelope(s.gain, 8, s.ms, at));
+    const band = this.filter('bandpass', fizz.fromHz, fizz.q);
+    band.frequency.setValueAtTime(fizz.fromHz, at);
+    band.frequency.exponentialRampToValueAtTime(fizz.toHz, at + sec(fizz.ms));
+    this.noiseBurst(at, fizz.ms)
+      .connect(this.filter('highpass', fizz.highpassHz))
+      .connect(band)
+      .connect(this.envelope(fizz.gain, fizz.attackMs, fizz.ms, at));
 
-    const plunk = this.tone('sine', s.plunkFromHz, at, s.plunkMs);
-    plunk.frequency.exponentialRampToValueAtTime(s.plunkToHz, at + sec(s.plunkMs));
-    plunk.connect(this.envelope(s.gain, 5, s.plunkMs, at));
-
-    const [lowHz, highHz] = s.dropletHz;
-    for (let i = 0; i < s.droplets; i++) {
-      const dropAt = at + sec(Math.random() * s.dropletSpreadMs);
-      const fromHz = lowHz + Math.random() * (highHz - lowHz) * 0.5;
-      const drop = this.tone('sine', fromHz, dropAt, s.dropletMs);
-      drop.frequency.exponentialRampToValueAtTime(fromHz + (highHz - lowHz) / 2, dropAt + sec(s.dropletMs));
-      drop.connect(this.envelope(s.gain / 3, 3, s.dropletMs, dropAt));
+    for (let i = 0; i < bubbles.count; i++) {
+      // Squaring the spread bunches most bubbles near the splash's start.
+      const bubbleAt = at + sec(Math.random() ** 2 * bubbles.spreadMs);
+      const ms = between(bubbles.ms);
+      const hz = between(bubbles.hz);
+      const bubble = this.tone('sine', hz, bubbleAt, ms);
+      bubble.frequency.exponentialRampToValueAtTime(hz * between(bubbles.rise), bubbleAt + sec(ms));
+      const side = this.panner((Math.random() * 2 - 1) * bubbles.pan);
+      bubble.connect(this.envelope(between(bubbles.gain), 2, ms, bubbleAt, side));
     }
   }
 

@@ -133,7 +133,7 @@ describe('audio (M9)', () => {
 
   it('keeps every gain above silence and at most full scale', () => {
     // Above zero too: the envelopes ramp exponentially, which can't reach 0.
-    const gains = [master, tick.gain, click.gain, slip.gain, fanfare.gain, shiftAlert.gain, whoosh.gain, hit.gain, splash.gain];
+    const gains = [master, tick.gain, click.gain, slip.gain, fanfare.gain, shiftAlert.gain, whoosh.gain, hit.gain, splash.fizz.gain, ...splash.bubbles.gain];
     for (const gain of gains) {
       expect(gain).toBeGreaterThan(0);
       expect(gain).toBeLessThanOrEqual(1);
@@ -154,9 +154,16 @@ describe('audio (M9)', () => {
     expect(hit.ms).toBeLessThan(C.FAIL_SHOVE_MS);
   });
 
-  it('keeps every part of the splash inside it', () => {
-    expect(splash.plunkMs).toBeLessThanOrEqual(splash.ms);
-    expect(splash.dropletSpreadMs + splash.dropletMs).toBeLessThanOrEqual(splash.ms);
+  it('keeps every bubble inside the splash, rising in pitch', () => {
+    const { fizz, bubbles } = splash;
+    expect(bubbles.spreadMs + bubbles.ms[1]).toBeLessThanOrEqual(fizz.ms);
+    expect(bubbles.rise[0]).toBeGreaterThan(1);
+    for (const range of [bubbles.gain, bubbles.hz, bubbles.rise, bubbles.ms]) expect(range[0]).toBeLessThanOrEqual(range[1]);
+  });
+
+  it('keeps the splash clear of the low range, so it never sounds like a second hit', () => {
+    expect(splash.bubbles.hz[0]).toBeGreaterThan(hit.fromHz);
+    expect(splash.fizz.highpassHz).toBeGreaterThan(hit.fromHz);
   });
 });
 
