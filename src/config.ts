@@ -199,10 +199,11 @@ export const PROMPT_PULSE_MS = 700;
 export const TRAY_HEIGHT = 110;
 export const STAGE_BOTTOM_Y = GAME_HEIGHT - TRAY_HEIGHT;
 export const HORIZON_Y = 140;
-// 560 at first, 530 after M10 review 3. Review 5 moved the figure further back
-// and shrank everything sized at its plane (CELL_SIZE, WALL_HEIGHT, the shadow,
-// the Shift arrow) by the same depth, so the figure still fits its lane.
-export const FIGURE_FLOOR_Y = 495;
+// The figure stands on the front-most whole row of floor tiles, so there's no
+// spare floor between it and the camera (M10 review 6; 530, then 495, until
+// then). Everything sized at its plane (CELL_SIZE, WALL_HEIGHT, the shadow,
+// the Shift arrow) scales with its depth, so the figure still fits its lane.
+export const FIGURE_FLOOR_Y = 560;
 export const FLOOR_LINE_WIDTH = 2;
 
 // Art (PLAN.md §10, M10): an editorial collage. Torn paper at the background's
@@ -252,13 +253,13 @@ export const FLOOR = { vergeWidth: 0.22, vergeOuterShare: 0.45, seamWidth: 1, ti
 
 // The figure's pose grid (PLAN.md §3).
 export const FIGURE_GRID = { cols: 6, rows: 8 } as const;
-export const CELL_SIZE = 22; // px at full scale
+export const CELL_SIZE = 26; // px at full scale
 export const FIGURE_WIDTH = FIGURE_GRID.cols * CELL_SIZE;
 export const FIGURE_HEIGHT = FIGURE_GRID.rows * CELL_SIZE;
 export const FIGURE_EDGE_WIDTH = 3; // px; the cream edge round each block
 export const FIGURE_SEAM_WIDTH = 1.5; // px; the thinner seams between a block's cells
 // The soft shadow under the figure's feet, px.
-export const FIGURE_SHADOW = { width: 155, height: 20, alpha: 0.22 } as const;
+export const FIGURE_SHADOW = { width: 183, height: 24, alpha: 0.22 } as const;
 export const FIGURE_SLIDE_MS = 90; // one lane, visual only: the lane changes instantly
 
 export const LANE_COUNT = 7;
@@ -267,10 +268,10 @@ export const LANE_COUNT = 7;
 // is lined up with it. px.
 export const LANE_TARGET = { edgeWidth: 5, chevronWidth: 12, chevronHeight: 22, chevronGap: 20, chevronLineWidth: 4 } as const;
 
-// 0.35 until M10 review 5; raised as the figure moved back, so the wall still
-// starts where it did on screen.
-export const WALL_START_SCALE = 0.38;
-export const WALL_HEIGHT = 345; // px at full scale
+// Set with the figure's depth, so the wall starts at the same place on screen
+// wherever the figure stands (0.35 at FIGURE_FLOOR_Y 530).
+export const WALL_START_SCALE = 0.32;
+export const WALL_HEIGHT = 410; // px at full scale
 export const WALL_EDGE_WIDTH = 3; // px at full scale
 export const WALL_EASE_POWER = 2; // scale follows t^n, so higher n rushes harder at the end
 
@@ -301,7 +302,7 @@ export const SHIFT_JOLT = { distance: 16, ms: 90 } as const; // px, ms each way
 export const SHIFT_CALLOUT_ARROW = { gap: 24, length: 90, shaftThickness: 26, headLength: 44, headWidth: 64 } as const;
 // The warning arrow, px at full scale, centered over the hole in the band of
 // wall above it.
-export const SHIFT_ARROW = { length: 200, shaftThickness: 36, headLength: 82, headWidth: 110 } as const;
+export const SHIFT_ARROW = { length: 236, shaftThickness: 42, headLength: 96, headWidth: 130 } as const;
 
 // Scoring (PLAN.md §6).
 export const PERFECT_T = 0.5;
@@ -373,7 +374,7 @@ export const AUDIO = {
 } as const;
 
 // The timing label over the figure, px and ms.
-export const LABEL_Y = 250; // keeps its place over the figure's head
+export const LABEL_Y = 284; // keeps its place over the figure's head
 export const LABEL_POP_FROM = 0.5; // starting scale of the pop
 export const LABEL_POP_MS = 180;
 export const LABEL_HOLD_MS = 700;
@@ -405,18 +406,18 @@ export interface FailTumbleTuning {
   readonly flailHz: number;
 }
 export const FAIL_TUMBLE = {
-  landScale: 1.2,
+  landScale: 1.08, // the figure stands at the front of the floor, so it can't come far
   shoveMs: 450,
   // A bounce rises about restitution^2 of the height it fell from, so the
   // knock lifts the figure high enough for wood-like bounces to show.
-  hop: 650,
-  push: 120,
+  hop: 770,
+  push: 140,
   spinDeg: 200,
-  gravity: 3600, // px/s^2
+  gravity: 4250, // px/s^2
   restitution: 0.45,
   friction: 0.7,
   spinKeep: 0.5,
-  restSpeed: 110,
+  restSpeed: 130,
   settleRate: 12,
   scatter: 1.5,
   flailDeg: 35,
