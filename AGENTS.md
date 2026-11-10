@@ -530,11 +530,14 @@ Work through **PLAN.md §10** one milestone at a time.
   (`GAME_WIDTH / 2`, `HORIZON_Y`). Every depth is a scale toward it
   (`src/logic/perspective.ts`).
 - **Figure plane** — the depth where the figure stands, on `FIGURE_FLOOR_Y`.
-  It is scale 1: the wall reaches full size there. M10 review 5 moved it
-  back (530 to 495) and shrank what is sized at it (`CELL_SIZE`,
-  `WALL_HEIGHT`, the shadow, the Shift arrow) by the same depth, so the
-  figure still fits its lane, and raised `WALL_START_SCALE` so the wall
-  still starts where it did on screen.
+  It is scale 1: the wall reaches full size there. Since M10 review 6 the
+  figure stands on the front-most whole row of floor tiles (560), with no
+  spare floor between it and the camera. What is sized at its plane
+  (`CELL_SIZE`, `WALL_HEIGHT`, the shadow, the Shift arrow) scales with its
+  depth, so the figure always fits its lane, and `WALL_START_SCALE` is set
+  with it so the wall starts at the same place on screen. (Review 5 moved
+  the figure away from the camera, 530 to 495, reading "further back" the
+  wrong way; review 6 brought it forward.)
 - **Figure** — the player's five blocks: `head`, `torso`, `armL`, `armR`,
   `legs`. Each block is black, with thin cream seams between its cells for a
   pixel look and a cream edge all round, over a soft shadow (M10). Review 4

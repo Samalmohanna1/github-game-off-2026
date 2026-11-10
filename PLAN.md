@@ -183,7 +183,7 @@ The timing label pops up big over the figure as the wall rushes past. Save the b
 
 ```ts
 LANE_COUNT = 7
-WALL_START_SCALE = 0.38        // 0.35 until the figure moved back in M10 review 5
+WALL_START_SCALE = 0.32        // set with the figure's depth (0.35 at FIGURE_FLOOR_Y 530)
 WRONG_KEY_JUMP = 0.03          // added to t (0.06 before the M7 tuning pass)
 LOCK_RUSH_DURATION = 400       // ms
 PROMPT_APPEAR_DELAY = 120      // ms after the previous letter is held
@@ -309,6 +309,7 @@ Built in this order (chosen after M7): feel and audio go on the grey box first, 
 - (After the third M10 review: the grain read as harsh, so its sparse strong specks became a faint, fine nudge on every pixel. The backdrop disc was cut, and the figure moved 30 px further back (`FIGURE_FLOOR_Y` 560 to 530).)
 - (After the fourth M10 review, from a reference image: torn sage, forest, stone and charcoal paper at the background's outer edges, two pieces gridded; the floor back to cream, its tiles faintly varied, with thinner, paler seams; a paper texture of soft mottle and fine grain, moderate on the background, very faint on the floor, faint on the wall, and none on the figure or the cutout; the cutout lost its outline; the figure's blocks are solid with split legs; the HUD is all Anton, its number bigger.)
 - (After the fifth M10 review: the figure's blocks have their cream seams between cells again, the pixel look the user preferred. The figure stands further back (`FIGURE_FLOOR_Y` 530 to 495), and everything sized at its plane shrank by the same depth, so it still fits its lane. The cutout is really cut out: the floor and the background show through it, with no cream fill. On a fail the figure flails as it topples, and its blocks bounce low on the floor and come to rest, replacing the splash and the ripple.)
+- (After the sixth M10 review: "further back" had meant toward the camera, into the empty floor behind the figure. The figure now stands one tile nearer than at first, on the front-most whole row of floor tiles (`FIGURE_FLOOR_Y` 495 to 560), and everything sized at its plane grew with it. On a fail it is knocked only a little further forward, since the floor ends there.)
 - ✅ Every pose still fits its hole, and every hole is one piece. The fonts are bundled and loaded before any text is drawn, and the contrast and color-system tests pass.
 
 **M11: Title and game-over screens**
