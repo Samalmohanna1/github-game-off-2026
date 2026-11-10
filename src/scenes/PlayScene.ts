@@ -12,7 +12,6 @@ import {
   RUSH_END_SCALE,
   SCREEN_LAYOUT,
   SHIFT_JOLT,
-  STAGE_BOTTOM_Y,
 } from '@/config';
 import { NEUTRAL_POSE } from '@/data/poses';
 import { KeyboardInput } from '@/input/KeyboardInput';
@@ -20,7 +19,7 @@ import { advanceT, jumpT, wallScale } from '@/logic/approach';
 import { Countdown } from '@/logic/countdown';
 import { NO_DEV_OPTIONS, parseDevOptions, type DevOptions } from '@/logic/dev-options';
 import { planWall, type WallPlan } from '@/logic/difficulty';
-import { CENTER_LANE, isAligned, laneCenterX, moveLane, stepToward } from '@/logic/lanes';
+import { CENTER_LANE, fallDirection, isAligned, laneCenterX, moveLane, stepToward } from '@/logic/lanes';
 import { generateLetters } from '@/logic/letters';
 import { ScoreKeeper, gradeFor } from '@/logic/scoring';
 import { LetterSequence, type SequenceEffect } from '@/logic/sequence';
@@ -36,7 +35,6 @@ import { LaneTiles } from '@/objects/LaneTiles';
 import { PauseOverlay } from '@/objects/PauseOverlay';
 import { PromptTray } from '@/objects/PromptTray';
 import { ShiftCallout } from '@/objects/ShiftCallout';
-import { playSplash } from '@/objects/splash';
 import { TimingLabel } from '@/objects/TimingLabel';
 import { Wall } from '@/objects/Wall';
 import { SceneKeys, type RunResult } from '@/scenes/scene-keys';
@@ -52,12 +50,11 @@ const LAYER = {
   wall: 3,
   figure: 4,
   wallPassed: 5,
-  splash: 6,
-  label: 7,
-  tray: 8,
-  hud: 9,
-  pause: 10,
-  debug: 11,
+  label: 6,
+  tray: 7,
+  hud: 8,
+  pause: 9,
+  debug: 10,
 } as const;
 
 // Kept in the game registry so the overlay stays on across walls and restarts.
@@ -109,8 +106,7 @@ export class PlayScene extends Phaser.Scene {
     this.scoreKeeper = new ScoreKeeper(this.dev.startWall);
 
     // Paper texture, each element in its own colors (M10): moderate on the
-    // background, very faint on the floor; the wall textures its own surface
-    // and keeps the cutout clean.
+    // background, very faint on the floor; the wall textures its own surface.
     addGrain(new Collage(this).setDepth(LAYER.background), GRAIN.background);
     addGrain(new Floor(this).setDepth(LAYER.floor), GRAIN.floor);
     this.laneTiles = new LaneTiles(this).setDepth(LAYER.laneTiles);
@@ -154,6 +150,7 @@ export class PlayScene extends Phaser.Scene {
   update(_time: number, deltaMs: number): void {
     if (this.debug.visible) this.debug.show(this.debugRows());
     if (this.sequence.paused) return;
+    if (this.phase === 'failing') this.figure.updateTumble(deltaMs);
     if (this.phase === 'approach') {
       this.sequence.tick(deltaMs);
       this.applyShift(this.shiftWall.update(this.t, this.sequence.heldCount, this.sequence.leftCount, deltaMs));
@@ -297,11 +294,8 @@ export class PlayScene extends Phaser.Scene {
   private rushWall(scale: number): void {
     this.wall.setScale(scale);
     // Past the figure's plane the wall is in front of it, fading toward the
-    // camera, and its hole opens so the figure shows through.
-    if (scale >= 1) {
-      this.wall.setHoleFilled(false);
-      this.wall.setDepth(LAYER.wallPassed).setAlpha(1 - (scale - 1) / (RUSH_END_SCALE - 1));
-    }
+    // camera, with the figure showing through its hole.
+    if (scale >= 1) this.wall.setDepth(LAYER.wallPassed).setAlpha(1 - (scale - 1) / (RUSH_END_SCALE - 1));
   }
 
   private fail(): void {
@@ -309,8 +303,7 @@ export class PlayScene extends Phaser.Scene {
     this.phase = 'failing';
     this.sequence.lock();
     this.synth?.hit();
-    this.figure.shove(() => {
-      playSplash(this, this.figure.x, STAGE_BOTTOM_Y, LAYER.splash);
+    this.figure.topple(fallDirection(this.figureLane), () => {
       this.synth?.whomp();
       if (!prefersReducedMotion()) this.cameras.main.shake(FAIL_SHAKE_MS, FAIL_SHAKE_INTENSITY);
     });

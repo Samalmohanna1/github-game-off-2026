@@ -108,14 +108,20 @@ describe('feel (M8)', () => {
     expect(C.CLOSE_CALL_SLOWMO.ms * C.CLOSE_CALL_SLOWMO.scale).toBeLessThan(C.LOCK_RUSH_DURATION);
   });
 
-  it('lets every splash drop land back before it expires, without leaving the screen', () => {
-    const fastestUp = Math.max(C.SPLASH.column.speed[1], C.SPLASH.spray.speed[1]);
-    expect(((2 * fastestUp) / C.SPLASH.gravity) * 1000).toBeLessThanOrEqual(C.SPLASH.lifespan);
-    expect(fastestUp ** 2 / (2 * C.SPLASH.gravity)).toBeLessThan(C.STAGE_BOTTOM_Y);
+  // M10 review 5: wood, not rubber.
+  it('bounces the fallen blocks low and lets each bounce lose speed', () => {
+    const { restitution, friction, spinKeep } = C.FAIL_TUMBLE;
+    expect(restitution).toBeGreaterThan(0);
+    expect(restitution).toBeLessThanOrEqual(0.5);
+    for (const share of [friction, spinKeep]) {
+      expect(share).toBeGreaterThan(0);
+      expect(share).toBeLessThan(1);
+    }
   });
 
-  it('draws the spray smaller than the column', () => {
-    expect(C.SPLASH.spray.radius).toBeLessThan(C.SPLASH.column.radius);
+  it('flails the arms only a little', () => {
+    expect(C.FAIL_TUMBLE.flailDeg).toBeGreaterThan(0);
+    expect(C.FAIL_TUMBLE.flailDeg).toBeLessThan(45);
   });
 });
 
@@ -139,10 +145,6 @@ describe('audio (M9)', () => {
   it('finishes the Shift Wall alert as the hole slides, and the whoosh while the wall holds', () => {
     expect((shiftAlert.chirps - 1) * shiftAlert.gapMs + shiftAlert.chirpMs).toBeLessThanOrEqual(C.SHIFT_WALL_TELEGRAPH);
     expect(C.SHIFT_WALL_TELEGRAPH + whoosh.ms).toBeLessThanOrEqual(C.SHIFT_WALL_PAUSE);
-  });
-
-  it('ends the hit before the figure lands, so the hit and the whomp never blur together', () => {
-    expect(hit.ms).toBeLessThan(C.FAIL_SHOVE_MS);
   });
 
   it('plays the whomp as separate notes, the last one long and sagging', () => {
@@ -196,10 +198,6 @@ describe('graphics contrast', () => {
     expect(contrastRatio(C.COLORS.wallWarning, C.COLORS.stage)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
     expect(contrastRatio(C.COLORS.shiftArrow, C.COLORS.wallWarning)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
     expect(contrastRatio(C.COLORS.shiftArrow, C.COLORS.textOutline)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
-  });
-
-  it('cuts the hole out clearly from the wall', () => {
-    expect(contrastRatio(C.COLORS.holeFill, C.COLORS.wall)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
   it.each(['chipHeld', 'chipCurrent', 'chipSlipped'] as const)('%s chips stand out from the tray', (name) => {

@@ -50,7 +50,6 @@ export const COLORS = {
   vergeOuter: PALETTE.greenDark,
   outline: PALETTE.graphite,
   wall: PALETTE.greenDark,
-  holeFill: PALETTE.cream, // the hole reads as one clean cutout
   tray: PALETTE.ink,
   laneLit: PALETTE.greenDeep,
   figure: PALETTE.ink,
@@ -84,8 +83,6 @@ export const COLORS = {
   collageCharcoal: PALETTE.charcoal,
   collageGrid: PALETTE.graphite,
   collageForestGrid: PALETTE.greenDark,
-  splash: PALETTE.green,
-  splashRipple: PALETTE.greenDark,
 } as const;
 
 const css = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
@@ -202,7 +199,10 @@ export const PROMPT_PULSE_MS = 700;
 export const TRAY_HEIGHT = 110;
 export const STAGE_BOTTOM_Y = GAME_HEIGHT - TRAY_HEIGHT;
 export const HORIZON_Y = 140;
-export const FIGURE_FLOOR_Y = 530; // 560 until M10 review 3 moved the figure back
+// 560 at first, 530 after M10 review 3. Review 5 moved the figure further back
+// and shrank everything sized at its plane (CELL_SIZE, WALL_HEIGHT, the shadow,
+// the Shift arrow) by the same depth, so the figure still fits its lane.
+export const FIGURE_FLOOR_Y = 495;
 export const FLOOR_LINE_WIDTH = 2;
 
 // Art (PLAN.md §10, M10): an editorial collage. Torn paper at the background's
@@ -214,7 +214,7 @@ export const FLOOR_LINE_WIDTH = 2;
 // paper tone shifts toward black or white (0-1), over blotches about
 // `mottleSize` px; `darken` and `lighten` are the most each fine grain cell,
 // `cell` px square, moves. Moderate on the background, very faint on the
-// floor, faint on the wall; the figure, the cutout and the tray stay clean.
+// floor, faint on the wall; the figure and the tray stay clean.
 // The mottle stays put; the fine grain re-rolls every GRAIN_BOIL_MS, like the
 // boil of hand-drawn animation (still for reduced motion).
 export interface GrainLook {
@@ -252,13 +252,13 @@ export const FLOOR = { vergeWidth: 0.22, vergeOuterShare: 0.45, seamWidth: 1, ti
 
 // The figure's pose grid (PLAN.md §3).
 export const FIGURE_GRID = { cols: 6, rows: 8 } as const;
-export const CELL_SIZE = 24; // px at full scale
+export const CELL_SIZE = 22; // px at full scale
 export const FIGURE_WIDTH = FIGURE_GRID.cols * CELL_SIZE;
 export const FIGURE_HEIGHT = FIGURE_GRID.rows * CELL_SIZE;
 export const FIGURE_EDGE_WIDTH = 3; // px; the cream edge round each block
-export const FIGURE_SEAM_WIDTH = 1.5; // px; the thinner seam that splits the legs in two
+export const FIGURE_SEAM_WIDTH = 1.5; // px; the thinner seams between a block's cells
 // The soft shadow under the figure's feet, px.
-export const FIGURE_SHADOW = { width: 170, height: 22, alpha: 0.22 } as const;
+export const FIGURE_SHADOW = { width: 155, height: 20, alpha: 0.22 } as const;
 export const FIGURE_SLIDE_MS = 90; // one lane, visual only: the lane changes instantly
 
 export const LANE_COUNT = 7;
@@ -267,8 +267,10 @@ export const LANE_COUNT = 7;
 // is lined up with it. px.
 export const LANE_TARGET = { edgeWidth: 5, chevronWidth: 12, chevronHeight: 22, chevronGap: 20, chevronLineWidth: 4 } as const;
 
-export const WALL_START_SCALE = 0.35;
-export const WALL_HEIGHT = 380; // px at full scale
+// 0.35 until M10 review 5; raised as the figure moved back, so the wall still
+// starts where it did on screen.
+export const WALL_START_SCALE = 0.38;
+export const WALL_HEIGHT = 345; // px at full scale
 export const WALL_EDGE_WIDTH = 3; // px at full scale
 export const WALL_EASE_POWER = 2; // scale follows t^n, so higher n rushes harder at the end
 
@@ -299,7 +301,7 @@ export const SHIFT_JOLT = { distance: 16, ms: 90 } as const; // px, ms each way
 export const SHIFT_CALLOUT_ARROW = { gap: 24, length: 90, shaftThickness: 26, headLength: 44, headWidth: 64 } as const;
 // The warning arrow, px at full scale, centered over the hole in the band of
 // wall above it.
-export const SHIFT_ARROW = { length: 220, shaftThickness: 40, headLength: 90, headWidth: 120 } as const;
+export const SHIFT_ARROW = { length: 200, shaftThickness: 36, headLength: 82, headWidth: 110 } as const;
 
 // Scoring (PLAN.md §6).
 export const PERFECT_T = 0.5;
@@ -371,32 +373,60 @@ export const AUDIO = {
 } as const;
 
 // The timing label over the figure, px and ms.
-export const LABEL_Y = 270; // keeps its place over the figure's head
+export const LABEL_Y = 250; // keeps its place over the figure's head
 export const LABEL_POP_FROM = 0.5; // starting scale of the pop
 export const LABEL_POP_MS = 180;
 export const LABEL_HOLD_MS = 700;
 export const LABEL_EDGE_MARGIN = 20;
 
-// Fail (PLAN.md §7): the figure is shoved toward the camera and falls into
-// the pool below the stage.
-export const FAIL_SHOVE_MS = 450;
-export const FAIL_FALL_DISTANCE = 220; // px
-export const FAIL_SPIN_DEG = 70;
-export const FAIL_SHOVE_SCALE = 1.2;
+// Fail (PLAN.md §7, M10 review 5): the wall knocks the figure off its feet,
+// toward the camera, onto the floor at the depth landScale over shoveMs. It
+// hops, drifts and turns the way it falls (toward the stage's middle), its
+// arms flailing flailDeg either way at flailHz. When it hits the floor its
+// blocks come apart (src/logic/tumble.ts), each flying outward from the
+// figure's middle at `scatter` px/s per px it sits from it, and bounce low,
+// like wood rather than rubber: a bounce keeps `restitution` of the landing
+// speed, `friction` of the sideways speed and `spinKeep` of the spin. A
+// landing slower than restSpeed stops bouncing, and the block tips flat onto a
+// side at settleRate (1/s), a long block onto a long side. Speeds are px/s in the figure's own
+// space; angles are degrees, spinDeg deg/s.
+export interface FailTumbleTuning {
+  readonly hop: number;
+  readonly push: number;
+  readonly spinDeg: number;
+  readonly gravity: number;
+  readonly restitution: number;
+  readonly friction: number;
+  readonly spinKeep: number;
+  readonly restSpeed: number;
+  readonly settleRate: number;
+  readonly scatter: number;
+  readonly flailDeg: number;
+  readonly flailHz: number;
+}
+export const FAIL_TUMBLE = {
+  landScale: 1.2,
+  shoveMs: 450,
+  // A bounce rises about restitution^2 of the height it fell from, so the
+  // knock lifts the figure high enough for wood-like bounces to show.
+  hop: 650,
+  push: 120,
+  spinDeg: 200,
+  gravity: 3600, // px/s^2
+  restitution: 0.45,
+  friction: 0.7,
+  spinKeep: 0.5,
+  restSpeed: 110,
+  settleRate: 12,
+  scatter: 1.5,
+  flailDeg: 35,
+  flailHz: 4.5,
+} as const satisfies FailTumbleTuning & { readonly landScale: number; readonly shoveMs: number };
 export const FAIL_SHAKE_MS = 300;
 export const FAIL_SHAKE_INTENSITY = 0.012;
-export const FAIL_TO_GAME_OVER_MS = 1400; // from the fail to the game-over screen
-// The splash as it lands (M8): a column of big drops shoots up, a wide spray of
-// small ones fans out, both fall back under gravity, and a ripple spreads on
-// the water. Angles in degrees (270 is straight up), speeds in px/s.
-export const SPLASH = {
-  column: { drops: 28, radius: 9, speed: [520, 900], angle: [255, 285] },
-  spray: { drops: 44, radius: 5, speed: [260, 620], angle: [200, 340] },
-  gravity: 1700, // px/s^2
-  lifespan: 1100, // ms; long enough for the fastest drop to fall back
-  endScale: 0.4,
-  ripple: { width: 300, height: 46, lineWidth: 5, ms: 600 },
-} as const;
+// From the fail to the game-over screen: 1400 until M10 review 5, raised so
+// the fallen blocks lie still for a moment first.
+export const FAIL_TO_GAME_OVER_MS = 1800;
 
 export const RESTART_LOCKOUT = 1000; // ms
 

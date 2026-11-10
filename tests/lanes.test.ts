@@ -3,6 +3,7 @@ import { DIFFICULTY_TIERS, FIGURE_WIDTH, LANE_COUNT } from '@/config';
 import {
   CENTER_LANE,
   LANE_WIDTH,
+  fallDirection,
   holeLaneCandidates,
   isAligned,
   laneCenterX,
@@ -25,6 +26,20 @@ describe('moveLane', () => {
   it('never leaves the stage', () => {
     expect(moveLane(0, -1)).toBe(0);
     expect(moveLane(LAST_LANE, 1)).toBe(LAST_LANE);
+  });
+});
+
+describe('fallDirection', () => {
+  it('topples the figure toward the middle of the stage', () => {
+    expect(fallDirection(0)).toBe(1);
+    expect(fallDirection(CENTER_LANE - 1)).toBe(1);
+    expect(fallDirection(CENTER_LANE + 1)).toBe(-1);
+    expect(fallDirection(LAST_LANE)).toBe(-1);
+  });
+
+  it('topples either way from the center lane', () => {
+    expect(fallDirection(CENTER_LANE, () => 0.2)).toBe(-1);
+    expect(fallDirection(CENTER_LANE, () => 0.8)).toBe(1);
   });
 });
 

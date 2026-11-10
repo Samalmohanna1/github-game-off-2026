@@ -29,15 +29,12 @@ const ARROW_Y = (TOP + GRID_TOP) / 2;
 // setScale(s) places it at depth s exactly as project() does. The hole is cut
 // from the same pose grid the figure uses (PLAN.md §3), at the hole's lane;
 // during a Shift Wall slide that lane is fractional. It is redrawn only when
-// something changes, never every frame. While the wall is behind the figure,
-// the hole is filled with clean cream (M10), so it reads as one cut-out shape
-// rather than showing the floor through it; once the wall passes in front of
-// the figure the fill goes, so the figure shows through. The wall's surface
-// carries a faint paper texture (src/objects/grain.ts) in its own space, so it
-// shrinks with distance; the cutout sits over it and stays clean.
+// something changes, never every frame. The hole is really cut out: the floor
+// and the background show through it, and the figure does once the wall has
+// passed it (M10 review 5). The wall's surface carries a faint paper texture
+// (src/objects/grain.ts) in its own space, so it shrinks with distance.
 export class Wall extends Phaser.GameObjects.Container {
   private readonly face: Phaser.GameObjects.Graphics;
-  private readonly cutout: Phaser.GameObjects.Graphics;
   private holeLane = 0;
   private grid: HoleGrid = [];
   private warningDir: -1 | 1 | null = null;
@@ -45,18 +42,16 @@ export class Wall extends Phaser.GameObjects.Container {
   private flashTimer?: Phaser.Time.TimerEvent;
   private slide?: Phaser.Tweens.Tween;
   private rattling?: Phaser.Tweens.Tween;
-  private holeFilled = true;
 
   constructor(scene: Phaser.Scene) {
     super(scene, VANISHING_POINT.x, VANISHING_POINT.y);
     scene.add.existing(this);
     this.face = new Phaser.GameObjects.Graphics(scene);
-    this.cutout = new Phaser.GameObjects.Graphics(scene);
     // Sized to the drawing, centered on its origin at the vanishing point and
     // reaching the floor below it, so its texture frames the wall itself.
     const surface = new Phaser.GameObjects.Container(scene, 0, 0, [this.face]);
     surface.setSize(2 * (RIGHT + WALL_EDGE_WIDTH), 2 * (FLOOR + WALL_EDGE_WIDTH));
-    this.add([surface, this.cutout]);
+    this.add(surface);
     addGrain(surface, GRAIN.wall);
   }
 
@@ -66,13 +61,6 @@ export class Wall extends Phaser.GameObjects.Container {
     this.holeLane = lane;
     this.grid = grid;
     this.warningDir = null;
-    this.holeFilled = true;
-    this.redraw();
-  }
-
-  setHoleFilled(filled: boolean): void {
-    if (filled === this.holeFilled) return;
-    this.holeFilled = filled;
     this.redraw();
   }
 
@@ -158,15 +146,6 @@ export class Wall extends Phaser.GameObjects.Container {
     edge(g, RIGHT, TOP, RIGHT, FLOOR);
     for (const [x1, x2] of solidSpans(this.grid[this.grid.length - 1] ?? [])) edge(g, x1, FLOOR, x2, FLOOR);
     if (this.warningDir !== null) this.drawArrow(holeCenter, this.warningDir);
-
-    this.cutout.clear();
-    if (!this.holeFilled) return;
-    this.cutout.fillStyle(COLORS.holeFill);
-    this.grid.forEach((cells, row) =>
-      cells.forEach((hole, col) => {
-        if (hole) this.cutout.fillRect(cellX(col), cellY(row), CELL_SIZE, CELL_SIZE);
-      }),
-    );
   }
 
   // Over the hole, kept inside the wall when the hole is near an edge.
