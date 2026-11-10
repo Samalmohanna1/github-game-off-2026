@@ -4,13 +4,13 @@ export const GAME_HEIGHT = 720;
 // The color system (M10). Every color the game draws is named once in PALETTE,
 // and components only use the roles in COLORS and TEXT_COLORS, never a raw
 // value (tests/config.test.ts checks both). The base swatches were sampled
-// from the design mocks (cream, near-black, the two greens, the pale disc), and
-// the yellow and coral accents from the mock's logo. The other entries are
-// darker steps of those, so each can be used on cream, where the logo accents
-// are too light to read.
+// from the design mocks (cream, near-black, the two greens, the mocks' pale
+// disc), and the yellow and coral accents from the mock's logo. The other
+// entries are darker steps of those, so each can be used on cream, where the
+// logo accents are too light to read.
 export const PALETTE = {
   cream: 0xefdfca, // mock swatch: the stage
-  sand: 0xd1d0a8, // the mocks' pale disc: the disc and the floor
+  sand: 0xd1d0a8, // the mocks' pale disc: the floor
   sandDeep: 0xaeac85, // sand, darkened for the floor's tile seams
   graphite: 0x4a433b, // every outline, and quiet text
   ink: 0x20201f, // mock swatch
@@ -40,7 +40,6 @@ export const COLORS = {
   floorSeam: PALETTE.sandDeep, // decorative tile seams
   verge: PALETTE.green, // decorative grass strips beside the floor
   vergeOuter: PALETTE.greenDark,
-  backdropDisc: PALETTE.sand,
   outline: PALETTE.graphite,
   wall: PALETTE.greenDark,
   holeFill: PALETTE.cream, // the hole reads as one clean cutout
@@ -144,7 +143,7 @@ export const SCREEN_LAYOUT = {
   gameOverStatsLineGap: 0.08,
   gameOverPromptY: 0.85,
   capsWarningY: 0.07,
-  shiftCalloutY: 0.14, // above the wall while it is far enough away to shift
+  shiftCalloutY: 0.12, // above the wall while it is far enough away to shift
   pauseHeadingY: 0.42,
   pausePromptY: 0.58,
 } as const;
@@ -182,20 +181,21 @@ export const PROMPT_PULSE_MS = 700;
 export const TRAY_HEIGHT = 110;
 export const STAGE_BOTTOM_Y = GAME_HEIGHT - TRAY_HEIGHT;
 export const HORIZON_Y = 140;
-export const FIGURE_FLOOR_Y = 560;
+export const FIGURE_FLOOR_Y = 530; // 560 until M10 review 3 moved the figure back
 export const FLOOR_LINE_WIDTH = 3;
 
 // Art (PLAN.md §10, M10): the palette and shapes of the design mocks, all drawn
 // in code, with clean straight outlines.
-export const OUTLINE_WIDTH = 2.5; // px
 // Grain is a style added to single elements (addGrain() in
-// src/objects/grain.ts), never one layer over the scene. Sparse specks darken
-// or lighten the element's own color, only where the element is drawn, so the
-// wall gets greens and the floor its own tones. Per element: specks are
-// `cell` px square in the element's own space; `dark` and `light` are the
-// share of cells that are specks; `darken` and `lighten` are the most a speck
-// moves toward black or white (0-1). The specks re-roll every GRAIN_BOIL_MS,
-// like the boil of hand-drawn animation (still for reduced motion).
+// src/objects/grain.ts), never one layer over the scene. It nudges the
+// element's own color a little darker or lighter, only where the element is
+// drawn, so the wall gets greens and the floor its own tones. Per element:
+// cells are `cell` px square in the element's own space; `dark` and `light`
+// are the share of cells nudged each way; `darken` and `lighten` are the most
+// a cell moves toward black or white (0-1). Kept fine and faint: the first
+// tries, with sparse strong specks, read as harsh. The cells re-roll every
+// GRAIN_BOIL_MS, like the boil of hand-drawn animation (still for reduced
+// motion).
 export interface GrainLook {
   readonly cell: number;
   readonly dark: number;
@@ -205,12 +205,12 @@ export interface GrainLook {
 }
 export const GRAIN_BOIL_MS = 160;
 export const GRAIN = {
-  stage: { cell: 1, dark: 0.09, light: 0.05, darken: 0.22, lighten: 0.6 },
-  backdrop: { cell: 1, dark: 0.1, light: 0.06, darken: 0.25, lighten: 0.5 },
-  floor: { cell: 1, dark: 0.1, light: 0.06, darken: 0.25, lighten: 0.4 },
-  // The wall's grain is in its own space, so it shrinks with distance: 3 px
-  // specks stay about a screen pixel wide at WALL_START_SCALE.
-  wall: { cell: 3, dark: 0.1, light: 0.08, darken: 0.35, lighten: 0.22 },
+  stage: { cell: 1, dark: 0.5, light: 0.5, darken: 0.035, lighten: 0.06 },
+  floor: { cell: 1, dark: 0.5, light: 0.5, darken: 0.04, lighten: 0.05 },
+  // The wall's grain is in its own space, so it shrinks with distance. Dark
+  // colors show a lift toward white far more than a darkening, so it lightens
+  // least.
+  wall: { cell: 2, dark: 0.5, light: 0.5, darken: 0.1, lighten: 0.025 },
 } as const satisfies Record<string, GrainLook>;
 // SCORE top-left and WALL top-right, straight on the stage: x from the screen
 // edge, label and value y from the top, px.
@@ -222,11 +222,6 @@ export const HUD = { marginX: 32, labelY: 18, valueY: 44 } as const;
 // plane runs through the middle of a row: the figure stands centered on its
 // lane's tile (src/logic/perspective.ts). tileDepth is in 1/scale.
 export const FLOOR = { vergeWidth: 0.22, vergeOuterShare: 0.45, seamWidth: 2, tileDepth: 0.2 } as const;
-
-// The backdrop: one pale disc behind the far end of the stage, framing where
-// every wall comes from like a stage light. The floor covers its lower half.
-// It breathes (scale) and drifts (x) very slowly, still for reduced motion.
-export const BACKDROP = { x: 640, y: 210, r: 280, breatheScale: 1.025, breatheMs: 7000, driftX: 8, driftMs: 11000 } as const;
 
 // The figure's pose grid (PLAN.md §3).
 export const FIGURE_GRID = { cols: 6, rows: 8 } as const;
@@ -349,7 +344,7 @@ export const AUDIO = {
 } as const;
 
 // The timing label over the figure, px and ms.
-export const LABEL_Y = 300;
+export const LABEL_Y = 270; // keeps its place over the figure's head
 export const LABEL_POP_FROM = 0.5; // starting scale of the pop
 export const LABEL_POP_MS = 180;
 export const LABEL_HOLD_MS = 700;

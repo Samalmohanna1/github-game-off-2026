@@ -27,7 +27,6 @@ import { ScoreKeeper, gradeFor } from '@/logic/scoring';
 import { LetterSequence, type SequenceEffect } from '@/logic/sequence';
 import { ShiftWall, type ShiftWallEvent } from '@/logic/shift-wall';
 import { generateWall, holeGrid, type WallSpec } from '@/logic/wall-gen';
-import { Backdrop } from '@/objects/Backdrop';
 import { DebugOverlay, type DebugRow } from '@/objects/DebugOverlay';
 import { Figure } from '@/objects/Figure';
 import { Floor } from '@/objects/Floor';
@@ -48,18 +47,17 @@ import { prefersReducedMotion } from '@/scenes/ui';
 // rushes past the figure's plane.
 const LAYER = {
   stage: 0,
-  backdrop: 1,
-  floor: 2,
-  laneTiles: 3,
-  wall: 4,
-  figure: 5,
-  wallPassed: 6,
-  splash: 7,
-  label: 8,
-  tray: 9,
-  hud: 10,
-  pause: 11,
-  debug: 12,
+  floor: 1,
+  laneTiles: 2,
+  wall: 3,
+  figure: 4,
+  wallPassed: 5,
+  splash: 6,
+  label: 7,
+  tray: 8,
+  hud: 9,
+  pause: 10,
+  debug: 11,
 } as const;
 
 // Kept in the game registry so the overlay stays on across walls and restarts.
@@ -113,7 +111,6 @@ export class PlayScene extends Phaser.Scene {
     // Grain goes on these elements only, each in its own colors (M10).
     const stage = this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.stage).setOrigin(0).setDepth(LAYER.stage);
     addGrain(stage, GRAIN.stage);
-    addGrain(new Backdrop(this).setDepth(LAYER.backdrop), GRAIN.backdrop);
     addGrain(new Floor(this).setDepth(LAYER.floor), GRAIN.floor);
     this.laneTiles = new LaneTiles(this).setDepth(LAYER.laneTiles);
     this.wall = new Wall(this).setDepth(LAYER.wall);

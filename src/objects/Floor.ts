@@ -4,10 +4,10 @@ import { laneLeftX } from '@/logic/lanes';
 import { FLOOR_HALF_WIDTH, STAGE_FRONT_SCALE, crossSeamScales, floorEdge, project, type Point } from '@/logic/perspective';
 import { toVectors } from '@/objects/vectors';
 
-// The floor (M10), in the backdrop disc's pale green: green verges beyond its
-// edges, darker tile seams along the lanes and across, and edge lines that
-// frame the stage. The cross seams put the figure in the middle of a row of
-// tiles. It is filled, so the backdrop disc only shows above it. Drawn once.
+// The floor (M10), in the mocks' pale green: green verges beyond its edges,
+// darker tile seams along the lanes and across, and edge lines that frame the
+// stage. The cross seams put the figure in the middle of a row of tiles.
+// Drawn once.
 export class Floor extends Phaser.GameObjects.Graphics {
   constructor(scene: Phaser.Scene) {
     super(scene);

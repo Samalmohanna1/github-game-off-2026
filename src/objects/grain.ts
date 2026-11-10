@@ -3,9 +3,9 @@ import { GRAIN_BOIL_MS, type GrainLook } from '@/config';
 import { prefersReducedMotion } from '@/scenes/ui';
 
 // Grain is a style added to single elements (M10), not a layer over the scene:
-// a filter that darkens or lightens a few of the element's own pixels, so each
-// element gets grain in its own colors, and only where it is drawn. Specks are
-// hashed from their pixel in the filter's frame, so no texture is stored. A
+// a filter that nudges the element's own pixels a little darker or lighter, so
+// each element gets grain in its own colors, and only where it is drawn. Cells
+// are hashed from their pixel in the filter's frame, so no texture is stored. A
 // Graphics has no size, so its frame is the screen; a Shape, or a Container
 // given a size with setSize(), is its own frame, so its grain moves and scales
 // with it.
