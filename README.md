@@ -10,8 +10,8 @@ walls that get harder by a playtested difficulty curve, Shift Walls whose hole
 slides mid-approach, scoring and a fail to the game-over screen and back, with
 an F2 debug overlay for tuning. M8 added feel (squash and stretch, limp slips,
 a rattling wall, slow motion on CLOSE CALL, a water splash), M9 synthesized
-sound with no audio files, and M10 the paper-collage art of the design mocks,
-drawn in code, in Anton and IBM Plex Mono. See [PLAN.md](./PLAN.md) for the
+sound with no audio files, and M10 the art of the design mocks, drawn in
+code, in Anton and IBM Plex Mono. See [PLAN.md](./PLAN.md) for the
 design and milestones, and [AGENTS.md](./AGENTS.md) for the working rules.
 
 ## Setup

@@ -19,24 +19,24 @@ keyboard.
 
 Current state: **Week 2**, built one milestone at a time (PLAN.md §10). The
 Week 1 prototype (M0–M7), the M8 feel pass, the M9 synthesized audio and the
-M10 paper-collage art for the play screen are done. The art comes from design
-mocks kept outside the repo (`../design-mocks/`); it is all drawn in code,
-with no image files. The title and game-over screens get their collage
-layouts in M11.
+M10 art for the play screen are done. The art comes from design mocks kept
+outside the repo (`../design-mocks/`); it is all drawn in code, with no image
+files. The title and game-over screens get their layouts from the mocks in
+M11.
 
 Scenes, one per screen:
 
 | Scene | Status | Contents |
 |---|---|---|
-| `BootScene` | Final (M10) | Waits for the bundled fonts (`loadFonts()`, giving up after `FONT_LOAD_TIMEOUT`), makes the shared paper-grain texture, then hands off to Title. |
-| `TitleScene` | Interim | Game name, one-line how-to, "Click to play". The click gives the page keyboard focus inside the itch.io iframe. It already uses the M10 palette and fonts; its collage layout comes in M11. |
-| `PlayScene` | Interim (M10) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). ← / → line the figure up, and so does Space, one lane toward the hole (during a Shift Wall's warning, toward the lane it is about to slide to); the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 4+), the wall stops behind a SHIFT callout, turns orange with an arrow, and the hole slides 1 lane with a sideways jolt while the new lane is marked on the floor; then the wall carries on; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: the wall rushes past, a PERFECT / GREAT / CLOSE CALL label pops over the figure, and the next wall starts. Held blocks land with a squash, slipped ones slump back limp, a wrong key rattles the wall, and a CLOSE CALL plays the rush in slow motion. If the wall arrives first, it shoves the figure into a splash of water particles and the run ends. Synthesized sounds (M9) play over all of it: the countdown tick in CLOSE CALL range, clicks, slips, the PERFECT fanfare, the Shift Wall alert and whoosh, and the fail's hit and "whomp whomp whooom". Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses behind a "Click to resume" panel. F2 toggles the debug overlay. Everything is drawn in the M10 paper collage: a pale backdrop disc, a cream floor with tile seams and green verges, a dark green wall with a clean paper hole, black blocks with cream seams, a black key-cap tray, SCORE and WALL cards, and paper cards behind every label, every edge in pencil, all under a boiling paper grain. |
+| `BootScene` | Final (M10) | Waits for the bundled fonts (`loadFonts()`, giving up after `FONT_LOAD_TIMEOUT`), registers the grain filter (`registerGrain()`), then hands off to Title. |
+| `TitleScene` | Interim | Game name, one-line how-to, "Click to play". The click gives the page keyboard focus inside the itch.io iframe. It already uses the M10 palette and fonts; its layout from the mocks comes in M11. |
+| `PlayScene` | Interim (M10) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). ← / → line the figure up, and so does Space, one lane toward the hole (during a Shift Wall's warning, toward the lane it is about to slide to); the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 4+), the wall stops behind a SHIFT callout, turns orange with an arrow, and the hole slides 1 lane with a sideways jolt while the new lane's tile is marked on the floor; then the wall carries on; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: the wall rushes past, a PERFECT / GREAT / CLOSE CALL label pops over the figure, and the next wall starts. Held blocks land with a squash, slipped ones slump back limp, a wrong key rattles the wall, and a CLOSE CALL plays the rush in slow motion. If the wall arrives first, it shoves the figure into a splash of water particles and the run ends. Synthesized sounds (M9) play over all of it: the countdown tick in CLOSE CALL range, clicks, slips, the PERFECT fanfare, the Shift Wall alert and whoosh, and the fail's hit and "whomp whomp whooom". Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses behind a "Click to resume" veil. F2 toggles the debug overlay. Everything is drawn in the M10 art: a cream stage with a pale green backdrop disc, a floor in the disc's green with tile seams and green verges, where the figure stands centered on its lane's tile and the lined-up tile lights up, a dark green wall with a clean cream hole, black blocks with cream seams, a black key-cap tray, SCORE and WALL set straight on the stage, and every label over the scene in bright letters inside a thick dark outline. Edges are clean straight lines, and the stage, the disc, the floor and the wall each carry their own boiling grain. |
 | `GameOverScene` | Interim | Walls cleared, score, best (saved in `localStorage`) and the wall reached. Restart follows PLAN.md §7: input is ignored for `RESTART_LOCKOUT`, then every key must be up ("Let go of every key" shows meanwhile) before a key or click restarts. |
 
 Shared scene helpers live in `src/scenes/` (`ui.ts`, `text-styles.ts`,
-`scene-keys.ts`). Game objects live in `src/objects/`: `Floor`, `LaneMarkers`,
+`scene-keys.ts`). Game objects live in `src/objects/`: `Floor`, `LaneTiles`,
 `Wall`, `Figure`, `PromptTray`, `TimingLabel`, `ShiftCallout`, `PauseOverlay`, `DebugOverlay` and the
-`playSplash()` placeholder. The best score lives in `src/storage/`. Keyboard input lives in `src/input/`:
+`playSplash()` placeholder, plus the `addGrain()` style. The best score lives in `src/storage/`. Keyboard input lives in `src/input/`:
 `KeyboardInput` (native listeners, one per Play scene) and
 `preventPageScroll()` (game-wide, from `main.ts`).
 
@@ -90,13 +90,13 @@ the doc is **part of that change, not a follow-up**.
   `event.key` decides the letter and its case at press time, `event.code`
   tracks which keys are held, `event.repeat` is ignored, and arrows and Space
   get `preventDefault()` on every screen (`src/input/prevent-page-scroll.ts`).
-- **Art:** drawn in code, with no image files: Phaser shapes and Graphics, plus
-  textures generated at runtime (the paper grain, the splash drop). M10 styles
-  everything after the design mocks' paper collage: torn edges come from
-  `src/logic/torn.ts`, pencil outlines from `src/objects/pencil.ts`, and the
-  figure stays the same five blocks and pose data, restyled (PLAN.md §1).
-  Decoration has to earn its place: the first M10 pass's collage scraps were
-  cut as tacked-on.
+- **Art:** drawn in code, with no image files: Phaser shapes and Graphics, a
+  texture generated at runtime (the splash drop) and one custom filter (the
+  grain). M10 styles everything after the design mocks' palette and shapes,
+  with clean straight outlines, and the figure stays the same five blocks and
+  pose data, restyled (PLAN.md §1). Decoration has to earn its place: the
+  first M10 pass's collage scraps were cut as tacked-on, and the second review
+  dropped the torn paper, the paper cards and the pencil lines.
 - **Fonts:** Anton and IBM Plex Mono, bundled from `@fontsource` (latin
   subsets, imported in `src/main.ts`). Never load fonts from the network.
 
@@ -130,39 +130,37 @@ src/
     difficulty.ts          # wall # -> tier, wall time, Shift Wall roll, WallPlan
     letters.ts             # stretchScore, combo generator, ordering, capitals
     random.ts              # injectable random helpers (shuffle, pick, int)
-    perspective.ts         # vanishing point, project(), floor edges
+    perspective.ts         # vanishing point, project(), floor edges, tile seams + the figure's tile
     restart.ts             # game-over lockout + "release every key" gate
     scoring.ts             # grades, wall points, PERFECT streak multiplier
     sequence.ts            # prompt / held / slip queue state machine + lock
     shift-wall.ts          # Shift Wall trigger, warning timer, slide target, wall hold
     countdown.ts           # countdown tick timing: silent until CLOSE CALL range, then speeding up
     sound-levels.ts        # click, fanfare and whomp pitches
-    sketch.ts              # pencil wobble: a line nudged by a positional hash, same every redraw
-    torn.ts                # torn-paper outlines: jagged edges for cards and the tray
     wall-gen.ts            # blocks + alt poses per wall, hole grid + outline
   objects/
     Backdrop.ts            # pale disc behind the stage; breathes and drifts slowly
     Floor.ts               # perspective floor: edge lines, tile seams, green verges
-    Hud.ts                 # SCORE and WALL paper cards in the top corners
-    paper.ts               # paper grain texture, torn pencilled cards, paper labels
-    pencil.ts              # pencil() outlines: firm stroke + faint ghost; circle points
-    LaneMarkers.ts         # floor strip per lane; lit = lined up, target = Shift Wall's new lane
+    grain.ts               # addGrain(): a filter that specks one element in its own colors
+    Hud.ts                 # SCORE and WALL in the top corners
+    LaneTiles.ts           # the figure's row of floor tiles: lit = lined up, target = Shift Wall's new lane
+    vectors.ts             # points -> Phaser Vector2s for polygon fills and strokes
     Wall.ts                # wall + hole; wrong-key flash + rattle, Shift warning + slide
     Figure.ts              # five black blocks with seams + shadow; squash on snap, limp slump on slip
-    PromptTray.ts          # black torn-edge tray: held / current / next preview / slipped key caps
-    PauseOverlay.ts        # "Click to resume" paper card shown on blur
-    ShiftCallout.ts        # SHIFT + arrow on a paper card while a Shift Wall holds
-    TimingLabel.ts         # PERFECT / GREAT / CLOSE CALL + points on a paper card
+    PromptTray.ts          # black tray: held / current / next preview / slipped key caps
+    PauseOverlay.ts        # veil + outlined "Click to resume", shown on blur
+    ShiftCallout.ts        # outlined SHIFT + arrow while a Shift Wall holds
+    TimingLabel.ts         # outlined PERFECT / GREAT / CLOSE CALL + points
     DebugOverlay.ts        # F2 panel: state, t, lanes, prompt, queue, held, stretch
     splash.ts              # fail splash: particle drops + ripple
   scenes/
-    BootScene.ts           # waits for fonts, makes the grain texture, hands off to Title
+    BootScene.ts           # waits for fonts, registers the grain filter, hands off to Title
     fonts.ts               # loads the bundled font faces before any text is drawn
     TitleScene.ts          # "Click to play" (gets keyboard focus)
     PlayScene.ts           # the game: draws state, passes input in
     GameOverScene.ts       # run stats, best score, gated restart
     scene-keys.ts          # scene keys + RunResult handed to GameOver
-    text-styles.ts         # Phaser text style built from config tokens
+    text-styles.ts         # Phaser text styles built from config tokens, plain and outlined
     ui.ts                  # pulsing prompt, reduced motion, window key events
   storage/
     best-score.ts          # best score in localStorage, every access guarded
@@ -175,7 +173,7 @@ tests/
   keyboard.test.ts         # all 26 letters, hand split, stagger, fingers
   lanes.test.ts            # lane moves, clamping, hole lane, lane geometry
   letters.test.ts          # stretchScore; per tier: range, no repeats, capitals, caps, fingers
-  perspective.test.ts      # projection and floor geometry
+  perspective.test.ts      # projection, floor geometry, tile seams centered on the figure
   poses.test.ts            # neutral pose fits the grid, no overlaps
   purity.test.ts           # pure modules never import Phaser
   restart.test.ts          # lockout, release-every-key, click
@@ -185,8 +183,6 @@ tests/
   shift-wall.test.ts       # trigger, warning, hold, slide range, M6 line-up case
   countdown.test.ts        # silent before CLOSE CALL range, speeds up, no catch-up bursts
   sound-levels.test.ts     # click steps, fanfare rises an octave, whomp steps down
-  sketch.test.ts           # pencil wobble stays within its jitter, repeats, joins at shared ends
-  torn.test.ts             # torn edges stay within their jag, keep corners, repeat per seed
   wall-gen.test.ts         # valid poses for every block set, one-piece holes, hole + outline
 ```
 
@@ -219,7 +215,7 @@ changes focused, maintainable, typed, accessible, and appropriately validated.
   exists, not before the first caller does. Shared helpers exist because they
   have ≥2 callers.
 - **Single responsibility.** One scene per screen. One game-object class per
-  thing on screen (`Wall`, `Figure`, `LaneMarkers`, `PromptTray`). Keep scenes
+  thing on screen (`Wall`, `Figure`, `LaneTiles`, `PromptTray`). Keep scenes
   thin: they wire logic state to game objects and input to logic.
 - **Tokens, not raw values.** Colors, font sizes, layout and timings come
   from `src/config.ts`. If a value isn't there yet and will recur, add it there
@@ -318,19 +314,26 @@ playtest covers.
 - **Pull colors, type, sizes and layout from `src/config.ts`** rather than
   inventing inline values. `config.ts` is the single re-skin point.
 - **One color system (M10).** Every color is named once in `PALETTE`: the
-  design mocks' swatches (cream, warm gray, near-black, two greens), the
-  yellow and coral of the mock's logo, and darker steps of each for use on
-  cream. Components use only the roles in `COLORS` and `TEXT_COLORS`, never a
+  design mocks' swatches (cream, near-black, two greens, the pale green disc),
+  the yellow and coral of the mock's logo, and darker steps of each for use on
+  cream and the floor. Components use only the roles in `COLORS` and `TEXT_COLORS`, never a
   palette entry or a raw hex directly; `tests/config.test.ts` fails if a role
   isn't a palette color. The alerts are two families: yellow/ochre means the
   hole is moving (Shift Walls), coral/red means a mistake (wrong key, slip,
   CLOSE CALL, Caps Lock). Add a new color to `PALETTE` first, then give it a
   role.
-- **Pencil outlines (M10).** Every paper edge and outline (cards, the tray's
-  torn edge, lane markers, the wall and its hole, the floor edges, the
-  backdrop disc) is drawn with `pencil()` from `src/objects/pencil.ts`: a firm
-  stroke plus a fainter ghost, wobbling the same way on every redraw
-  (`src/logic/sketch.ts`). Don't draw a plain `lineStyle` outline next to them.
+- **Clean lines, no paper (M10 review 2).** Outlines (the wall and its hole,
+  the floor edges, the backdrop disc, the target tile) are plain straight
+  strokes in `COLORS.outline` or their own role color. No torn edges, paper
+  cards or tilted labels: text over the scene is outlined instead (below).
+- **Grain is a style on single elements (M10 review 2).** `addGrain(element,
+  look)` from `src/objects/grain.ts` adds a filter that darkens or lightens a
+  few of that element's own pixels, so each element gets grain in its own
+  colors, only where it is drawn. It is on the stage, the backdrop disc, the
+  floor (with its verges) and the wall, each with its own look in `GRAIN`;
+  never lay one grain layer over the whole scene. A Graphics' grain sits in
+  screen space; a sized Container (the `Wall`) carries its grain as it moves
+  and scales. Text, the figure, the tray and the chips stay clean.
 - **Typography:** each size in `FONT_SIZES` has a role (`FONT_ROLES`): display
   sizes (title, heading, HUD numbers) set in Anton, which has one weight and
   is never bolded; the rest set in IBM Plex Mono, normal or bold. Prompt
@@ -341,19 +344,22 @@ playtest covers.
   text, 4.5:1 large text** (≥24px, or ≥18.66px bold). A color between AA and
   AAA may ship, but no text goes below **AA — 4.5:1 normal, 3:1 large**.
   Meaningful non-text graphics (the wall and its hole, floor lines, the tray,
-  lit vs unlit lane marker; held, current and slipped chips) need 3:1. The
-  mocks' bright green is only 2.4:1 on cream, so it decorates and a deeper
-  green lights the lined-up lane; the black figure is only 1.5:1 on the dark
-  green wall, so its cream edge outlines it there.
+  the lit tile and the target tile on the floor; held, current and slipped
+  chips) need 3:1. The mocks' bright green is only 2.4:1 on cream, so it
+  decorates and a deeper green lights the lined-up lane's tile; the black
+  figure is only 1.5:1 on the dark green wall, so its cream edge outlines it
+  there.
   **Verify pairs, don't eyeball them**: `tests/config.test.ts` measures every
   meaningful graphic color against what it sits on, measures each text color
   against every background it is drawn on (`TEXT_ON` in that test; add new
   pairs there), and keeps every font size at 24px or more. Text that fades or
   flashes must still meet AA at its faintest frame. Text drawn over the moving
-  scene carries its own background: an opaque paper card (the HUD, the timing
-  label, the SHIFT callout, the Caps Lock warning, the pause panel) or the
-  black tray. The paper grain lies under all of them. Record every pair below
-  AAA, with its measured ratio, in the list below.
+  scene (the timing label, the SHIFT callout, the Caps Lock warning, the pause
+  text) is bright inside a thick `COLORS.textOutline` stroke
+  (`outlinedStyle()`, `TEXT_OUTLINE`), and is measured against that outline;
+  the rest sits on the black tray, a chip, or a part of the stage nothing
+  passes over (the HUD's top corners). Record every pair below AAA, with its
+  measured ratio, in the list below.
   - Pairs below AAA: none.
 - **Keyboard first.** The game is played entirely on the keyboard, except the
   title's "Click to play", which PLAN.md §2 requires so the itch.io iframe gets
@@ -472,7 +478,7 @@ Work through **PLAN.md §10** one milestone at a time.
   changes one block per letter, never lets blocks overlap, and always makes
   a one-piece silhouette (M10): when no pose of the shuffled blocks makes one,
   the letters go to the next set of blocks that can. While the wall is behind
-  the figure the hole is filled with clean paper (`COLORS.holeFill`), so it
+  the figure the hole is filled with clean cream (`COLORS.holeFill`), so it
   reads as one cut-out shape; the fill goes once the wall passes the figure.
 - **Lane** — one of `LANE_COUNT` (7) columns across the stage. The figure and
   the hole each sit in one lane. The figure starts a run in the center lane and
@@ -480,11 +486,14 @@ Work through **PLAN.md §10** one milestone at a time.
   edges (`moveLane()`); Space steps one lane toward the hole (`stepToward()`),
   or during a Shift Wall's warning toward the lane the hole is about to slide
   to (`ShiftWall.upcomingLane`), and does nothing once lined up.
-- **Lane marker** — the floor strip under each lane. The one under the figure
-  lights up deep green (filled, not just outlined) when the player is lined up.
-  On a Shift Wall, the hole's new lane is the **target lane**: a thick amber
-  outline with chevrons pointing the way the hole went (`LANE_TARGET`), so it
-  reads by shape as well as color.
+- **Lane tile** — each lane's floor tile in the row the figure stands in
+  (`LaneTiles`). The floor's cross seams are cut so the figure's plane runs
+  through the middle of that row (`FIGURE_TILE` in
+  `src/logic/perspective.ts`), so the figure stands centered on its tile. The
+  figure's tile lights up deep green (filled) when the player is lined up. On
+  a Shift Wall, the hole's new lane is the **target lane**: its tile gets a
+  thick amber outline with chevrons pointing the way the hole went
+  (`LANE_TARGET`), so it reads by shape as well as color.
 - **Lined up** (aligned) — the figure's lane equals the hole's lane
   (`isAligned()`). Letters only appear while lined up.
 - **Hole distance** — how many lanes from the figure a new wall's hole spawns,
@@ -519,14 +528,14 @@ Work through **PLAN.md §10** one milestone at a time.
   in `src/logic/sequence.ts`), then slides to the center when it becomes
   current. Letters further back stay hidden, and a slipped next letter shows as
   coral instead.
-- **Prompt tray** — the black strip along the bottom, with a torn top edge.
+- **Prompt tray** — the black strip along the bottom.
   Its chips are key caps with black letters: held letters (green, left, in
   the order held), the current prompt (cream, center), then the next-letter
   preview and slipped letters waiting their turn (coral), right of center in
   queue order. Capital letters carry a ⇧ Shift mark in the chip's
   top-right corner.
-- **Caps Lock warning** — a paper card at the top of the screen, between the
-  HUD cards, while Caps Lock is on. The state is read from every key event with `getModifierState`.
+- **Caps Lock warning** — outlined coral text at the top of the screen,
+  between SCORE and WALL, while Caps Lock is on. The state is read from every key event with `getModifierState`.
 - **Held** — a prompted letter that was pressed correctly and is still down;
   its block sits in the target pose (from M4). Held keys are tracked by
   `event.code`.
@@ -626,13 +635,19 @@ Work through **PLAN.md §10** one milestone at a time.
   The synth uses Phaser's audio context and master node, so audio unlocks on
   the first click and suspends while the window is blurred. Sounds are
   skipped while the context isn't running, so none queue up.
-- **HUD** (M10) — SCORE top-left and the WALL number top-right, each on a
-  tilted paper card (`Hud`). The mocks show a run timer top-right; the game
-  has none, so the wall number takes its place.
-- **Paper grain** — a tiled texture of sparse dark and light specks
-  (`GRAIN`), made once in BootScene and laid over the stage under the cards,
-  tray and HUD, so the scene reads as printed on one sheet. It boils: every
-  `GRAIN.boilMs` it jumps to a new offset (still for reduced motion).
+- **HUD** (M10) — SCORE top-left and the WALL number top-right, set straight
+  on the stage (`Hud`). The mocks show a run timer top-right; the game has
+  none, so the wall number takes its place.
+- **Outlined text** — bright letters inside a thick dark stroke
+  (`outlinedStyle()`, `TEXT_OUTLINE`), for text over the moving scene: the
+  timing label (PERFECT green, GREAT cream, CLOSE CALL coral), the SHIFT
+  callout and its arrow (yellow), the Caps Lock warning and the pause text.
+- **Grain** — a style added to single elements with `addGrain()`
+  (`src/objects/grain.ts`): a filter that darkens or lightens sparse specks
+  of the element's own pixels, so each element's grain is in its own colors
+  and only where it is drawn. The stage, the backdrop disc, the floor and the
+  wall have it, each with its own look (`GRAIN`). It boils: every
+  `GRAIN_BOIL_MS` the specks re-roll (still for reduced motion).
 - **Backdrop** — one pale disc behind the far end of the stage, framing where
   each wall comes from (`BACKDROP`). The floor hides its lower half. It
   breathes and drifts very slowly, still for reduced motion.
