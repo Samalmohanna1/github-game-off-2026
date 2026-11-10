@@ -288,7 +288,7 @@ export const PROMPT_APPEAR_DELAY = 120; // ms after the previous letter is held
 // hole slides SHIFT_WALL_SLIDE lanes in the arrow's direction.
 export const SHIFT_WALL_TELEGRAPH = 300; // ms
 export const SHIFT_WALL_T_RANGE: readonly [number, number] = [0.3, 0.5];
-// lanes; one, so a single Space or arrow tap lines up again (1-2 before the
+// lanes; one, so a single Space press lines up again (1-2 before the
 // M7 follow-up, when moving meant taking a hand off the letters)
 export const SHIFT_WALL_SLIDE: readonly [number, number] = [1, 1];
 export const SHIFT_WALL_SLIDE_MS = 220; // visual only: the hole's lane changes at once
@@ -432,7 +432,7 @@ export const FAIL_TO_GAME_OVER_MS = 1800;
 export const RESTART_LOCKOUT = 1000; // ms
 
 export const MIN_WALL_TIME = 3.5; // s
-// PLAN.md §4: with an arrow and Shift on top, more keys than this at once
+// PLAN.md §4: with Space and Shift on top, more keys than this at once
 // ghost on many keyboards.
 export const MAX_LETTERS = 5;
 export const MAX_LETTERS_SHIFT_WALL = 4;

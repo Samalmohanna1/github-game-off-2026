@@ -8,7 +8,6 @@ import {
   isAligned,
   laneCenterX,
   laneLeftX,
-  moveLane,
   pickHoleLane,
   stepToward,
 } from '@/logic/lanes';
@@ -16,18 +15,6 @@ import { VANISHING_POINT, floorEdge } from '@/logic/perspective';
 
 const LAST_LANE = LANE_COUNT - 1;
 const ALL_LANES = Array.from({ length: LANE_COUNT }, (_, i) => i);
-
-describe('moveLane', () => {
-  it('moves one lane per tap', () => {
-    expect(moveLane(CENTER_LANE, -1)).toBe(CENTER_LANE - 1);
-    expect(moveLane(CENTER_LANE, 1)).toBe(CENTER_LANE + 1);
-  });
-
-  it('never leaves the stage', () => {
-    expect(moveLane(0, -1)).toBe(0);
-    expect(moveLane(LAST_LANE, 1)).toBe(LAST_LANE);
-  });
-});
 
 describe('fallDirection', () => {
   it('topples the figure toward the middle of the stage', () => {

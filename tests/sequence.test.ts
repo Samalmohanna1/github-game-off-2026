@@ -214,6 +214,9 @@ describe('wrong keys', () => {
       ['Enter', 'Enter'],
       ['F2', 'F2'],
       ['ArrowUp', 'ArrowUp'],
+      // No longer moves (Space only), but a habit press is never a wrong key.
+      ['ArrowLeft', 'ArrowLeft'],
+      ['ArrowRight', 'ArrowRight'],
     ] as const) {
       expect(seq.press(key, keyCode)).toBeNull();
     }
