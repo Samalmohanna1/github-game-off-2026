@@ -12,7 +12,7 @@ when in doubt; keep shared instructions here and keep CLAUDE.md as a pointer.
 SHAPE SHIFT is a browser game for GitHub Game Off 2026, whose theme is
 **SHIFT**. It is a keyboard take on Japan's "Human Tetris". A wall with a hole
 cut in it comes toward the player. They slide a block figure under the hole
-with ← / → (or Space, which steps toward the hole), then hold a growing set of letter keys (Shift for capitals) to pose
+with Space, which steps it one lane toward the hole, then hold a growing set of letter keys (Shift for capitals) to pose
 the figure so it fits through. If it doesn't fit, the wall knocks the figure
 over. It ships on itch.io as an HTML5 game, played on a desktop
 keyboard.
@@ -30,7 +30,7 @@ Scenes, one per screen:
 |---|---|---|
 | `BootScene` | Final (M10) | Waits for the bundled fonts (`loadFonts()`, giving up after `FONT_LOAD_TIMEOUT`), registers the grain filter (`registerGrain()`), then hands off to Title. |
 | `TitleScene` | Interim | Game name, one-line how-to, "Click to play". The click gives the page keyboard focus inside the itch.io iframe. It already uses the M10 palette and fonts; its layout from the mocks comes in M11. |
-| `PlayScene` | Interim (M10) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). ← / → line the figure up, and so does Space, one lane toward the hole (during a Shift Wall's warning, toward the lane it is about to slide to); the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 4+), the wall stops behind a SHIFT callout, turns orange with an arrow, and the hole slides 1 lane with a sideways jolt while the new lane's tile is marked on the floor; then the wall carries on; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: the wall rushes past, a PERFECT / GREAT / CLOSE CALL label pops over the figure, and the next wall starts. Held blocks land with a squash, slipped ones slump back limp, a wrong key rattles the wall, and a CLOSE CALL plays the rush in slow motion. If the wall arrives first, it knocks the figure over: it topples toward the camera with its arms flailing, and its blocks come apart and bounce to a stop on the floor before the run ends. Synthesized sounds (M9) play over all of it: the countdown tick in CLOSE CALL range, clicks, slips, the PERFECT fanfare, the Shift Wall alert and whoosh, and the fail's hit and "whomp whomp whooom". Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses behind a "Click to resume" veil. F2 toggles the debug overlay. Everything is drawn in the M10 art, an editorial collage: a cream background with torn sage, forest, stone and charcoal paper at its outer edges, a cream floor of faintly varied tiles with thin seams and green verges, where the figure stands centered on its lane's tile and the lined-up tile lights up, a dark green wall with a see-through cutout, black blocks with cream seams between their cells and a cream edge, a black key-cap tray, SCORE and WALL in Anton on pale sheets in the top corners, and every label over the scene in bright letters inside a thick dark outline. Shapes that play have thin, clean outlines; the background, the floor and the wall carry their own paper texture, from moderate to very faint. |
+| `PlayScene` | Interim (M10) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). Space lines the figure up, one lane toward the hole per press (during a Shift Wall's warning, toward the lane it is about to slide to); the arrow keys don't move it; the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 4+), the wall stops behind a SHIFT callout, turns orange with an arrow, and the hole slides 1 lane with a sideways jolt while the new lane's tile is marked on the floor; then the wall carries on; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: the wall rushes past, a PERFECT / GREAT / CLOSE CALL label pops over the figure, and the next wall starts. Held blocks land with a squash, slipped ones slump back limp, a wrong key rattles the wall, and a CLOSE CALL plays the rush in slow motion. If the wall arrives first, it knocks the figure over: it topples toward the camera with its arms flailing, and its blocks come apart and bounce to a stop on the floor before the run ends. Synthesized sounds (M9) play over all of it: the countdown tick in CLOSE CALL range, clicks, slips, the PERFECT fanfare, the Shift Wall alert and whoosh, and the fail's hit and "whomp whomp whooom". Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses behind a "Click to resume" veil. F2 toggles the debug overlay. Everything is drawn in the M10 art, an editorial collage: a cream background with torn sage, forest, stone and charcoal paper at its outer edges, a cream floor of faintly varied tiles with thin seams and green verges, where the figure stands centered on its lane's tile and the lined-up tile lights up, a dark green wall with a see-through cutout, black blocks with cream seams between their cells and a cream edge, a black key-cap tray, SCORE and WALL in Anton on pale sheets in the top corners, and every label over the scene in bright letters inside a thick dark outline. Shapes that play have thin, clean outlines; the background, the floor and the wall carry their own paper texture, from moderate to very faint. |
 | `GameOverScene` | Interim | Walls cleared, score, best (saved in `localStorage`) and the wall reached. Restart follows PLAN.md §7: input is ignored for `RESTART_LOCKOUT`, then every key must be up ("Let go of every key" shows meanwhile) before a key or click restarts. |
 
 Shared scene helpers live in `src/scenes/` (`ui.ts`, `text-styles.ts`,
@@ -90,6 +90,9 @@ the doc is **part of that change, not a follow-up**.
   `event.key` decides the letter and its case at press time, `event.code`
   tracks which keys are held, `event.repeat` is ignored, and arrows and Space
   get `preventDefault()` on every screen (`src/input/prevent-page-scroll.ts`).
+  Space is the only move; the arrows no longer move the figure, but still
+  never scroll the host page, and like other non-letters never count as a
+  wrong key.
 - **Art:** drawn in code, with no image files: Phaser shapes and Graphics and
   one custom filter (the paper texture). M10 is an editorial collage after the design mocks and the
   fourth review's reference image: torn paper only in the background, at its
@@ -125,11 +128,11 @@ src/
     keyboard.ts            # QWERTY row/x (with stagger), hand, finger per letter
     poses.ts               # block ids, neutral pose and alt poses on the grid
   input/
-    KeyboardInput.ts       # native key/blur events -> moves, letters, pause, Caps Lock
+    KeyboardInput.ts       # native key/blur events -> Space, letters, pause, Caps Lock
     prevent-page-scroll.ts # arrows/Space never scroll the host page
   logic/                   # PURE: no Phaser imports
     approach.ts            # t clock, wrong-key jump, ease-in, wall scale
-    lanes.ts               # lane moves (arrows clamp, Space steps toward the hole), alignment, hole lane, lane x, fall direction
+    lanes.ts               # Space's step toward the hole, alignment, hole lane, lane x, fall direction
     dev-options.ts         # dev-server URL options: ?wall=N, ?shiftwall
     difficulty.ts          # wall # -> tier, wall time, Shift Wall roll, WallPlan
     letters.ts             # stretchScore, combo generator, ordering, capitals
@@ -178,7 +181,7 @@ tests/
   dev-options.test.ts      # ?wall / ?shiftwall parsing and fallbacks
   difficulty.test.ts       # tier table, wall time decay, Shift Wall chance, caps
   keyboard.test.ts         # all 26 letters, hand split, stagger, fingers
-  lanes.test.ts            # lane moves, clamping, hole lane, lane geometry, fall direction
+  lanes.test.ts            # Space steps toward the hole, hole lane, lane geometry, fall direction
   letters.test.ts          # stretchScore; per tier: range, no repeats, capitals, caps, fingers
   perspective.test.ts      # projection, floor geometry, tile seams centered on the figure
   poses.test.ts            # neutral pose fits the grid, no overlaps
@@ -501,10 +504,11 @@ Work through **PLAN.md §10** one milestone at a time.
   it was filled with cream while the wall was behind the figure.)
 - **Lane** — one of `LANE_COUNT` (7) columns across the stage. The figure and
   the hole each sit in one lane. The figure starts a run in the center lane and
-  keeps its lane between walls (`src/logic/lanes.ts`). ← / → stop at the
-  edges (`moveLane()`); Space steps one lane toward the hole (`stepToward()`),
-  or during a Shift Wall's warning toward the lane the hole is about to slide
-  to (`ShiftWall.upcomingLane`), and does nothing once lined up.
+  keeps its lane between walls (`src/logic/lanes.ts`). Space is the only way
+  to move: it steps one lane toward the hole (`stepToward()`), or during a
+  Shift Wall's warning toward the lane the hole is about to slide to
+  (`ShiftWall.upcomingLane`), and does nothing once lined up. (← / → also
+  moved the figure, stopping at the edges, until after M10.)
 - **Lane tile** — each lane's floor tile in the row the figure stands in
   (`LaneTiles`). The floor's cross seams are cut so the figure's plane runs
   through the middle of that row (`FIGURE_TILE` in

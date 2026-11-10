@@ -2,7 +2,7 @@
 
 A keyboard version of Japan's *Nōkabe* ("Brain Wall", a.k.a. Human Tetris) for a game jam with the theme **SHIFT**.
 
-A wall with a hole cut in it comes toward the player. They slide their block figure under the hole with the arrow keys, then hold down a growing set of letter keys to pose the figure so it fits through. If the figure doesn't fit, the wall knocks it over.
+A wall with a hole cut in it comes toward the player. They slide their block figure under the hole with Space, then hold down a growing set of letter keys to pose the figure so it fits through. If the figure doesn't fit, the wall knocks it over.
 
 **How the theme fits:** the **Shift key** (uppercase letters need it), **shape-shifting** (the figure changes pose), and a **shifting wall** (the hole slides mid-approach on later walls).
 
@@ -33,7 +33,7 @@ SPAWN → ALIGN → POSE → (SHIFT WALL?) → RESOLVE → next wall | GAME OVER
 ```
 
 1. **SPAWN.** A wall appears far away, with its hole at a random lane. It starts moving toward the camera immediately. The hole's shape is visible from the start.
-2. **ALIGN.** The player taps **← / →** to slide the whole figure one lane per tap, or **Space** to step one lane toward the hole. During a Shift Wall's warning, Space steps toward the lane the hole is about to slide to. Space lets a thumb line up either way without the hands leaving the letters. (Added in the M7 tuning pass as a step right that wrapped around. Changed after M7 to step toward the hole, because reaching for the arrows meant re-gripping the letters.) **No letters appear until the figure's lane matches the hole's lane.** When they match, the floor tile the figure stands on lights up.
+2. **ALIGN.** The player taps **Space** to slide the whole figure one lane toward the hole per tap. During a Shift Wall's warning, Space steps toward the lane the hole is about to slide to. Space lets a thumb line up either way without the hands leaving the letters. (Added in the M7 tuning pass as a step right that wrapped around. Changed after M7 to step toward the hole, because reaching for the arrows meant re-gripping the letters. After M10, the ← / → arrows were dropped, and Space is the only move.) **No letters appear until the figure's lane matches the hole's lane.** When they match, the floor tile the figure stands on lights up.
 3. **POSE.** Letters appear **one at a time** in the prompt tray. Holding the current letter moves its body block into the target pose, and the letter turns green. The next letter appears once the current one is held. While lined up, that next letter waits on the right as a hollow preview chip and slides to the center when it becomes current, so the player can get a finger ready (added in the M7 tuning pass).
 4. **SHIFT WALL** (walls 4+). Partway through the approach, the hole slides 1 lane. Held letters keep their blocks in place, but **new letters stop appearing until the player lines up again**, which they have to do while still holding letters.
 5. **RESOLVE.**
@@ -51,7 +51,7 @@ SPAWN → ALIGN → POSE → (SHIFT WALL?) → RESOLVE → next wall | GAME OVER
 | A held letter is released before the pose locks (**slip**) | The block goes limp (back to neutral), the letter turns red, and it moves to the **end of the queue**. It can only be pressed again when it comes back around as the current prompt. |
 | Any letter key that isn't the current prompt and isn't held | **Wrong key:** the wall jumps forward (`WRONG_KEY_JUMP`), rattles side to side and flashes. (Week 1 shook the camera; M8 shakes only the wall, so the tray stays still while the player reads it.) This includes pressing a slipped letter before its turn comes back. |
 | Letter pressed during ALIGN (no prompt showing) | Counts as a **wrong key**. |
-| Arrow keys, Space, Shift, and all other non-letter keys | Never count as wrong keys. Arrows and Space move the figure, and the rest are ignored. |
+| Space, Shift, the arrow keys and all other non-letter keys | Never count as wrong keys. Space moves the figure, and the rest are ignored. |
 | Pose locked | Input is ignored until the next wall. Keys still held from this wall are ignored until they're released. |
 | Window loses focus (`blur`) | Pause the game and show "Click to resume". Every held letter counts as slipped. |
 
@@ -149,7 +149,7 @@ Lining up is in from wall 1. Early walls are slow enough that new players learn 
 - **Warning first:** the wall flashes and an arrow appears on it for 0.3s before the hole slides.
 - **The wall holds still** for 1s from the warning: through the warning, the slide and time to line up again, then it carries on.
 - **It reads as a change:** while the wall holds, a big **SHIFT** callout with an arrow pointing the hole's way pops up above the wall. The hole's new lane's tile gets an orange outline and chevrons until the player is lined up with it. As the hole slides, the screen gives a short sideways jolt the same way (skipped for reduced motion).
-- The hole slides 1 lane, staying inside the stage, so one tap of Space or an arrow lines up again. (It slid 1–2 lanes until the M7 follow-up.)
+- The hole slides 1 lane, staying inside the stage, so one tap of Space lines up again. (It slid 1–2 lanes until the M7 follow-up.)
 - New letters stop appearing until the player lines up again. Held letters stay held.
 - Shift Wall rounds score their 4 letters against a stretch range set for 4-letter combos. A range set for 5 letters would only accept the most cramped 4.
 
@@ -313,7 +313,7 @@ Built in this order (chosen after M7): feel and audio go on the grey box first, 
 - ✅ Every pose still fits its hole, and every hole is one piece. The fonts are bundled and loaded before any text is drawn, and the contrast and color-system tests pass.
 
 **M11: Title and game-over screens**
-- The title and game-over screens laid out from the mocks, in the M10 style: *SHAPE SHIFT* with a short how-to (← → or Space to line up, hold letters, Shift for CAPS), and GAME OVER with the final and best scores. The title keeps "Click to play" where the mock says "Press any key", because the itch.io frame only gets keyboard focus from a click (§2).
+- The title and game-over screens laid out from the mocks, in the M10 style: *SHAPE SHIFT* with a short how-to (Space to line up, hold letters, Shift for CAPS), and GAME OVER with the final and best scores. The title keeps "Click to play" where the mock says "Press any key", because the itch.io frame only gets keyboard focus from a click (§2).
 - ✅ A new player can start a run knowing the controls from the title screen alone.
 
 **M12: Ship**

@@ -2,7 +2,7 @@
 
 A keyboard take on Japan's "Human Tetris", made for GitHub Game Off 2026
 (theme: SHIFT). A wall with a hole in it comes toward you. Line up under the
-hole with ← / → (or Space, which steps toward the hole), then hold the letters shown to pose your figure so it fits
+hole with Space, which steps you one lane toward it, then hold the letters shown to pose your figure so it fits
 through. Capital letters need Shift.
 
 **Status:** Week 2. M0–M10 are done: a full run plays from the title through
