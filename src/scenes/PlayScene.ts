@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import { Synth } from '@/audio/Synth';
 import {
   CLOSE_CALL_SLOWMO,
-  COLORS,
   FAIL_SHAKE_INTENSITY,
   FAIL_SHAKE_MS,
   FAIL_TO_GAME_OVER_MS,
@@ -31,6 +30,7 @@ import { DebugOverlay, type DebugRow } from '@/objects/DebugOverlay';
 import { Figure } from '@/objects/Figure';
 import { Floor } from '@/objects/Floor';
 import { Hud } from '@/objects/Hud';
+import { Collage } from '@/objects/Collage';
 import { addGrain } from '@/objects/grain';
 import { LaneTiles } from '@/objects/LaneTiles';
 import { PauseOverlay } from '@/objects/PauseOverlay';
@@ -46,7 +46,7 @@ import { prefersReducedMotion } from '@/scenes/ui';
 // Draw order. The wall moves from behind the figure to in front of it once it
 // rushes past the figure's plane.
 const LAYER = {
-  stage: 0,
+  background: 0,
   floor: 1,
   laneTiles: 2,
   wall: 3,
@@ -108,19 +108,19 @@ export class PlayScene extends Phaser.Scene {
     this.sequence = new LetterSequence();
     this.scoreKeeper = new ScoreKeeper(this.dev.startWall);
 
-    // Grain goes on these elements only, each in its own colors (M10).
-    const stage = this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.stage).setOrigin(0).setDepth(LAYER.stage);
-    addGrain(stage, GRAIN.stage);
+    // Paper texture, each element in its own colors (M10): moderate on the
+    // background, very faint on the floor; the wall textures its own surface
+    // and keeps the cutout clean.
+    addGrain(new Collage(this).setDepth(LAYER.background), GRAIN.background);
     addGrain(new Floor(this).setDepth(LAYER.floor), GRAIN.floor);
     this.laneTiles = new LaneTiles(this).setDepth(LAYER.laneTiles);
     this.wall = new Wall(this).setDepth(LAYER.wall);
-    addGrain(this.wall, GRAIN.wall);
     this.figure = new Figure(this, this.figureLane).setDepth(LAYER.figure);
     this.label = new TimingLabel(this).setDepth(LAYER.label);
     this.callout = new ShiftCallout(this).setDepth(LAYER.label);
     this.tray = new PromptTray(this).setDepth(LAYER.tray);
     this.hud = new Hud(this).setDepth(LAYER.hud);
-    // Sized to fit between the two HUD cards.
+    // Sized to fit between SCORE and WALL.
     const capsText = 'Caps Lock is on. Use Shift for capitals.';
     this.capsWarning = this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT * SCREEN_LAYOUT.capsWarningY, capsText, outlinedStyle('small', 'alert', true))

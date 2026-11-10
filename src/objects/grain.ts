@@ -2,21 +2,22 @@ import Phaser from 'phaser';
 import { GRAIN_BOIL_MS, type GrainLook } from '@/config';
 import { prefersReducedMotion } from '@/scenes/ui';
 
-// Grain is a style added to single elements (M10), not a layer over the scene:
-// a filter that nudges the element's own pixels a little darker or lighter, so
-// each element gets grain in its own colors, and only where it is drawn. Cells
-// are hashed from their pixel in the filter's frame, so no texture is stored. A
-// Graphics has no size, so its frame is the screen; a Shape, or a Container
-// given a size with setSize(), is its own frame, so its grain moves and scales
-// with it.
+// Texture is a style added to single elements (M10), not a layer over the
+// scene: a filter that shifts the element's own pixels a little darker or
+// lighter, so each element gets texture in its own colors, and only where it
+// is drawn. Two layers: a soft, blotchy paper mottle that stays put, and a
+// fine grain that boils. Both are hashed from the pixel's place in the
+// filter's frame, so no texture is stored. A Graphics has no size, so its
+// frame is the screen; a Shape, or a Container given a size with setSize(), is
+// its own frame, so its texture moves and scales with it.
 
 const NODE = 'FilterGrain';
 // Seeds are offsets into the hash's input; any spread this wide looks random.
 const SEED_RANGE = 1000;
 
-// Darkening multiplies the color and lightening moves it toward its own alpha,
-// so both keep the hue and work on premultiplied colors, and transparent
-// pixels stay transparent.
+// shade() darkens by multiplying and lightens by moving toward the pixel's own
+// alpha, so both keep the hue and work on premultiplied colors, and
+// transparent pixels stay transparent.
 const FRAGMENT = `
 #pragma phaserTemplate(shaderName)
 #ifdef GL_FRAGMENT_PRECISION_HIGH
@@ -27,8 +28,10 @@ precision mediump float;
 uniform sampler2D uMainSampler;
 uniform float cell;
 uniform float seed;
-uniform vec2 share;
+uniform float mottleSeed;
 uniform vec2 strength;
+uniform float mottle;
+uniform float mottleSize;
 varying vec2 outTexCoord;
 
 float hash(vec2 p)
@@ -38,26 +41,38 @@ float hash(vec2 p)
     return fract((p3.x + p3.y) * p3.z);
 }
 
+float noise(vec2 p)
+{
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    float a = hash(i);
+    float b = hash(i + vec2(1.0, 0.0));
+    float c = hash(i + vec2(0.0, 1.0));
+    float d = hash(i + vec2(1.0, 1.0));
+    return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+
+vec3 shade(vec4 color, float shift)
+{
+    return shift < 0.0 ? color.rgb * (1.0 + shift) : color.rgb + (color.a - color.rgb) * shift;
+}
+
 void main()
 {
     vec4 color = texture2D(uMainSampler, outTexCoord);
-    vec2 speck = floor(gl_FragCoord.xy / cell) + vec2(seed, seed * 0.618);
-    float kind = hash(speck);
-    float amount = hash(speck + 57.3);
-    if (kind < share.x)
-    {
-        color.rgb *= 1.0 - strength.x * amount;
-    }
-    else if (kind > 1.0 - share.y)
-    {
-        color.rgb += (color.a - color.rgb) * strength.y * amount;
-    }
+    vec2 q = gl_FragCoord.xy / mottleSize + mottleSeed;
+    float blotch = noise(q) * 0.65 + noise(q * 2.7 + 13.1) * 0.35;
+    color.rgb = shade(color, (blotch - 0.5) * 2.0 * mottle);
+    float grain = hash(floor(gl_FragCoord.xy / cell) + vec2(seed, seed * 0.618)) * 2.0 - 1.0;
+    color.rgb = shade(color, grain < 0.0 ? grain * strength.x : grain * strength.y);
     gl_FragColor = color;
 }
 `;
 
 class Grain extends Phaser.Filters.Controller {
   seed = Math.random() * SEED_RANGE;
+  readonly mottleSeed = Math.random() * SEED_RANGE;
 
   constructor(
     camera: Phaser.Cameras.Scene2D.Camera,
@@ -74,16 +89,18 @@ class GrainNode extends Phaser.Renderer.WebGL.RenderNodes.BaseFilterShader {
 
   override setupUniforms(controller: Phaser.Filters.Controller): void {
     if (!(controller instanceof Grain)) return;
-    const { cell, dark, light, darken, lighten } = controller.look;
+    const { cell, darken, lighten, mottle, mottleSize } = controller.look;
     this.programManager.setUniform('cell', cell);
     this.programManager.setUniform('seed', controller.seed);
-    this.programManager.setUniform('share', [dark, light]);
+    this.programManager.setUniform('mottleSeed', controller.mottleSeed);
     this.programManager.setUniform('strength', [darken, lighten]);
+    this.programManager.setUniform('mottle', mottle);
+    this.programManager.setUniform('mottleSize', mottleSize);
   }
 }
 
-// Once per game, before any scene adds grain (BootScene). Filters are WebGL
-// only; under another renderer the game simply has no grain.
+// Once per game, before any scene adds texture (BootScene). Filters are WebGL
+// only; under another renderer the game simply has none.
 export function registerGrain(renderer: Phaser.Renderer.Canvas.CanvasRenderer | Phaser.Renderer.WebGL.WebGLRenderer): void {
   if (!(renderer instanceof Phaser.Renderer.WebGL.WebGLRenderer)) return;
   if (!renderer.renderNodes.hasNode(NODE)) renderer.renderNodes.addNodeConstructor(NODE, GrainNode);

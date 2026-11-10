@@ -21,8 +21,8 @@ import { laneCenterX } from '@/logic/lanes';
 import { prefersReducedMotion } from '@/scenes/ui';
 
 // Positioned at the bottom center of its pose grid, standing on the floor.
-// Each block is black with cream seams between its cells and a cream edge, as
-// in the design mocks (M10), over a soft shadow. Each block is centered on its
+// Each block is solid black with a thin cream edge, and the legs are split in
+// two (M10), over a soft shadow. Each block is centered on its
 // cell rect, so it squashes and tilts about its middle. The pose itself always
 // lands at once (the hole fit comes from game state); the squash and the limp
 // slump only play on top, and are skipped for reduced motion.
@@ -78,7 +78,7 @@ export class Figure extends Phaser.GameObjects.Container {
     this.scene.tweens.killTweensOf(block);
     const centerX = (cell.col + cell.cols / 2) * CELL_SIZE - FIGURE_WIDTH / 2;
     const centerY = (cell.row + cell.rows / 2) * CELL_SIZE - FIGURE_HEIGHT;
-    drawBlock(block, cell);
+    drawBlock(block, cell, id === 'legs');
     return block.setScale(1).setAngle(0).setPosition(centerX, centerY);
   }
 
@@ -109,17 +109,18 @@ export class Figure extends Phaser.GameObjects.Container {
   }
 }
 
-// A block centered on (0, 0): black, with a seam between each of its cells and
-// a cream edge all round.
-function drawBlock(g: Phaser.GameObjects.Graphics, cell: CellRect): void {
+// A block centered on (0, 0): solid black with a cream edge all round. Legs
+// two cells wide or more are split down the middle into two legs.
+function drawBlock(g: Phaser.GameObjects.Graphics, cell: CellRect, legs: boolean): void {
   const w = cell.cols * CELL_SIZE;
   const h = cell.rows * CELL_SIZE;
   g.clear();
   g.fillStyle(COLORS.figure);
   g.fillRect(-w / 2, -h / 2, w, h);
-  g.lineStyle(FIGURE_SEAM_WIDTH, COLORS.figureEdge);
-  for (let c = 1; c < cell.cols; c++) g.lineBetween(-w / 2 + c * CELL_SIZE, -h / 2, -w / 2 + c * CELL_SIZE, h / 2);
-  for (let r = 1; r < cell.rows; r++) g.lineBetween(-w / 2, -h / 2 + r * CELL_SIZE, w / 2, -h / 2 + r * CELL_SIZE);
+  if (legs && cell.cols > 1) {
+    g.lineStyle(FIGURE_SEAM_WIDTH, COLORS.figureEdge);
+    g.lineBetween(0, -h / 2, 0, h / 2);
+  }
   g.lineStyle(FIGURE_EDGE_WIDTH, COLORS.figureEdge);
   g.strokeRect(-w / 2, -h / 2, w, h);
 }

@@ -4,21 +4,27 @@ export const GAME_HEIGHT = 720;
 // The color system (M10). Every color the game draws is named once in PALETTE,
 // and components only use the roles in COLORS and TEXT_COLORS, never a raw
 // value (tests/config.test.ts checks both). The base swatches were sampled
-// from the design mocks (cream, near-black, the two greens, the mocks' pale
-// disc), and the yellow and coral accents from the mock's logo. The other
+// from the design mocks (cream, near-black, the two greens), the collage's
+// paper colors from the M10 review 4 reference (sage, forest, stone,
+// charcoal), and the yellow and coral accents from the mock's logo. The other
 // entries are darker steps of those, so each can be used on cream, where the
 // logo accents are too light to read.
 export const PALETTE = {
-  cream: 0xefdfca, // mock swatch: the stage
-  sand: 0xd1d0a8, // the mocks' pale disc: the floor
-  sandDeep: 0xaeac85, // sand, darkened for the floor's tile seams
+  cream: 0xefdfca, // mock swatch: the stage and the floor
+  creamDeep: 0xd3c5ae, // cream, darkened for the floor's seams and tile tones
+  paper: 0xf5ede0, // a lighter sheet in the collage
+  paperCore: 0xfbf7ef, // the pale core a tear shows
+  sage: 0x86a064,
+  forest: 0x4a6e43,
+  stone: 0x8b8473,
+  charcoal: 0x3b3a37,
   graphite: 0x4a433b, // every outline, and quiet text
   ink: 0x20201f, // mock swatch
   green: 0x49a443, // mock swatch
-  greenDeep: 0x2f7f3a, // green, deepened to hold 3:1 on cream and sand
+  greenDeep: 0x2f7f3a, // green, deepened to hold 3:1 on cream
   greenDark: 0x17472d, // mock swatch
   yellow: 0xffff7f, // mock logo
-  ochre: 0x8f6a00, // yellow, darkened to hold 3:1 on cream and sand
+  ochre: 0x8f6a00, // yellow, darkened to hold 3:1 on cream
   coral: 0xff7f7f, // mock logo
   red: 0xd8453c, // coral, darkened to hold 3:1 on cream
   redDark: 0xa32a22, // coral, darkened for text
@@ -30,14 +36,16 @@ export const PALETTE = {
 // cream edge outlines it against the dark green wall, where its black can't.
 // The bright green only reaches 2.4:1 on cream, so it decorates (verges, held
 // chips on the black tray) and a deeper green lights the lined-up lane's tile.
+// The collage's colors only decorate the background, at its edges.
 // The two accent families are the alerts: yellow means the hole is moving
 // (Shift Walls), and coral means a mistake (a wrong key, a slip, a close call,
 // Caps Lock).
 export const COLORS = {
   stage: PALETTE.cream,
-  floor: PALETTE.sand,
+  floor: PALETTE.cream,
   floorLine: PALETTE.graphite,
-  floorSeam: PALETTE.sandDeep, // decorative tile seams
+  floorSeam: PALETTE.creamDeep, // decorative tile seams
+  floorTone: PALETTE.creamDeep, // laid faintly over some tiles, so they vary
   verge: PALETTE.green, // decorative grass strips beside the floor
   vergeOuter: PALETTE.greenDark,
   outline: PALETTE.graphite,
@@ -67,6 +75,15 @@ export const COLORS = {
   // outline of this, so it reads over anything.
   textOutline: PALETTE.ink,
   debugPanel: PALETTE.cream,
+  // The background collage (src/data/collage.ts).
+  collagePaper: PALETTE.paper,
+  collageCore: PALETTE.paperCore,
+  collageSage: PALETTE.sage,
+  collageForest: PALETTE.forest,
+  collageStone: PALETTE.stone,
+  collageCharcoal: PALETTE.charcoal,
+  collageGrid: PALETTE.graphite,
+  collageForestGrid: PALETTE.greenDark,
   splash: PALETTE.green,
   splashRipple: PALETTE.greenDark,
 } as const;
@@ -74,8 +91,9 @@ export const COLORS = {
 const css = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
 
 // CSS strings because Phaser text styles take CSS colors. ink, muted, accent
-// and danger sit on the stage (the HUD, the title and game-over screens); ink
-// also sits on the chips and the debug panel, and light on the black tray.
+// and danger sit on the stage (the title and game-over screens); ink also sits
+// on the chips, the debug panel and the collage under the HUD, and light on
+// the black tray.
 // light, good, alert and shift are the outlined text over the scene, measured
 // against their outline (COLORS.textOutline). Every pair must reach 4.5:1
 // (tests/config.test.ts).
@@ -106,7 +124,8 @@ export const FONT_LOAD_TIMEOUT = 3000; // ms; past this, start with the fallback
 export const FONT_SIZES = {
   title: 112,
   heading: 80,
-  hud: 48,
+  hud: 68,
+  hudLabel: 24,
   chip: 42,
   body: 34,
   small: 24,
@@ -117,6 +136,7 @@ export const FONT_ROLES: Readonly<Record<keyof typeof FONT_SIZES, 'display' | 'm
   title: 'display',
   heading: 'display',
   hud: 'display',
+  hudLabel: 'display',
   chip: 'mono',
   body: 'mono',
   small: 'mono',
@@ -128,6 +148,7 @@ export const TEXT_OUTLINE: Readonly<Record<keyof typeof FONT_SIZES, number>> = {
   title: 16,
   heading: 14,
   hud: 10,
+  hudLabel: 6,
   chip: 8,
   body: 9,
   small: 7,
@@ -182,46 +203,52 @@ export const TRAY_HEIGHT = 110;
 export const STAGE_BOTTOM_Y = GAME_HEIGHT - TRAY_HEIGHT;
 export const HORIZON_Y = 140;
 export const FIGURE_FLOOR_Y = 530; // 560 until M10 review 3 moved the figure back
-export const FLOOR_LINE_WIDTH = 3;
+export const FLOOR_LINE_WIDTH = 2;
 
-// Art (PLAN.md §10, M10): the palette and shapes of the design mocks, all drawn
-// in code, with clean straight outlines.
-// Grain is a style added to single elements (addGrain() in
-// src/objects/grain.ts), never one layer over the scene. It nudges the
+// Art (PLAN.md §10, M10): an editorial collage. Torn paper at the background's
+// edges, clean geometric shapes with thin outlines for everything that plays.
+// Texture is a style added to single elements (addGrain() in
+// src/objects/grain.ts), never one layer over the scene: it shifts the
 // element's own color a little darker or lighter, only where the element is
-// drawn, so the wall gets greens and the floor its own tones. Per element:
-// cells are `cell` px square in the element's own space; `dark` and `light`
-// are the share of cells nudged each way; `darken` and `lighten` are the most
-// a cell moves toward black or white (0-1). Kept fine and faint: the first
-// tries, with sparse strong specks, read as harsh. The cells re-roll every
-// GRAIN_BOIL_MS, like the boil of hand-drawn animation (still for reduced
-// motion).
+// drawn. Per element, in its own px: `mottle` is the most the soft, blotchy
+// paper tone shifts toward black or white (0-1), over blotches about
+// `mottleSize` px; `darken` and `lighten` are the most each fine grain cell,
+// `cell` px square, moves. Moderate on the background, very faint on the
+// floor, faint on the wall; the figure, the cutout and the tray stay clean.
+// The mottle stays put; the fine grain re-rolls every GRAIN_BOIL_MS, like the
+// boil of hand-drawn animation (still for reduced motion).
 export interface GrainLook {
   readonly cell: number;
-  readonly dark: number;
-  readonly light: number;
   readonly darken: number;
   readonly lighten: number;
+  readonly mottle: number;
+  readonly mottleSize: number;
 }
 export const GRAIN_BOIL_MS = 160;
 export const GRAIN = {
-  stage: { cell: 1, dark: 0.5, light: 0.5, darken: 0.035, lighten: 0.06 },
-  floor: { cell: 1, dark: 0.5, light: 0.5, darken: 0.04, lighten: 0.05 },
-  // The wall's grain is in its own space, so it shrinks with distance. Dark
-  // colors show a lift toward white far more than a darkening, so it lightens
-  // least.
-  wall: { cell: 2, dark: 0.5, light: 0.5, darken: 0.1, lighten: 0.025 },
+  background: { cell: 1, darken: 0.05, lighten: 0.05, mottle: 0.07, mottleSize: 70 },
+  floor: { cell: 1, darken: 0.025, lighten: 0.03, mottle: 0.03, mottleSize: 50 },
+  // In the wall's own space, so it shrinks with distance. Dark colors show a
+  // lift toward white far more than a darkening, so its grain lightens least.
+  wall: { cell: 2, darken: 0.08, lighten: 0.02, mottle: 0.07, mottleSize: 40 },
 } as const satisfies Record<string, GrainLook>;
-// SCORE top-left and WALL top-right, straight on the stage: x from the screen
-// edge, label and value y from the top, px.
-export const HUD = { marginX: 32, labelY: 18, valueY: 44 } as const;
+// Torn edges in the collage (src/logic/torn.ts): a point about every `step`
+// px, pushed up to `jag` px across the edge, and a pale core `rim` px deep.
+export const TEAR = { step: 9, jag: 3, rim: 5 } as const;
+// Seeds the collage's tears and the floor's tile tones, so the scene looks the
+// same every run.
+export const ART_SEED = 'shape-shift';
+// SCORE top-left and WALL top-right, in Anton: x from the screen edge, label
+// and value y from the top, px.
+export const HUD = { marginX: 40, labelY: 31, valueY: 48 } as const;
 // The floor: green verges outside its edges (vergeWidth as a share of the
 // floor's half width, the outer share in dark green), and tile seams along the
 // lanes and across it. Cross seams are evenly spaced in 1/scale, so they
 // bunch up into the distance like real tiles, and are cut so the figure's
 // plane runs through the middle of a row: the figure stands centered on its
 // lane's tile (src/logic/perspective.ts). tileDepth is in 1/scale.
-export const FLOOR = { vergeWidth: 0.22, vergeOuterShare: 0.45, seamWidth: 2, tileDepth: 0.2 } as const;
+// toneMax is the most floorTone shows over a tile (0-1), picked per tile.
+export const FLOOR = { vergeWidth: 0.22, vergeOuterShare: 0.45, seamWidth: 1, tileDepth: 0.2, toneMax: 0.45 } as const;
 
 // The figure's pose grid (PLAN.md §3).
 export const FIGURE_GRID = { cols: 6, rows: 8 } as const;
@@ -229,7 +256,7 @@ export const CELL_SIZE = 24; // px at full scale
 export const FIGURE_WIDTH = FIGURE_GRID.cols * CELL_SIZE;
 export const FIGURE_HEIGHT = FIGURE_GRID.rows * CELL_SIZE;
 export const FIGURE_EDGE_WIDTH = 3; // px; the cream edge round each block
-export const FIGURE_SEAM_WIDTH = 1.5; // px; the thinner seams between a block's cells
+export const FIGURE_SEAM_WIDTH = 1.5; // px; the thinner seam that splits the legs in two
 // The soft shadow under the figure's feet, px.
 export const FIGURE_SHADOW = { width: 170, height: 22, alpha: 0.22 } as const;
 export const FIGURE_SLIDE_MS = 90; // one lane, visual only: the lane changes instantly
@@ -242,7 +269,7 @@ export const LANE_TARGET = { edgeWidth: 5, chevronWidth: 12, chevronHeight: 22, 
 
 export const WALL_START_SCALE = 0.35;
 export const WALL_HEIGHT = 380; // px at full scale
-export const WALL_EDGE_WIDTH = 4; // px at full scale
+export const WALL_EDGE_WIDTH = 3; // px at full scale
 export const WALL_EASE_POWER = 2; // scale follows t^n, so higher n rushes harder at the end
 
 export const WRONG_KEY_JUMP = 0.03; // added to t

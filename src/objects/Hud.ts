@@ -2,8 +2,8 @@ import Phaser from 'phaser';
 import { GAME_WIDTH, HUD } from '@/config';
 import { textStyle } from '@/scenes/text-styles';
 
-// SCORE top-left and WALL top-right (M10), set straight on the stage. Nothing
-// else is ever drawn in the top corners, so the text always sits on cream.
+// SCORE top-left and WALL top-right (M10), in Anton, on the collage's pale
+// sheets in the top corners. Nothing that moves ever reaches the corners.
 export class Hud extends Phaser.GameObjects.Container {
   private readonly score: Phaser.GameObjects.Text;
   private readonly wall: Phaser.GameObjects.Text;
@@ -25,7 +25,7 @@ export class Hud extends Phaser.GameObjects.Container {
 
   // align 0 hangs the readout right of x, 1 left of it.
   private addReadout(x: number, align: 0 | 1, label: string): Phaser.GameObjects.Text {
-    const caption = new Phaser.GameObjects.Text(this.scene, x, HUD.labelY, label, textStyle('small', 'muted', true));
+    const caption = new Phaser.GameObjects.Text(this.scene, x, HUD.labelY, label, textStyle('hudLabel', 'ink'));
     const value = new Phaser.GameObjects.Text(this.scene, x, HUD.valueY, '0', textStyle('hud', 'ink'));
     this.add([caption.setOrigin(align, 0), value.setOrigin(align, 0)]);
     return value;

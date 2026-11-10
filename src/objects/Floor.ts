@@ -1,12 +1,13 @@
 import Phaser from 'phaser';
-import { COLORS, FLOOR, FLOOR_LINE_WIDTH, LANE_COUNT, WALL_START_SCALE } from '@/config';
+import { ART_SEED, COLORS, FLOOR, FLOOR_LINE_WIDTH, LANE_COUNT, WALL_START_SCALE } from '@/config';
 import { laneLeftX } from '@/logic/lanes';
 import { FLOOR_HALF_WIDTH, STAGE_FRONT_SCALE, crossSeamScales, floorEdge, project, type Point } from '@/logic/perspective';
 import { toVectors } from '@/objects/vectors';
 
-// The floor (M10), in the mocks' pale green: green verges beyond its edges,
-// darker tile seams along the lanes and across, and edge lines that frame the
-// stage. The cross seams put the figure in the middle of a row of tiles.
+// The floor (M10): cream tiles, each a touch lighter or darker, thin pale
+// seams along the lanes and across, green verges beyond its edges, and thin
+// edge lines that frame the stage. The cross seams put the figure in the
+// middle of a row of tiles. Seeded, so the tiles keep their tones every run.
 // Drawn once.
 export class Floor extends Phaser.GameObjects.Graphics {
   constructor(scene: Phaser.Scene) {
@@ -22,6 +23,7 @@ export class Floor extends Phaser.GameObjects.Graphics {
 
     this.fillStyle(COLORS.floor);
     this.fillPoints(strip(floorEdge(-1), floorEdge(1)), true);
+    this.toneTiles();
     for (const side of [-1, 1] as const) {
       this.fillStyle(COLORS.verge);
       this.fillPoints(strip(floorEdge(side), outward(side, 1)), true);
@@ -44,5 +46,20 @@ export class Floor extends Phaser.GameObjects.Graphics {
     const [farRight, nearRight] = span(floorEdge(1));
     this.lineStyle(FLOOR_LINE_WIDTH, COLORS.floorLine);
     this.strokePoints(toVectors([nearLeft!, farLeft!, farRight!, nearRight!]));
+  }
+
+  // Each tile gets a random share of the deeper cream, so the floor isn't one
+  // flat sheet.
+  private toneTiles(): void {
+    const rng = new Phaser.Math.RandomDataGenerator([ART_SEED]);
+    const rows = [WALL_START_SCALE, ...crossSeamScales(), STAGE_FRONT_SCALE];
+    const at = (lane: number, scale: number) => project({ x: laneLeftX(lane), y: floorEdge(1).y }, scale);
+    for (let row = 1; row < rows.length; row++) {
+      const [far, near] = [rows[row - 1]!, rows[row]!];
+      for (let lane = 0; lane < LANE_COUNT; lane++) {
+        this.fillStyle(COLORS.floorTone, rng.frac() * FLOOR.toneMax);
+        this.fillPoints(toVectors([at(lane, far), at(lane + 1, far), at(lane + 1, near), at(lane, near)]), true);
+      }
+    }
   }
 }

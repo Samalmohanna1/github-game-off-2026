@@ -14,14 +14,6 @@ export interface WallSpec {
   readonly blockFor: Readonly<Record<string, BlockId>>;
 }
 
-// A cell-unit line on the pose grid: x is a column edge, y is a row edge.
-export interface Segment {
-  readonly x1: number;
-  readonly y1: number;
-  readonly x2: number;
-  readonly y2: number;
-}
-
 export type HoleGrid = readonly (readonly boolean[])[];
 
 const cellKey = (col: number, row: number) => `${col},${row}`;
@@ -119,23 +111,4 @@ export function holeGrid(pose: Pose): HoleGrid {
     }
   }
   return grid;
-}
-
-// The hole's edge against the wall, as unit segments. The bottom row opens
-// onto the floor, so it has no bottom edge.
-export function holeOutline(grid: HoleGrid): Segment[] {
-  const isHole = (row: number, col: number) => grid[row]?.[col] === true;
-  const segments: Segment[] = [];
-  grid.forEach((cells, row) =>
-    cells.forEach((hole, col) => {
-      if (!hole) return;
-      if (!isHole(row - 1, col)) segments.push({ x1: col, y1: row, x2: col + 1, y2: row });
-      if (row < grid.length - 1 && !isHole(row + 1, col)) {
-        segments.push({ x1: col, y1: row + 1, x2: col + 1, y2: row + 1 });
-      }
-      if (!isHole(row, col - 1)) segments.push({ x1: col, y1: row, x2: col, y2: row + 1 });
-      if (!isHole(row, col + 1)) segments.push({ x1: col + 1, y1: row, x2: col + 1, y2: row + 1 });
-    }),
-  );
-  return segments;
 }

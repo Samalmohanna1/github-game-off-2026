@@ -224,6 +224,10 @@ const TEXT_ON = {
   stage: ['ink', 'muted', 'accent', 'danger'],
   textOutline: ['light', 'good', 'alert', 'shift'],
   debugPanel: ['ink'],
+  // The HUD sits on the pale sheets in the top corners; a long score reaches
+  // the sage disc.
+  collagePaper: ['ink'],
+  collageSage: ['ink'],
   tray: ['light'],
   chipNext: ['light'],
   chipHeld: ['ink'],
