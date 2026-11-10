@@ -69,7 +69,7 @@ SPAWN → ALIGN → POSE → (SHIFT WALL?) → RESOLVE → next wall | GAME OVER
 ## 3. Stage, lanes, wall and figure
 
 ### Layout (matches the concept sketch)
-- A cream background with a pale green disc behind the far end of the stage. The floor, in the disc's green, is drawn in perspective from the bottom corners toward the wall, with darker tile seams and green verges beyond its edge lines. (Week 1 was a pale pink background with two floor lines; M10's first pass had torn paper, paper cards and pencil lines, dropped at its second review.)
+- A cream background. The floor, in the mocks' pale green, is drawn in perspective from the bottom corners toward the wall, with darker tile seams and green verges beyond its edge lines. (Week 1 was a pale pink background with two floor lines; M10's first pass had torn paper, paper cards and pencil lines, dropped at its second review, and a pale disc behind the stage, dropped at its third.)
 - The wall comes in from the far end. It starts small (scale ≈ 0.35) and grows to full size at the figure's position. Drive everything from a single `progress` value, `t ∈ [0, 1]`, with an ease-in so the wall seems to speed up as it gets closer.
 - A black **prompt tray** across the bottom. Its chips are key caps with black letters:
   - **Held** letters as green chips, lined up from the left.
@@ -306,6 +306,7 @@ Built in this order (chosen after M7): feel and audio go on the grey box first, 
 - The mocks' blocky figure replaced the planned SVG body parts, and the HUD shows the wall number where the mocks show a run timer, since the game has none.
 - (After the first M10 review: the collage scraps, grid paper and halftone were cut as tacked-on. The pale disc moved behind the stage, where it frames the incoming wall, and breathes and drifts very slowly. The grain boils, and every outline became a pencil line. The prototype alert colors were replaced by the palette. Holes are now always one piece: two stretched torso poses were added, since turning the torso alone always split the hole, and 5-letter walls could never be one piece.)
 - (After the second M10 review: the torn paper went. Cards, torn edges, tilts and pencil lines were replaced by clean straight lines, and the HUD sits straight on the stage. The timing label, the SHIFT callout, the Caps Lock warning and the pause text are bright letters inside a thick dark outline. The floor took the disc's pale green. The lane strips were cut; the floor's tiles are cut so the figure stands centered on one, and that tile lights up. The one grain layer over the scene became a filter added to single elements (the stage, the disc, the floor and the wall), darkening and lightening each one's own colors.)
+- (After the third M10 review: the grain read as harsh, so its sparse strong specks became a faint, fine nudge on every pixel. The backdrop disc was cut, and the figure moved 30 px further back (`FIGURE_FLOOR_Y` 560 to 530).)
 - ✅ Every pose still fits its hole, and every hole is one piece. The fonts are bundled and loaded before any text is drawn, and the contrast and color-system tests pass.
 
 **M11: Title and game-over screens**

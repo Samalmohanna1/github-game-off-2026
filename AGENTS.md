@@ -30,7 +30,7 @@ Scenes, one per screen:
 |---|---|---|
 | `BootScene` | Final (M10) | Waits for the bundled fonts (`loadFonts()`, giving up after `FONT_LOAD_TIMEOUT`), registers the grain filter (`registerGrain()`), then hands off to Title. |
 | `TitleScene` | Interim | Game name, one-line how-to, "Click to play". The click gives the page keyboard focus inside the itch.io iframe. It already uses the M10 palette and fonts; its layout from the mocks comes in M11. |
-| `PlayScene` | Interim (M10) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). ← / → line the figure up, and so does Space, one lane toward the hole (during a Shift Wall's warning, toward the lane it is about to slide to); the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 4+), the wall stops behind a SHIFT callout, turns orange with an arrow, and the hole slides 1 lane with a sideways jolt while the new lane's tile is marked on the floor; then the wall carries on; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: the wall rushes past, a PERFECT / GREAT / CLOSE CALL label pops over the figure, and the next wall starts. Held blocks land with a squash, slipped ones slump back limp, a wrong key rattles the wall, and a CLOSE CALL plays the rush in slow motion. If the wall arrives first, it shoves the figure into a splash of water particles and the run ends. Synthesized sounds (M9) play over all of it: the countdown tick in CLOSE CALL range, clicks, slips, the PERFECT fanfare, the Shift Wall alert and whoosh, and the fail's hit and "whomp whomp whooom". Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses behind a "Click to resume" veil. F2 toggles the debug overlay. Everything is drawn in the M10 art: a cream stage with a pale green backdrop disc, a floor in the disc's green with tile seams and green verges, where the figure stands centered on its lane's tile and the lined-up tile lights up, a dark green wall with a clean cream hole, black blocks with cream seams, a black key-cap tray, SCORE and WALL set straight on the stage, and every label over the scene in bright letters inside a thick dark outline. Edges are clean straight lines, and the stage, the disc, the floor and the wall each carry their own boiling grain. |
+| `PlayScene` | Interim (M10) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). ← / → line the figure up, and so does Space, one lane toward the hole (during a Shift Wall's warning, toward the lane it is about to slide to); the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 4+), the wall stops behind a SHIFT callout, turns orange with an arrow, and the hole slides 1 lane with a sideways jolt while the new lane's tile is marked on the floor; then the wall carries on; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: the wall rushes past, a PERFECT / GREAT / CLOSE CALL label pops over the figure, and the next wall starts. Held blocks land with a squash, slipped ones slump back limp, a wrong key rattles the wall, and a CLOSE CALL plays the rush in slow motion. If the wall arrives first, it shoves the figure into a splash of water particles and the run ends. Synthesized sounds (M9) play over all of it: the countdown tick in CLOSE CALL range, clicks, slips, the PERFECT fanfare, the Shift Wall alert and whoosh, and the fail's hit and "whomp whomp whooom". Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses behind a "Click to resume" veil. F2 toggles the debug overlay. Everything is drawn in the M10 art: a cream stage, a pale green floor with tile seams and green verges, where the figure stands centered on its lane's tile and the lined-up tile lights up, a dark green wall with a clean cream hole, black blocks with cream seams, a black key-cap tray, SCORE and WALL set straight on the stage, and every label over the scene in bright letters inside a thick dark outline. Edges are clean straight lines, and the stage, the floor and the wall each carry their own faint, boiling grain. |
 | `GameOverScene` | Interim | Walls cleared, score, best (saved in `localStorage`) and the wall reached. Restart follows PLAN.md §7: input is ignored for `RESTART_LOCKOUT`, then every key must be up ("Let go of every key" shows meanwhile) before a key or click restarts. |
 
 Shared scene helpers live in `src/scenes/` (`ui.ts`, `text-styles.ts`,
@@ -139,7 +139,6 @@ src/
     sound-levels.ts        # click, fanfare and whomp pitches
     wall-gen.ts            # blocks + alt poses per wall, hole grid + outline
   objects/
-    Backdrop.ts            # pale disc behind the stage; breathes and drifts slowly
     Floor.ts               # perspective floor: edge lines, tile seams, green verges
     grain.ts               # addGrain(): a filter that specks one element in its own colors
     Hud.ts                 # SCORE and WALL in the top corners
@@ -314,7 +313,7 @@ playtest covers.
 - **Pull colors, type, sizes and layout from `src/config.ts`** rather than
   inventing inline values. `config.ts` is the single re-skin point.
 - **One color system (M10).** Every color is named once in `PALETTE`: the
-  design mocks' swatches (cream, near-black, two greens, the pale green disc),
+  design mocks' swatches (cream, near-black, two greens, a pale green),
   the yellow and coral of the mock's logo, and darker steps of each for use on
   cream and the floor. Components use only the roles in `COLORS` and `TEXT_COLORS`, never a
   palette entry or a raw hex directly; `tests/config.test.ts` fails if a role
@@ -323,15 +322,16 @@ playtest covers.
   CLOSE CALL, Caps Lock). Add a new color to `PALETTE` first, then give it a
   role.
 - **Clean lines, no paper (M10 review 2).** Outlines (the wall and its hole,
-  the floor edges, the backdrop disc, the target tile) are plain straight
+  the floor edges, the target tile) are plain straight
   strokes in `COLORS.outline` or their own role color. No torn edges, paper
   cards or tilted labels: text over the scene is outlined instead (below).
 - **Grain is a style on single elements (M10 review 2).** `addGrain(element,
-  look)` from `src/objects/grain.ts` adds a filter that darkens or lightens a
-  few of that element's own pixels, so each element gets grain in its own
-  colors, only where it is drawn. It is on the stage, the backdrop disc, the
-  floor (with its verges) and the wall, each with its own look in `GRAIN`;
-  never lay one grain layer over the whole scene. A Graphics' grain sits in
+  look)` from `src/objects/grain.ts` adds a filter that nudges that
+  element's own pixels a little darker or lighter, so each element gets grain
+  in its own colors, only where it is drawn. It is on the stage, the floor
+  (with its verges) and the wall, each with its own look in `GRAIN`; never
+  lay one grain layer over the whole scene. Keep it fine and faint: sparse,
+  strong specks read as harsh (M10 review 3). A Graphics' grain sits in
   screen space; a sized Container (the `Wall`) carries its grain as it moves
   and scales. Text, the figure, the tray and the chips stay clean.
 - **Typography:** each size in `FONT_SIZES` has a role (`FONT_ROLES`): display
@@ -643,14 +643,11 @@ Work through **PLAN.md §10** one milestone at a time.
   timing label (PERFECT green, GREAT cream, CLOSE CALL coral), the SHIFT
   callout and its arrow (yellow), the Caps Lock warning and the pause text.
 - **Grain** — a style added to single elements with `addGrain()`
-  (`src/objects/grain.ts`): a filter that darkens or lightens sparse specks
-  of the element's own pixels, so each element's grain is in its own colors
-  and only where it is drawn. The stage, the backdrop disc, the floor and the
-  wall have it, each with its own look (`GRAIN`). It boils: every
-  `GRAIN_BOIL_MS` the specks re-roll (still for reduced motion).
-- **Backdrop** — one pale disc behind the far end of the stage, framing where
-  each wall comes from (`BACKDROP`). The floor hides its lower half. It
-  breathes and drifts very slowly, still for reduced motion.
+  (`src/objects/grain.ts`): a filter that nudges the element's own pixels a
+  little darker or lighter, so each element's grain is in its own colors and
+  only where it is drawn. The stage, the floor and the wall have it, each with
+  its own look (`GRAIN`). It boils: every `GRAIN_BOIL_MS` it re-rolls (still
+  for reduced motion).
 - **Key ghosting** — keyboards failing to register many keys held at once. It
   is why a wall asks for at most 5 letters, and 4 on Shift Walls.
 - **Sticky Keys** — the Windows pop-up after 5 quick Shift presses. It is why
