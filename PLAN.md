@@ -2,7 +2,7 @@
 
 A keyboard version of Japan's *Nōkabe* ("Brain Wall", a.k.a. Human Tetris) for a game jam with the theme **SHIFT**.
 
-A wall with a hole cut in it comes toward the player. They slide their block figure under the hole with the arrow keys, then hold down a growing set of letter keys to pose the figure so it fits through. If the figure doesn't fit, the wall shoves it into the pool.
+A wall with a hole cut in it comes toward the player. They slide their block figure under the hole with the arrow keys, then hold down a growing set of letter keys to pose the figure so it fits through. If the figure doesn't fit, the wall knocks it over.
 
 **How the theme fits:** the **Shift key** (uppercase letters need it), **shape-shifting** (the figure changes pose), and a **shifting wall** (the hole slides mid-approach on later walls).
 
@@ -38,7 +38,7 @@ SPAWN → ALIGN → POSE → (SHIFT WALL?) → RESOLVE → next wall | GAME OVER
 4. **SHIFT WALL** (walls 4+). Partway through the approach, the hole slides 1 lane. Held letters keep their blocks in place, but **new letters stop appearing until the player lines up again**, which they have to do while still holding letters.
 5. **RESOLVE.**
    - **Pass:** once every letter is held and the figure is lined up, the pose **locks**. The wall rushes past (about 0.4s), and the player gets a timing bonus.
-   - **Fail:** the wall reaches the figure first. It shoves the figure into the pool with a splash, and the run ends.
+   - **Fail:** the wall reaches the figure first. It knocks the figure over, its blocks clatter onto the floor, and the run ends.
 
 ### Input rules (be exact here)
 
@@ -173,7 +173,7 @@ The timing label pops up big over the figure as the wall rushes past. Save the b
 
 ## 7. Fail and restart
 
-- When the player fails: the wall shoves the figure backward, it flails and falls, and a splash of blue particles and a screen shake follow.
+- When the player fails: the wall knocks the figure off its feet, toward the camera. It flails its arms as it topples toward the middle of the stage, and when it hits the floor its blocks come apart and bounce, low like wood rather than rubber, then tip flat and lie still. A screen shake goes with the landing. (Until the fifth M10 review, the figure fell into a pool with a splash of water particles and a ripple.)
 - Game-over screen: **Walls cleared**, **Score**, **Best**, and the wall number where the run ended.
 - **Restart:** ignore input for 1s, wait until **every key is released**, then any key or a click restarts. This stops keys still held from the failed wall from restarting the game straight away.
 
@@ -183,7 +183,7 @@ The timing label pops up big over the figure as the wall rushes past. Save the b
 
 ```ts
 LANE_COUNT = 7
-WALL_START_SCALE = 0.35
+WALL_START_SCALE = 0.38        // 0.35 until the figure moved back in M10 review 5
 WRONG_KEY_JUMP = 0.03          // added to t (0.06 before the M7 tuning pass)
 LOCK_RUSH_DURATION = 400       // ms
 PROMPT_APPEAR_DELAY = 120      // ms after the previous letter is held
@@ -296,8 +296,8 @@ Built in this order (chosen after M7): feel and audio go on the grey box first, 
   - a quick cartoon "bloop" on a slip (the forced slips of a blur pause make no sound)
   - a fanfare on PERFECT
   - a Shift Wall alert heard from the side the hole is moving to, then a whoosh that way as it slides
-  - on a fail: a hit the moment the wall reaches the figure, then a game-show "whomp whomp whooom" (falling brassy notes, the last one long and sagging) as the figure lands in the pool
-- (After the M9 playtest, the countdown replaced a wall rumble that swelled with `t`. The slip sound got lighter, and the Shift Wall alert and the hit were added. After the second playtest, the crowd "OOOH" that followed the hit was cut, and the hit moved up into a range laptop speakers play. After the third, the splash sound, which kept sounding like a second hit, was replaced by the "whomp whomp whooom". The visual splash stays.)
+  - on a fail: a hit the moment the wall reaches the figure, then a game-show "whomp whomp whooom" (falling brassy notes, the last one long and sagging) as the figure lands
+- (After the M9 playtest, the countdown replaced a wall rumble that swelled with `t`. The slip sound got lighter, and the Shift Wall alert and the hit were added. After the second playtest, the crowd "OOOH" that followed the hit was cut, and the hit moved up into a range laptop speakers play. After the third, the splash sound, which kept sounding like a second hit, was replaced by the "whomp whomp whooom". The visual splash stayed until the fifth M10 review.)
 - ✅ Each sound plays at its moment, the countdown follows `t`, and nothing plays before the player's first click (browser autoplay rules).
 
 **M10: Art** (done)
@@ -308,6 +308,7 @@ Built in this order (chosen after M7): feel and audio go on the grey box first, 
 - (After the second M10 review: the torn paper went. Cards, torn edges, tilts and pencil lines were replaced by clean straight lines, and the HUD sits straight on the stage. The timing label, the SHIFT callout, the Caps Lock warning and the pause text are bright letters inside a thick dark outline. The floor took the disc's pale green. The lane strips were cut; the floor's tiles are cut so the figure stands centered on one, and that tile lights up. The one grain layer over the scene became a filter added to single elements (the stage, the disc, the floor and the wall), darkening and lightening each one's own colors.)
 - (After the third M10 review: the grain read as harsh, so its sparse strong specks became a faint, fine nudge on every pixel. The backdrop disc was cut, and the figure moved 30 px further back (`FIGURE_FLOOR_Y` 560 to 530).)
 - (After the fourth M10 review, from a reference image: torn sage, forest, stone and charcoal paper at the background's outer edges, two pieces gridded; the floor back to cream, its tiles faintly varied, with thinner, paler seams; a paper texture of soft mottle and fine grain, moderate on the background, very faint on the floor, faint on the wall, and none on the figure or the cutout; the cutout lost its outline; the figure's blocks are solid with split legs; the HUD is all Anton, its number bigger.)
+- (After the fifth M10 review: the figure's blocks have their cream seams between cells again, the pixel look the user preferred. The figure stands further back (`FIGURE_FLOOR_Y` 530 to 495), and everything sized at its plane shrank by the same depth, so it still fits its lane. The cutout is really cut out: the floor and the background show through it, with no cream fill. On a fail the figure flails as it topples, and its blocks bounce low on the floor and come to rest, replacing the splash and the ripple.)
 - ✅ Every pose still fits its hole, and every hole is one piece. The fonts are bundled and loaded before any text is drawn, and the contrast and color-system tests pass.
 
 **M11: Title and game-over screens**
