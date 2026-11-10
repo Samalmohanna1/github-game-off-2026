@@ -1,11 +1,9 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, HUD } from '@/config';
-import { drawTornCard } from '@/objects/paper';
 import { textStyle } from '@/scenes/text-styles';
 
-// SCORE top-left and WALL top-right (M10), each on a tilted paper card as in
-// the design mocks. The cards are opaque, so the text never depends on the
-// collage behind it.
+// SCORE top-left and WALL top-right (M10), set straight on the stage. Nothing
+// else is ever drawn in the top corners, so the text always sits on cream.
 export class Hud extends Phaser.GameObjects.Container {
   private readonly score: Phaser.GameObjects.Text;
   private readonly wall: Phaser.GameObjects.Text;
@@ -13,8 +11,8 @@ export class Hud extends Phaser.GameObjects.Container {
   constructor(scene: Phaser.Scene) {
     super(scene);
     scene.add.existing(this);
-    this.score = this.addCard(HUD.margin + HUD.width / 2, -1, 'SCORE');
-    this.wall = this.addCard(GAME_WIDTH - HUD.margin - HUD.width / 2, 1, 'WALL');
+    this.score = this.addReadout(HUD.marginX, 0, 'SCORE');
+    this.wall = this.addReadout(GAME_WIDTH - HUD.marginX, 1, 'WALL');
   }
 
   setScore(score: number): void {
@@ -25,14 +23,11 @@ export class Hud extends Phaser.GameObjects.Container {
     this.wall.setText(String(wall));
   }
 
-  private addCard(x: number, tilt: -1 | 1, label: string): Phaser.GameObjects.Text {
-    const card = new Phaser.GameObjects.Container(this.scene, x, HUD.margin + HUD.height / 2).setAngle(tilt * HUD.tiltDeg);
-    const paper = new Phaser.GameObjects.Graphics(this.scene);
-    drawTornCard(paper, HUD.width, HUD.height, Math.random);
-    const caption = new Phaser.GameObjects.Text(this.scene, 0, HUD.labelY, label, textStyle('small', 'muted', true));
-    const value = new Phaser.GameObjects.Text(this.scene, 0, HUD.valueY, '0', textStyle('hud', 'ink'));
-    card.add([paper, caption.setOrigin(0.5), value.setOrigin(0.5)]);
-    this.add(card);
+  // align 0 hangs the readout right of x, 1 left of it.
+  private addReadout(x: number, align: 0 | 1, label: string): Phaser.GameObjects.Text {
+    const caption = new Phaser.GameObjects.Text(this.scene, x, HUD.labelY, label, textStyle('small', 'muted', true));
+    const value = new Phaser.GameObjects.Text(this.scene, x, HUD.valueY, '0', textStyle('hud', 'ink'));
+    this.add([caption.setOrigin(align, 0), value.setOrigin(align, 0)]);
     return value;
   }
 }

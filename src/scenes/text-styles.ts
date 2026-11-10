@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import { DISPLAY_FONT_FAMILY, FONT_FAMILY, FONT_ROLES, FONT_SIZES, TEXT_COLORS } from '@/config';
+import { COLORS, DISPLAY_FONT_FAMILY, FONT_FAMILY, FONT_ROLES, FONT_SIZES, TEXT_COLORS, TEXT_OUTLINE } from '@/config';
 
 type Size = keyof typeof FONT_SIZES;
 type Color = keyof typeof TEXT_COLORS;
@@ -23,4 +23,11 @@ export function textStyle(
     color: TEXT_COLORS[color],
     align: 'center',
   };
+}
+
+// Bright text inside a thick dark outline, for text drawn over the moving
+// scene with nothing behind it: the outline is all that touches the letters,
+// so they read over anything.
+export function outlinedStyle(size: Size, color: Color, bold = false): Phaser.Types.GameObjects.Text.TextStyle {
+  return { ...textStyle(size, color, bold), stroke: toCss(COLORS.textOutline), strokeThickness: TEXT_OUTLINE[size] };
 }

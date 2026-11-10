@@ -15,7 +15,6 @@ import {
 import { laneCenterX } from '@/logic/lanes';
 import { FLOOR_HALF_WIDTH, VANISHING_POINT } from '@/logic/perspective';
 import { holeOutline, type HoleGrid } from '@/logic/wall-gen';
-import { pencil } from '@/objects/pencil';
 
 const FLOOR = FIGURE_FLOOR_Y - VANISHING_POINT.y;
 const TOP = FLOOR - WALL_HEIGHT;
@@ -29,11 +28,13 @@ const ARROW_Y = (TOP + GRID_TOP) / 2;
 // from the same pose grid the figure uses (PLAN.md §3), at the hole's lane;
 // during a Shift Wall slide that lane is fractional. It is redrawn only when
 // something changes, never every frame. While the wall is behind the figure,
-// the hole is filled with clean paper (M10), so it reads as one cut-out shape
+// the hole is filled with clean cream (M10), so it reads as one cut-out shape
 // rather than showing the floor through it; once the wall passes in front of
-// the figure the fill goes, so the figure shows through. Its edges and the
-// hole's are pencil lines.
-export class Wall extends Phaser.GameObjects.Graphics {
+// the figure the fill goes, so the figure shows through. A container sized to
+// the drawing, so grain added to it (src/objects/grain.ts) sits on the wall
+// itself and shrinks with distance.
+export class Wall extends Phaser.GameObjects.Container {
+  private readonly shape: Phaser.GameObjects.Graphics;
   private holeLane = 0;
   private grid: HoleGrid = [];
   private warningDir: -1 | 1 | null = null;
@@ -44,9 +45,13 @@ export class Wall extends Phaser.GameObjects.Graphics {
   private holeFilled = true;
 
   constructor(scene: Phaser.Scene) {
-    super(scene);
+    super(scene, VANISHING_POINT.x, VANISHING_POINT.y);
     scene.add.existing(this);
-    this.setPosition(VANISHING_POINT.x, VANISHING_POINT.y);
+    this.shape = new Phaser.GameObjects.Graphics(scene);
+    this.add(this.shape);
+    // Centered on the vanishing point, the drawing's origin, and reaching the
+    // floor below it.
+    this.setSize(2 * (RIGHT + WALL_EDGE_WIDTH), 2 * (FLOOR + WALL_EDGE_WIDTH));
   }
 
   setHole(lane: number, grid: HoleGrid): void {
@@ -134,39 +139,30 @@ export class Wall extends Phaser.GameObjects.Graphics {
       return spans;
     };
 
-    this.clear();
+    const g = this.shape;
+    g.clear();
 
-    this.fillStyle(fill);
-    this.fillRect(LEFT, TOP, RIGHT - LEFT, GRID_TOP - TOP);
+    g.fillStyle(fill);
+    g.fillRect(LEFT, TOP, RIGHT - LEFT, GRID_TOP - TOP);
     this.grid.forEach((cells, row) => {
-      for (const [x1, x2] of solidSpans(cells)) this.fillRect(x1, cellY(row), x2 - x1, CELL_SIZE);
+      for (const [x1, x2] of solidSpans(cells)) g.fillRect(x1, cellY(row), x2 - x1, CELL_SIZE);
     });
 
     if (this.holeFilled) {
-      this.fillStyle(COLORS.holeFill);
+      g.fillStyle(COLORS.holeFill);
       this.grid.forEach((cells, row) =>
         cells.forEach((hole, col) => {
-          if (hole) this.fillRect(cellX(col), cellY(row), CELL_SIZE, CELL_SIZE);
+          if (hole) g.fillRect(cellX(col), cellY(row), CELL_SIZE, CELL_SIZE);
         }),
       );
     }
 
-    const edge = { width: WALL_EDGE_WIDTH };
-    const outer = [
-      { x: LEFT, y: FLOOR },
-      { x: LEFT, y: TOP },
-      { x: RIGHT, y: TOP },
-      { x: RIGHT, y: FLOOR },
-    ];
-    pencil(this, outer, false, edge);
-    for (const [x1, x2] of solidSpans(this.grid[this.grid.length - 1] ?? [])) {
-      pencil(this, [{ x: x1, y: FLOOR }, { x: x2, y: FLOOR }], false, edge);
-    }
-    // Anchored to the hole, so its wobble rides along when a Shift Wall slides it.
-    const hole = { ...edge, anchor: { x: gridLeft, y: GRID_TOP } };
-    for (const s of holeOutline(this.grid)) {
-      pencil(this, [{ x: cellX(s.x1), y: cellY(s.y1) }, { x: cellX(s.x2), y: cellY(s.y2) }], false, hole);
-    }
+    g.lineStyle(WALL_EDGE_WIDTH, COLORS.outline);
+    edge(g, LEFT, FLOOR, LEFT, TOP);
+    edge(g, LEFT, TOP, RIGHT, TOP);
+    edge(g, RIGHT, TOP, RIGHT, FLOOR);
+    for (const [x1, x2] of solidSpans(this.grid[this.grid.length - 1] ?? [])) edge(g, x1, FLOOR, x2, FLOOR);
+    for (const s of holeOutline(this.grid)) edge(g, cellX(s.x1), cellY(s.y1), cellX(s.x2), cellY(s.y2));
 
     if (this.warningDir !== null) this.drawArrow(holeCenter, this.warningDir);
   }
@@ -179,8 +175,19 @@ export class Wall extends Phaser.GameObjects.Graphics {
     const tip = center + (dir * length) / 2;
     const headBase = tip - dir * headLength;
 
-    this.fillStyle(COLORS.shiftArrow);
-    this.fillRect(Math.min(tail, headBase), ARROW_Y - shaftThickness / 2, Math.abs(headBase - tail), shaftThickness);
-    this.fillTriangle(headBase, ARROW_Y - headWidth / 2, headBase, ARROW_Y + headWidth / 2, tip, ARROW_Y);
+    const g = this.shape;
+    g.fillStyle(COLORS.shiftArrow);
+    g.fillRect(Math.min(tail, headBase), ARROW_Y - shaftThickness / 2, Math.abs(headBase - tail), shaftThickness);
+    g.fillTriangle(headBase, ARROW_Y - headWidth / 2, headBase, ARROW_Y + headWidth / 2, tip, ARROW_Y);
   }
+}
+
+// A straight edge in the current line style, run on by half its width at both
+// ends, so two edges meeting at a corner close it.
+function edge(g: Phaser.GameObjects.Graphics, x1: number, y1: number, x2: number, y2: number): void {
+  const length = Math.hypot(x2 - x1, y2 - y1);
+  if (length === 0) return;
+  const runX = ((x2 - x1) / length) * (WALL_EDGE_WIDTH / 2);
+  const runY = ((y2 - y1) / length) * (WALL_EDGE_WIDTH / 2);
+  g.lineBetween(x1 - runX, y1 - runY, x2 + runX, y2 + runY);
 }

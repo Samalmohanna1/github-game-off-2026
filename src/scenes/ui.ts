@@ -6,8 +6,13 @@ export function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-export function addPulsingPrompt(scene: Phaser.Scene, y: number, label: string): Phaser.GameObjects.Text {
-  const text = scene.add.text(GAME_WIDTH / 2, y, label, textStyle('body', 'accent', true)).setOrigin(0.5);
+export function addPulsingPrompt(
+  scene: Phaser.Scene,
+  y: number,
+  label: string,
+  style: Phaser.Types.GameObjects.Text.TextStyle = textStyle('body', 'accent', true),
+): Phaser.GameObjects.Text {
+  const text = scene.add.text(GAME_WIDTH / 2, y, label, style).setOrigin(0.5);
   if (!prefersReducedMotion()) {
     scene.tweens.add({
       targets: text,

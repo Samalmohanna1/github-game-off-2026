@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DIFFICULTY_TIERS, FIGURE_WIDTH, LANE_COUNT, LANE_MARKER_GAP } from '@/config';
+import { DIFFICULTY_TIERS, FIGURE_WIDTH, LANE_COUNT } from '@/config';
 import {
   CENTER_LANE,
   LANE_WIDTH,
@@ -78,8 +78,8 @@ describe('lane geometry', () => {
     }
   });
 
-  it('fits the figure inside one lane marker', () => {
-    expect(FIGURE_WIDTH).toBeLessThanOrEqual(LANE_WIDTH - LANE_MARKER_GAP);
+  it('fits the figure inside one lane', () => {
+    expect(FIGURE_WIDTH).toBeLessThan(LANE_WIDTH);
   });
 });
 

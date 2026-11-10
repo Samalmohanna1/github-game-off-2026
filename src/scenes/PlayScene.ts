@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { Synth } from '@/audio/Synth';
 import {
   CLOSE_CALL_SLOWMO,
+  COLORS,
   FAIL_SHAKE_INTENSITY,
   FAIL_SHAKE_MS,
   FAIL_TO_GAME_OVER_MS,
@@ -31,8 +32,8 @@ import { DebugOverlay, type DebugRow } from '@/objects/DebugOverlay';
 import { Figure } from '@/objects/Figure';
 import { Floor } from '@/objects/Floor';
 import { Hud } from '@/objects/Hud';
-import { LaneMarkers } from '@/objects/LaneMarkers';
-import { GRAIN_TEXTURE, paperLabel } from '@/objects/paper';
+import { addGrain } from '@/objects/grain';
+import { LaneTiles } from '@/objects/LaneTiles';
 import { PauseOverlay } from '@/objects/PauseOverlay';
 import { PromptTray } from '@/objects/PromptTray';
 import { ShiftCallout } from '@/objects/ShiftCallout';
@@ -40,21 +41,20 @@ import { playSplash } from '@/objects/splash';
 import { TimingLabel } from '@/objects/TimingLabel';
 import { Wall } from '@/objects/Wall';
 import { SceneKeys, type RunResult } from '@/scenes/scene-keys';
-import { textStyle } from '@/scenes/text-styles';
+import { outlinedStyle } from '@/scenes/text-styles';
 import { prefersReducedMotion } from '@/scenes/ui';
 
 // Draw order. The wall moves from behind the figure to in front of it once it
-// rushes past the figure's plane. The paper grain lies over the scene but
-// under the cards, tray and HUD, so their text stays crisp.
+// rushes past the figure's plane.
 const LAYER = {
-  backdrop: 0,
-  floor: 1,
-  laneMarkers: 2,
-  wall: 3,
-  figure: 4,
-  wallPassed: 5,
-  splash: 6,
-  grain: 7,
+  stage: 0,
+  backdrop: 1,
+  floor: 2,
+  laneTiles: 3,
+  wall: 4,
+  figure: 5,
+  wallPassed: 6,
+  splash: 7,
   label: 8,
   tray: 9,
   hud: 10,
@@ -84,11 +84,11 @@ export class PlayScene extends Phaser.Scene {
   private keyboard!: KeyboardInput;
   private wall!: Wall;
   private figure!: Figure;
-  private laneMarkers!: LaneMarkers;
+  private laneTiles!: LaneTiles;
   private tray!: PromptTray;
   private label!: TimingLabel;
   private callout!: ShiftCallout;
-  private capsWarning!: Phaser.GameObjects.Container;
+  private capsWarning!: Phaser.GameObjects.Text;
   private hud!: Hud;
   private pauseOverlay!: PauseOverlay;
   private debug!: DebugOverlay;
@@ -110,11 +110,14 @@ export class PlayScene extends Phaser.Scene {
     this.sequence = new LetterSequence();
     this.scoreKeeper = new ScoreKeeper(this.dev.startWall);
 
-    new Backdrop(this).setDepth(LAYER.backdrop);
-    new Floor(this).setDepth(LAYER.floor);
-    this.boilGrain(this.add.tileSprite(0, 0, GAME_WIDTH, STAGE_BOTTOM_Y, GRAIN_TEXTURE).setOrigin(0).setDepth(LAYER.grain));
-    this.laneMarkers = new LaneMarkers(this).setDepth(LAYER.laneMarkers);
+    // Grain goes on these elements only, each in its own colors (M10).
+    const stage = this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.stage).setOrigin(0).setDepth(LAYER.stage);
+    addGrain(stage, GRAIN.stage);
+    addGrain(new Backdrop(this).setDepth(LAYER.backdrop), GRAIN.backdrop);
+    addGrain(new Floor(this).setDepth(LAYER.floor), GRAIN.floor);
+    this.laneTiles = new LaneTiles(this).setDepth(LAYER.laneTiles);
     this.wall = new Wall(this).setDepth(LAYER.wall);
+    addGrain(this.wall, GRAIN.wall);
     this.figure = new Figure(this, this.figureLane).setDepth(LAYER.figure);
     this.label = new TimingLabel(this).setDepth(LAYER.label);
     this.callout = new ShiftCallout(this).setDepth(LAYER.label);
@@ -122,7 +125,9 @@ export class PlayScene extends Phaser.Scene {
     this.hud = new Hud(this).setDepth(LAYER.hud);
     // Sized to fit between the two HUD cards.
     const capsText = 'Caps Lock is on. Use Shift for capitals.';
-    this.capsWarning = paperLabel(this, GAME_WIDTH / 2, GAME_HEIGHT * SCREEN_LAYOUT.capsWarningY, capsText, textStyle('small', 'danger', true))
+    this.capsWarning = this.add
+      .text(GAME_WIDTH / 2, GAME_HEIGHT * SCREEN_LAYOUT.capsWarningY, capsText, outlinedStyle('small', 'alert', true))
+      .setOrigin(0.5)
       .setDepth(LAYER.hud)
       .setVisible(false);
     this.pauseOverlay = new PauseOverlay(this).setDepth(LAYER.pause);
@@ -174,7 +179,7 @@ export class PlayScene extends Phaser.Scene {
       this.wall.warn(event.dir);
       this.callout.show(event.dir);
       this.synth?.shiftAlert(event.dir);
-      this.laneMarkers.setTarget({ lane: event.toLane, dir: event.dir });
+      this.laneTiles.setTarget({ lane: event.toLane, dir: event.dir });
       return;
     }
     const dir = event.toLane > this.holeLane ? 1 : -1;
@@ -212,7 +217,7 @@ export class PlayScene extends Phaser.Scene {
     this.wall.setHole(this.holeLane, holeGrid(this.spec.targets));
     this.wall.setAlpha(1).setDepth(LAYER.wall);
     this.figure.resetPose();
-    this.laneMarkers.setTarget(null);
+    this.laneTiles.setTarget(null);
     this.sequence.startWall(letters);
     this.phase = 'approach';
     this.setT(0);
@@ -253,9 +258,9 @@ export class PlayScene extends Phaser.Scene {
   private refreshAlignment(): void {
     const aligned = isAligned(this.figureLane, this.holeLane);
     this.sequence.setAligned(aligned);
-    this.laneMarkers.setLit(aligned ? this.figureLane : null);
+    this.laneTiles.setLit(aligned ? this.figureLane : null);
     // The target stays through the warning, while the old lane still counts.
-    if (aligned && !this.shiftWall.warning) this.laneMarkers.setTarget(null);
+    if (aligned && !this.shiftWall.warning) this.laneTiles.setTarget(null);
     this.maybeLock();
   }
 
@@ -300,17 +305,6 @@ export class PlayScene extends Phaser.Scene {
       this.wall.setHoleFilled(false);
       this.wall.setDepth(LAYER.wallPassed).setAlpha(1 - (scale - 1) / (RUSH_END_SCALE - 1));
     }
-  }
-
-  // The paper grain jumps to a new offset every GRAIN.boilMs, like the boil of
-  // hand-drawn animation (M10). Still for reduced motion.
-  private boilGrain(grain: Phaser.GameObjects.TileSprite): void {
-    if (prefersReducedMotion()) return;
-    this.time.addEvent({
-      delay: GRAIN.boilMs,
-      loop: true,
-      callback: () => grain.setTilePosition(Phaser.Math.Between(0, GRAIN.size), Phaser.Math.Between(0, GRAIN.size)),
-    });
   }
 
   private fail(): void {

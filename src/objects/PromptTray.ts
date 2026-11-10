@@ -6,13 +6,10 @@ import {
   GAME_WIDTH,
   SHIFT_MARK,
   STAGE_BOTTOM_Y,
-  TEAR,
   TEXT_COLORS,
   TRAY_HEIGHT,
 } from '@/config';
 import { isUppercaseLetter, type SequenceView } from '@/logic/sequence';
-import { tornLine } from '@/logic/torn';
-import { pencil, toVectors } from '@/objects/pencil';
 import { textStyle } from '@/scenes/text-styles';
 import { prefersReducedMotion } from '@/scenes/ui';
 
@@ -35,7 +32,7 @@ interface ChipLook {
 const LOOKS: Readonly<Record<ChipKind, ChipLook>> = {
   held: { fill: COLORS.chipHeld, edge: null, text: 'ink', mark: COLORS.chipShiftMark },
   current: { fill: COLORS.chipCurrent, edge: null, text: 'ink', mark: COLORS.chipShiftMark },
-  next: { fill: COLORS.chipNext, edge: COLORS.chipNextEdge, text: 'paper', mark: COLORS.chipNextEdge },
+  next: { fill: COLORS.chipNext, edge: COLORS.chipNextEdge, text: 'light', mark: COLORS.chipNextEdge },
   slipped: { fill: COLORS.chipSlipped, edge: null, text: 'ink', mark: COLORS.chipShiftMark },
 };
 
@@ -85,16 +82,9 @@ export class PromptTray extends Phaser.GameObjects.Container {
     super(scene);
     scene.add.existing(this);
 
-    // A black strip with a torn, pencilled top edge, like the mocks' prompt bar.
-    const background = new Phaser.GameObjects.Graphics(scene);
-    const left = { x: 0, y: STAGE_BOTTOM_Y };
-    const right = { x: GAME_WIDTH, y: STAGE_BOTTOM_Y };
-    const bottom = STAGE_BOTTOM_Y + TRAY_HEIGHT;
-    const top = [...tornLine(left, right, TEAR.step, TEAR.jag, Math.random), right];
-    background.fillStyle(COLORS.tray);
-    background.fillPoints(toVectors([...top, { x: GAME_WIDTH, y: bottom }, { x: 0, y: bottom }]), true);
-    pencil(background, top, false);
-    this.add(background);
+    // A plain black strip along the bottom, like the mocks' prompt bar.
+    const background = new Phaser.GameObjects.Rectangle(scene, 0, STAGE_BOTTOM_Y, GAME_WIDTH, TRAY_HEIGHT, COLORS.tray);
+    this.add(background.setOrigin(0, 0));
   }
 
   show(view: SequenceView): void {

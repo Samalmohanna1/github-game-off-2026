@@ -67,11 +67,6 @@ describe('config', () => {
     expect(C.FIGURE_HEIGHT).toBeLessThan(C.WALL_HEIGHT);
   });
 
-  it('keeps the lane markers on the floor, above the tray', () => {
-    expect(C.LANE_MARKER_FRONT_Y).toBeGreaterThan(C.FIGURE_FLOOR_Y);
-    expect(C.LANE_MARKER_FRONT_Y).toBeLessThanOrEqual(C.STAGE_BOTTOM_Y);
-  });
-
   it('fits every chip inside the tray', () => {
     expect(C.CHIP.size).toBeLessThan(C.TRAY_HEIGHT);
     expect(C.CHIP.currentSize).toBeLessThan(C.TRAY_HEIGHT);
@@ -89,10 +84,6 @@ describe('config', () => {
 
   it('holds the wall through the Shift Wall warning and slide, with time to spare', () => {
     expect(C.SHIFT_WALL_PAUSE).toBeGreaterThan(C.SHIFT_WALL_TELEGRAPH + C.SHIFT_WALL_SLIDE_MS);
-  });
-
-  it('fits the target lane chevrons inside a lane marker', () => {
-    expect(C.LANE_TARGET.chevronHeight).toBeLessThan(C.LANE_MARKER_FRONT_Y - C.FIGURE_FLOOR_Y);
   });
 
   it('slides the Shift Wall hole at least one lane', () => {
@@ -184,12 +175,15 @@ describe('color system', () => {
 });
 
 describe('graphics contrast', () => {
-  it.each(['wall', 'floorLine', 'tray', 'laneMarker', 'laneMarkerLit', 'figure', 'pencil'] as const)(
-    '%s stands out from the stage',
-    (name) => {
-      expect(contrastRatio(C.COLORS[name], C.COLORS.stage)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
-    },
-  );
+  it.each(['wall', 'floorLine', 'tray', 'figure', 'outline'] as const)('%s stands out from the stage', (name) => {
+    expect(contrastRatio(C.COLORS[name], C.COLORS.stage)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  });
+
+  // The lit tile and the Shift Wall's target outline sit on the floor, and
+  // the floor's edge lines run along it.
+  it.each(['laneLit', 'wallWarning', 'floorLine', 'figure'] as const)('%s stands out from the floor', (name) => {
+    expect(contrastRatio(C.COLORS[name], C.COLORS.floor)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  });
 
   // M10: the mocks' black figure is only 1.5:1 on the dark green wall, so its
   // cream edge is what outlines it there.
@@ -198,15 +192,14 @@ describe('graphics contrast', () => {
     expect(contrastRatio(C.COLORS.figureEdge, C.COLORS.figure)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
-  it('keeps the Shift Wall warning readable: wall on the stage, arrow on the wall, arrow on its card', () => {
+  it('keeps the Shift Wall warning readable: wall on the stage, arrow on the wall, callout arrow in its outline', () => {
     expect(contrastRatio(C.COLORS.wallWarning, C.COLORS.stage)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
     expect(contrastRatio(C.COLORS.shiftArrow, C.COLORS.wallWarning)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
-    expect(contrastRatio(C.COLORS.wallWarning, C.COLORS.panel)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(contrastRatio(C.COLORS.shiftArrow, C.COLORS.textOutline)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
-  it('cuts the hole out clearly from the wall, and pencils the paper cards', () => {
+  it('cuts the hole out clearly from the wall', () => {
     expect(contrastRatio(C.COLORS.holeFill, C.COLORS.wall)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
-    expect(contrastRatio(C.COLORS.pencil, C.COLORS.panel)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
   it.each(['chipHeld', 'chipCurrent', 'chipSlipped'] as const)('%s chips stand out from the tray', (name) => {
@@ -225,12 +218,14 @@ describe('graphics contrast', () => {
 
 const css = (color: string) => parseInt(color.slice(1), 16);
 
-// Every place each text color is drawn.
+// Every place each text color is drawn. Outlined text is measured against its
+// outline, which is all that touches it.
 const TEXT_ON = {
   stage: ['ink', 'muted', 'accent', 'danger'],
-  panel: ['ink', 'muted', 'accent', 'danger', 'warning'],
-  tray: ['paper'],
-  chipNext: ['paper'],
+  textOutline: ['light', 'good', 'alert', 'shift'],
+  debugPanel: ['ink'],
+  tray: ['light'],
+  chipNext: ['light'],
   chipHeld: ['ink'],
   chipCurrent: ['ink'],
   chipSlipped: ['ink'],

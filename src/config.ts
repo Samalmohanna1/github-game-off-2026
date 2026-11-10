@@ -4,50 +4,48 @@ export const GAME_HEIGHT = 720;
 // The color system (M10). Every color the game draws is named once in PALETTE,
 // and components only use the roles in COLORS and TEXT_COLORS, never a raw
 // value (tests/config.test.ts checks both). The base swatches were sampled
-// from the design mocks (cream, warm gray, near-black, the two greens), and the
-// yellow and coral accents from the mock's logo. The other entries are darker
-// steps of those, so each can be used on cream, where the logo accents are too
-// light to read.
+// from the design mocks (cream, near-black, the two greens, the pale disc), and
+// the yellow and coral accents from the mock's logo. The other entries are
+// darker steps of those, so each can be used on cream, where the logo accents
+// are too light to read.
 export const PALETTE = {
-  paper: 0xf8f0e3, // cards: a lighter sheet than the stage
   cream: 0xefdfca, // mock swatch: the stage
-  sand: 0xd1d0a8, // the mocks' pale disc
-  stone: 0xc0bcad, // mock swatch: warm gray
-  graphite: 0x4a433b, // pencil: every outline, and quiet text
+  sand: 0xd1d0a8, // the mocks' pale disc: the disc and the floor
+  sandDeep: 0xaeac85, // sand, darkened for the floor's tile seams
+  graphite: 0x4a433b, // every outline, and quiet text
   ink: 0x20201f, // mock swatch
   green: 0x49a443, // mock swatch
-  greenDeep: 0x2f7f3a, // green, deepened to hold 3:1 on cream
+  greenDeep: 0x2f7f3a, // green, deepened to hold 3:1 on cream and sand
   greenDark: 0x17472d, // mock swatch
   yellow: 0xffff7f, // mock logo
-  ochre: 0x8f6a00, // yellow, darkened to hold 3:1 on cream
-  ochreDark: 0x6f5200, // yellow, darkened for text
+  ochre: 0x8f6a00, // yellow, darkened to hold 3:1 on cream and sand
   coral: 0xff7f7f, // mock logo
   red: 0xd8453c, // coral, darkened to hold 3:1 on cream
   redDark: 0xa32a22, // coral, darkened for text
 } as const;
 
 // What each color means. Graphics that carry meaning (the wall and its hole,
-// the floor edges, the tray, the lane markers, the figure, pencil outlines)
-// must stay at or above 3:1 against COLORS.stage; the figure's cream edge
-// outlines it against the dark green wall, where its black can't. The bright
-// green only reaches 2.4:1 on cream, so it decorates (verges, held chips on the
-// black tray) and a deeper green marks the lined-up lane. The two accent
-// families are the alerts: yellow means the hole is moving (Shift Walls), and
-// coral means a mistake (a wrong key, a slip, a close call, Caps Lock).
+// the floor edges, the tray, the figure, outlines) must stay at or above 3:1
+// against COLORS.stage, and the lane tiles against COLORS.floor; the figure's
+// cream edge outlines it against the dark green wall, where its black can't.
+// The bright green only reaches 2.4:1 on cream, so it decorates (verges, held
+// chips on the black tray) and a deeper green lights the lined-up lane's tile.
+// The two accent families are the alerts: yellow means the hole is moving
+// (Shift Walls), and coral means a mistake (a wrong key, a slip, a close call,
+// Caps Lock).
 export const COLORS = {
   stage: PALETTE.cream,
-  floor: PALETTE.cream,
+  floor: PALETTE.sand,
   floorLine: PALETTE.graphite,
-  floorSeam: PALETTE.stone, // decorative tile seams
+  floorSeam: PALETTE.sandDeep, // decorative tile seams
   verge: PALETTE.green, // decorative grass strips beside the floor
   vergeOuter: PALETTE.greenDark,
   backdropDisc: PALETTE.sand,
-  pencil: PALETTE.graphite,
+  outline: PALETTE.graphite,
   wall: PALETTE.greenDark,
-  holeFill: PALETTE.cream, // the hole reads as one clean cutout of paper
+  holeFill: PALETTE.cream, // the hole reads as one clean cutout
   tray: PALETTE.ink,
-  laneMarker: PALETTE.graphite,
-  laneMarkerLit: PALETTE.greenDeep,
+  laneLit: PALETTE.greenDeep,
   figure: PALETTE.ink,
   figureEdge: PALETTE.cream,
   figureShadow: PALETTE.ink,
@@ -65,28 +63,32 @@ export const COLORS = {
   // full contrast while still reading as "not yet".
   chipNext: PALETTE.ink,
   chipNextEdge: PALETTE.cream,
-  // Paper cards: the HUD, the timing label, the SHIFT callout, the Caps Lock
-  // warning, the pause panel.
-  panel: PALETTE.paper,
+  // Text drawn over the moving scene (the timing label, the SHIFT callout and
+  // its arrow, the Caps Lock warning, the pause text) is bright, inside a thick
+  // outline of this, so it reads over anything.
+  textOutline: PALETTE.ink,
+  debugPanel: PALETTE.cream,
   splash: PALETTE.green,
   splashRipple: PALETTE.greenDark,
-  grain: PALETTE.ink,
-  grainLight: PALETTE.paper,
 } as const;
 
 const css = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
 
 // CSS strings because Phaser text styles take CSS colors. ink, muted, accent
-// and danger sit on the stage or a paper card (COLORS.panel); warning is the
-// SHIFT callout on its card; ink also sits on the chips, and paper on the black
-// tray. Every pair must reach 4.5:1 (tests/config.test.ts).
+// and danger sit on the stage (the HUD, the title and game-over screens); ink
+// also sits on the chips and the debug panel, and light on the black tray.
+// light, good, alert and shift are the outlined text over the scene, measured
+// against their outline (COLORS.textOutline). Every pair must reach 4.5:1
+// (tests/config.test.ts).
 export const TEXT_COLORS = {
   ink: css(PALETTE.ink),
   muted: css(PALETTE.graphite),
   accent: css(PALETTE.greenDark),
   danger: css(PALETTE.redDark),
-  paper: css(PALETTE.cream),
-  warning: css(PALETTE.ochreDark),
+  light: css(PALETTE.cream),
+  good: css(PALETTE.green),
+  alert: css(PALETTE.coral),
+  shift: css(PALETTE.yellow),
 } as const;
 
 // Anton for display text (titles, grades, big numbers) and IBM Plex Mono for
@@ -121,6 +123,17 @@ export const FONT_ROLES: Readonly<Record<keyof typeof FONT_SIZES, 'display' | 'm
   small: 'mono',
 };
 
+// Outlined text (outlinedStyle() in src/scenes/text-styles.ts): the stroke
+// width per size, px. Half of it lies outside the letters.
+export const TEXT_OUTLINE: Readonly<Record<keyof typeof FONT_SIZES, number>> = {
+  title: 16,
+  heading: 14,
+  hud: 10,
+  chip: 8,
+  body: 9,
+  small: 7,
+};
+
 // Fractions of GAME_HEIGHT.
 export const SCREEN_LAYOUT = {
   titleY: 0.36,
@@ -132,14 +145,13 @@ export const SCREEN_LAYOUT = {
   gameOverPromptY: 0.85,
   capsWarningY: 0.07,
   shiftCalloutY: 0.14, // above the wall while it is far enough away to shift
-  pauseHeadingY: 0.44,
-  pausePromptY: 0.56,
+  pauseHeadingY: 0.42,
+  pausePromptY: 0.58,
 } as const;
 
 // Debug overlay (PLAN.md §8), toggled with F2: top-left corner, px.
 export const DEBUG_OVERLAY = { x: 12, y: 12, padding: 10 } as const;
 
-export const PAUSE_PANEL = { width: 560, height: 220 } as const; // px
 export const PAUSE_DIM_ALPHA = 0.7; // stage-colored veil over the paused game
 
 // Prompt tray chips, px. Held chips line up from the tray's left edge, the
@@ -173,28 +185,42 @@ export const HORIZON_Y = 140;
 export const FIGURE_FLOOR_Y = 560;
 export const FLOOR_LINE_WIDTH = 3;
 
-// Art (PLAN.md §10, M10): the paper collage of the design mocks, all drawn in
-// code. Grain is sparse dark and light specks, tiled over the stage under the
-// HUD, tray and labels, so the scene reads as printed on one sheet of paper.
-// It shifts to a new random offset every boilMs, like the boil of hand-drawn
-// animation (still for reduced motion).
-export const GRAIN = { size: 256, darkShare: 0.09, lightShare: 0.05, maxAlpha: 0.22, boilMs: 160 } as const;
-// Every outline is a pencil line: a firm stroke plus a fainter ghost stroke,
-// each wobbling a little off the true line (src/logic/sketch.ts), px.
-export const PENCIL = { width: 2.5, step: 10, jitter: 0.8, ghostJitter: 1.8, ghostWidth: 1.5, ghostAlpha: 0.35 } as const;
-// Torn edges on paper cards: a point about every `step` px, pushed up to `jag`
-// px across the edge (src/logic/torn.ts).
-export const TEAR = { step: 14, jag: 3 } as const;
-// Paper cards behind the timing label, the SHIFT callout and the pause panel:
-// padding around their text and a slight tilt, px and degrees.
-export const CARD = { padX: 26, padY: 14, tiltDeg: 2 } as const;
-// SCORE top-left and WALL top-right, each on a paper card. Label and value y
-// are from the card's center, px.
-export const HUD = { margin: 18, width: 210, height: 98, labelY: -24, valueY: 14, tiltDeg: 2 } as const;
+// Art (PLAN.md §10, M10): the palette and shapes of the design mocks, all drawn
+// in code, with clean straight outlines.
+export const OUTLINE_WIDTH = 2.5; // px
+// Grain is a style added to single elements (addGrain() in
+// src/objects/grain.ts), never one layer over the scene. Sparse specks darken
+// or lighten the element's own color, only where the element is drawn, so the
+// wall gets greens and the floor its own tones. Per element: specks are
+// `cell` px square in the element's own space; `dark` and `light` are the
+// share of cells that are specks; `darken` and `lighten` are the most a speck
+// moves toward black or white (0-1). The specks re-roll every GRAIN_BOIL_MS,
+// like the boil of hand-drawn animation (still for reduced motion).
+export interface GrainLook {
+  readonly cell: number;
+  readonly dark: number;
+  readonly light: number;
+  readonly darken: number;
+  readonly lighten: number;
+}
+export const GRAIN_BOIL_MS = 160;
+export const GRAIN = {
+  stage: { cell: 1, dark: 0.09, light: 0.05, darken: 0.22, lighten: 0.6 },
+  backdrop: { cell: 1, dark: 0.1, light: 0.06, darken: 0.25, lighten: 0.5 },
+  floor: { cell: 1, dark: 0.1, light: 0.06, darken: 0.25, lighten: 0.4 },
+  // The wall's grain is in its own space, so it shrinks with distance: 3 px
+  // specks stay about a screen pixel wide at WALL_START_SCALE.
+  wall: { cell: 3, dark: 0.1, light: 0.08, darken: 0.35, lighten: 0.22 },
+} as const satisfies Record<string, GrainLook>;
+// SCORE top-left and WALL top-right, straight on the stage: x from the screen
+// edge, label and value y from the top, px.
+export const HUD = { marginX: 32, labelY: 18, valueY: 44 } as const;
 // The floor: green verges outside its edges (vergeWidth as a share of the
 // floor's half width, the outer share in dark green), and tile seams along the
 // lanes and across it. Cross seams are evenly spaced in 1/scale, so they
-// bunch up into the distance like real tiles.
+// bunch up into the distance like real tiles, and are cut so the figure's
+// plane runs through the middle of a row: the figure stands centered on its
+// lane's tile (src/logic/perspective.ts). tileDepth is in 1/scale.
 export const FLOOR = { vergeWidth: 0.22, vergeOuterShare: 0.45, seamWidth: 2, tileDepth: 0.2 } as const;
 
 // The backdrop: one pale disc behind the far end of the stage, framing where
@@ -214,11 +240,9 @@ export const FIGURE_SHADOW = { width: 170, height: 22, alpha: 0.22 } as const;
 export const FIGURE_SLIDE_MS = 90; // one lane, visual only: the lane changes instantly
 
 export const LANE_COUNT = 7;
-export const LANE_MARKER_FRONT_Y = 600; // px; strips run from FIGURE_FLOOR_Y down to here
-export const LANE_MARKER_GAP = 12; // px between strips, at the figure's plane
-export const LANE_MARKER_EDGE_WIDTH = 2;
-// The Shift Wall's target lane: an orange outline with chevrons pointing the
-// way the hole went, until the figure is lined up with it. px.
+// The Shift Wall's target lane: its tile under the figure's row gets a thick
+// ochre outline with chevrons pointing the way the hole went, until the figure
+// is lined up with it. px.
 export const LANE_TARGET = { edgeWidth: 5, chevronWidth: 12, chevronHeight: 22, chevronGap: 20, chevronLineWidth: 4 } as const;
 
 export const WALL_START_SCALE = 0.35;
