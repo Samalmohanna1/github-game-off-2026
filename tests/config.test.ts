@@ -67,9 +67,17 @@ describe('config', () => {
     expect(C.FIGURE_HEIGHT).toBeLessThan(C.WALL_HEIGHT);
   });
 
-  it('fits every chip inside the tray', () => {
-    expect(C.CHIP.size).toBeLessThan(C.TRAY_HEIGHT);
-    expect(C.CHIP.currentSize).toBeLessThan(C.TRAY_HEIGHT);
+  // M10b: the console sits below the runway, so it never covers it or the
+  // figure, and the current key cap's lime frame stays inside it.
+  it('fits every chip, and the current one with its frame, inside the console, inside the tray', () => {
+    const framed = C.CHIP.currentSize + 2 * (C.CHIP.focusGap + C.CHIP.focusWidth / 2);
+    expect(C.CHIP.size).toBeLessThan(C.CHIP.currentSize);
+    expect(framed).toBeLessThanOrEqual(C.CONSOLE.height);
+    expect(C.CONSOLE.height).toBeLessThanOrEqual(C.TRAY_HEIGHT);
+  });
+
+  it('keeps the HUD above the horizon, where nothing that moves reaches', () => {
+    expect(C.HUD.top + C.HUD.height).toBeLessThan(C.HORIZON_Y);
   });
 
   it('keeps the Shift mark inside its chip corner', () => {
@@ -177,39 +185,62 @@ describe('color system', () => {
 });
 
 describe('graphics contrast', () => {
-  it.each(['wall', 'floorLine', 'tray', 'figure', 'outline'] as const)('%s stands out from the stage', (name) => {
-    expect(contrastRatio(C.COLORS[name], C.COLORS.stage)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  // M10b: the wall stands in the dark void, which is lit along the horizon.
+  // Its image can be any color, so its cream frame is what sets it apart.
+  it.each(['void', 'voidGlow'] as const)('frames the wall clearly against the %s', (name) => {
+    expect(contrastRatio(C.COLORS.wallFrame, C.COLORS[name])).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
-  // The lit tile and the Shift Wall's target outline sit on the floor, and
-  // the floor's edge lines run along it.
-  it.each(['laneLit', 'wallWarning', 'floorLine', 'figure'] as const)('%s stands out from the floor', (name) => {
+  // The hole shows the void and the runway behind the wall: its lime edge
+  // reads on the one and its ink edge on the other, whatever the image.
+  it('edges the hole clearly against whatever shows through it', () => {
+    expect(contrastRatio(C.COLORS.holeEdge, C.COLORS.void)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(contrastRatio(C.COLORS.holeEdge, C.COLORS.voidGlow)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(contrastRatio(C.COLORS.holeEdgeShade, C.COLORS.floor)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  });
+
+  it('edges the hole clearly on a wall with no image', () => {
+    expect(contrastRatio(C.COLORS.holeEdge, C.COLORS.wall)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  });
+
+  // The lit tile and the Shift Wall's target outline sit on the runway, and
+  // its edge lines run along it.
+  it.each(['laneLit', 'wallWarning', 'floorLine', 'figure'] as const)('%s stands out from the runway', (name) => {
     expect(contrastRatio(C.COLORS[name], C.COLORS.floor)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
-  // M10: the mocks' black figure is only 1.5:1 on the dark green wall, so its
-  // cream edge is what outlines it there.
-  it('keeps the figure readable in front of the wall by its edge', () => {
-    expect(contrastRatio(C.COLORS.figureEdge, C.COLORS.wall)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
-    expect(contrastRatio(C.COLORS.figureEdge, C.COLORS.figure)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  // The black figure is only 1.5:1 on a dark wall and less on the void, so
+  // its cream edge is what outlines it there.
+  it.each(['void', 'wall', 'figure'] as const)('outlines the figure clearly against the %s by its edge', (name) => {
+    expect(contrastRatio(C.COLORS.figureEdge, C.COLORS[name])).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
-  it('keeps the Shift Wall warning readable: wall on the stage, arrow on the wall, callout arrow in its outline', () => {
-    expect(contrastRatio(C.COLORS.wallWarning, C.COLORS.stage)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  // Over the horizon's glow, the wall's frame carries the alert walls too.
+  it.each(['wallWarning', 'wallFlash'] as const)('the %s wall stands out from the void', (name) => {
+    expect(contrastRatio(C.COLORS[name], C.COLORS.void)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  });
+
+  it('keeps the Shift Wall arrows readable: on the wall, and in the callout outline', () => {
     expect(contrastRatio(C.COLORS.shiftArrow, C.COLORS.wallWarning)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
     expect(contrastRatio(C.COLORS.shiftArrow, C.COLORS.textOutline)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
-  it.each(['chipHeld', 'chipCurrent', 'chipSlipped'] as const)('%s chips stand out from the tray', (name) => {
-    expect(contrastRatio(C.COLORS[name], C.COLORS.tray)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  // The panels' faces are close to the void, so their edges set them apart.
+  it('sets the UI panels off from the void by their edge and accent', () => {
+    expect(contrastRatio(C.COLORS.panelEdge, C.COLORS.void)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(contrastRatio(C.COLORS.panelAccent, C.COLORS.panel)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  });
+
+  it.each(['chipHeld', 'chipCurrent', 'chipSlipped', 'chipFocus'] as const)('%s stands out from the console', (name) => {
+    expect(contrastRatio(C.COLORS[name], C.COLORS.panel)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
   it.each(['chipHeld', 'chipCurrent', 'chipSlipped'] as const)('the Shift mark reads on %s chips', (name) => {
     expect(contrastRatio(C.COLORS.chipShiftMark, C.COLORS[name])).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
-  it('outlines the next-letter preview, and its Shift mark, clearly on the tray', () => {
-    expect(contrastRatio(C.COLORS.chipNextEdge, C.COLORS.tray)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  it('outlines the next-letter preview, and its Shift mark, clearly on the console', () => {
+    expect(contrastRatio(C.COLORS.chipNextEdge, C.COLORS.panel)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
     expect(contrastRatio(C.COLORS.chipNextEdge, C.COLORS.chipNext)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 });
@@ -222,11 +253,8 @@ const TEXT_ON = {
   stage: ['ink', 'muted', 'accent', 'danger'],
   textOutline: ['light', 'good', 'alert', 'shift'],
   debugPanel: ['ink'],
-  // The HUD sits on the pale sheets in the top corners; a long score reaches
-  // the sage disc.
-  collagePaper: ['ink'],
-  collageSage: ['ink'],
-  tray: ['light'],
+  // The HUD's numbers and captions sit on its panels.
+  panel: ['light', 'label'],
   chipNext: ['light'],
   chipHeld: ['ink'],
   chipCurrent: ['ink'],

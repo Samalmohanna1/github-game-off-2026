@@ -3,14 +3,14 @@ import { COLORS, GAME_HEIGHT, GAME_WIDTH, PAUSE_DIM_ALPHA, SCREEN_LAYOUT } from 
 import { outlinedStyle } from '@/scenes/text-styles';
 import { addPulsingPrompt } from '@/scenes/ui';
 
-// A stage-colored veil over the paused game, with outlined text (M10) so its
+// A void-colored veil over the paused game, with outlined text (M10) so its
 // contrast never depends on what the veil is covering.
 export class PauseOverlay extends Phaser.GameObjects.Container {
   constructor(scene: Phaser.Scene) {
     super(scene);
     scene.add.existing(this);
 
-    const veil = new Phaser.GameObjects.Rectangle(scene, 0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.stage, PAUSE_DIM_ALPHA);
+    const veil = new Phaser.GameObjects.Rectangle(scene, 0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.veil, PAUSE_DIM_ALPHA);
     veil.setOrigin(0, 0);
     const heading = new Phaser.GameObjects.Text(
       scene,

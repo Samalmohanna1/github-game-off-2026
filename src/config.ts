@@ -1,28 +1,26 @@
 export const GAME_WIDTH = 1280;
 export const GAME_HEIGHT = 720;
 
-// The color system (M10). Every color the game draws is named once in PALETTE,
-// and components only use the roles in COLORS and TEXT_COLORS, never a raw
-// value (tests/config.test.ts checks both). The base swatches were sampled
-// from the design mocks (cream, near-black, the two greens), the collage's
-// paper colors from the M10 review 4 reference (sage, forest, stone,
-// charcoal), and the yellow and coral accents from the mock's logo. The other
-// entries are darker steps of those, so each can be used on cream, where the
-// logo accents are too light to read.
+// The color system. Every color the game draws is named once in PALETTE, and
+// components only use the roles in COLORS and TEXT_COLORS, never a raw value
+// (tests/config.test.ts checks both). The base swatches were sampled from the
+// design mocks (cream, near-black, dark green), sage and forest from the M10
+// collage, and the yellow and coral accents from the mock's logo. The grid
+// void (M10b) adds a near-black green for the void and an acid lime accent.
+// The other entries are darker steps of those, so each can be used on cream,
+// where the logo accents are too light to read.
 export const PALETTE = {
-  cream: 0xefdfca, // mock swatch: the stage and the floor
-  creamDeep: 0xd3c5ae, // cream, darkened for the floor's seams and tile tones
-  paper: 0xf5ede0, // a lighter sheet in the collage
-  paperCore: 0xfbf7ef, // the pale core a tear shows
-  sage: 0x86a064,
-  forest: 0x4a6e43,
-  stone: 0x8b8473,
-  charcoal: 0x3b3a37,
-  graphite: 0x4a433b, // every outline, and quiet text
-  ink: 0x20201f, // mock swatch
-  green: 0x49a443, // mock swatch
-  greenDeep: 0x2f7f3a, // green, deepened to hold 3:1 on cream
-  greenDark: 0x17472d, // mock swatch
+  cream: 0xefdfca, // mock swatch: the runway, light text, the wall's frame
+  creamDeep: 0xd3c5ae, // cream, darkened for the runway's seams and tile tones
+  sage: 0x86a064, // the secondary environment color, and quiet labels
+  forest: 0x4a6e43, // the void's grid, UI hairlines, and a wall with no image
+  graphite: 0x4a433b, // the runway's outline, and quiet text on cream
+  charcoal: 0x3b3a37, // the fine grid inside UI panels
+  ink: 0x20201f, // mock swatch: UI surfaces and the figure
+  greenDark: 0x17472d, // mock swatch: the glow along the horizon
+  voidInk: 0x0b1510, // greenDark, taken almost to black: the void
+  greenDeep: 0x2f7f3a, // deepened to hold 3:1 on cream: the lit lane tile
+  lime: 0xb4ec4a, // the acid accent, used sparingly
   yellow: 0xffff7f, // mock logo
   ochre: 0x8f6a00, // yellow, darkened to hold 3:1 on cream
   coral: 0xff7f7f, // mock logo
@@ -30,28 +28,44 @@ export const PALETTE = {
   redDark: 0xa32a22, // coral, darkened for text
 } as const;
 
-// What each color means. Graphics that carry meaning (the wall and its hole,
-// the floor edges, the tray, the figure, outlines) must stay at or above 3:1
-// against COLORS.stage, and the lane tiles against COLORS.floor; the figure's
-// cream edge outlines it against the dark green wall, where its black can't.
-// The bright green only reaches 2.4:1 on cream, so it decorates (verges, held
-// chips on the black tray) and a deeper green lights the lined-up lane's tile.
-// The collage's colors only decorate the background, at its edges.
-// The two accent families are the alerts: yellow means the hole is moving
-// (Shift Walls), and coral means a mistake (a wrong key, a slip, a close call,
-// Caps Lock).
+// What each color means. The play screen (M10b) is a cream runway in a dark
+// grid void. Graphics that carry meaning must hold 3:1 against what they sit
+// on (tests/config.test.ts): the wall's cream frame against the void and its
+// glow, the hole's two-tone edge against both things the hole shows (lime
+// against the void, ink against the runway), the runway's lines and tiles
+// against the runway, and the key caps against their panel. The wall's image
+// can be any color, so its frame and hole edge carry its contrast. The
+// figure's cream edge outlines it against the void and the wall, where its
+// black can't. Lime is the accent: the hole's edge, the spawn line, the HUD
+// and console accents, held key caps and the success flashes. The two alert
+// families stay: yellow means the hole is moving (Shift Walls), and coral
+// means a mistake (a wrong key, a slip, a close call, Caps Lock).
 export const COLORS = {
+  // The title and game-over screens, until M11 restyles them.
   stage: PALETTE.cream,
+  // The grid void behind the play screen: near-black, lit faintly along the
+  // horizon, with a perspective grid, squares that fade in and out and a few
+  // lime pixels. All decoration.
+  void: PALETTE.voidInk,
+  voidGlow: PALETTE.greenDark,
+  voidGrid: PALETTE.forest,
+  voidCell: PALETTE.sage,
+  voidPixel: PALETTE.lime,
+  horizon: PALETTE.sage,
+  // The runway.
   floor: PALETTE.cream,
   floorLine: PALETTE.graphite,
   floorSeam: PALETTE.creamDeep, // decorative tile seams
   floorTone: PALETTE.creamDeep, // laid faintly over some tiles, so they vary
-  verge: PALETTE.green, // decorative grass strips beside the floor
-  vergeOuter: PALETTE.greenDark,
-  outline: PALETTE.graphite,
-  wall: PALETTE.greenDark,
-  tray: PALETTE.ink,
+  spawnLine: PALETTE.lime, // where walls appear, beyond the runway's far edge
   laneLit: PALETTE.greenDeep,
+  // The wall: an image panel (src/assets/walls/) in a cream frame.
+  wall: PALETTE.forest, // the panel's face when no image is supplied
+  wallFrame: PALETTE.cream,
+  holeEdge: PALETTE.lime,
+  holeEdgeShade: PALETTE.ink,
+  wallComplete: PALETTE.lime, // the flash as the missing piece fills in
+  passPulse: PALETTE.lime,
   figure: PALETTE.ink,
   figureEdge: PALETTE.cream,
   figureShadow: PALETTE.ink,
@@ -60,11 +74,17 @@ export const COLORS = {
   wallWarning: PALETTE.ochre,
   shiftArrow: PALETTE.yellow,
   wallFlash: PALETTE.red,
-  // Key caps on the black tray, each with black letters.
-  chipHeld: PALETTE.green,
+  // Angular UI panels: the HUD and the console the key caps sit in.
+  panel: PALETTE.ink,
+  panelEdge: PALETTE.forest,
+  panelGrid: PALETTE.charcoal,
+  panelAccent: PALETTE.lime,
+  // Key caps on the console, each with black letters.
+  chipHeld: PALETTE.lime,
   chipCurrent: PALETTE.cream,
   chipSlipped: PALETTE.coral,
   chipShiftMark: PALETTE.ink,
+  chipFocus: PALETTE.lime, // the frame round the current key cap
   // The next-letter preview is hollow rather than faded, so its letter keeps
   // full contrast while still reading as "not yet".
   chipNext: PALETTE.ink,
@@ -74,23 +94,15 @@ export const COLORS = {
   // outline of this, so it reads over anything.
   textOutline: PALETTE.ink,
   debugPanel: PALETTE.cream,
-  // The background collage (src/data/collage.ts).
-  collagePaper: PALETTE.paper,
-  collageCore: PALETTE.paperCore,
-  collageSage: PALETTE.sage,
-  collageForest: PALETTE.forest,
-  collageStone: PALETTE.stone,
-  collageCharcoal: PALETTE.charcoal,
-  collageGrid: PALETTE.graphite,
-  collageForestGrid: PALETTE.greenDark,
+  veil: PALETTE.voidInk, // over the paused game
 } as const;
 
 const css = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
 
 // CSS strings because Phaser text styles take CSS colors. ink, muted, accent
 // and danger sit on the stage (the title and game-over screens); ink also sits
-// on the chips, the debug panel and the collage under the HUD, and light on
-// the black tray.
+// on the chips and the debug panel. light and label sit on the UI panels (the
+// HUD's numbers and captions), and light on the hollow preview chip.
 // light, good, alert and shift are the outlined text over the scene, measured
 // against their outline (COLORS.textOutline). Every pair must reach 4.5:1
 // (tests/config.test.ts).
@@ -100,7 +112,8 @@ export const TEXT_COLORS = {
   accent: css(PALETTE.greenDark),
   danger: css(PALETTE.redDark),
   light: css(PALETTE.cream),
-  good: css(PALETTE.green),
+  label: css(PALETTE.sage),
+  good: css(PALETTE.lime),
   alert: css(PALETTE.coral),
   shift: css(PALETTE.yellow),
 } as const;
@@ -129,11 +142,12 @@ export const FONT_SIZES = {
 } as const;
 
 // Which family each size uses. Anton has one weight, so it is never bolded.
+// The HUD's captions are technical detail, so they set in IBM Plex Mono (M10b).
 export const FONT_ROLES: Readonly<Record<keyof typeof FONT_SIZES, 'display' | 'mono'>> = {
   title: 'display',
   heading: 'display',
   hud: 'display',
-  hudLabel: 'display',
+  hudLabel: 'mono',
   chip: 'mono',
   body: 'mono',
   small: 'mono',
@@ -169,20 +183,50 @@ export const SCREEN_LAYOUT = {
 // Debug overlay (PLAN.md §8), toggled with F2: top-left corner, px.
 export const DEBUG_OVERLAY = { x: 12, y: 12, padding: 10 } as const;
 
-export const PAUSE_DIM_ALPHA = 0.7; // stage-colored veil over the paused game
+export const PAUSE_DIM_ALPHA = 0.7; // void-colored veil over the paused game
 
-// Prompt tray chips, px. Held chips line up from the tray's left edge, the
-// current prompt sits in the center, and to its right come the next-letter
-// preview and then slipped letters, in queue order. When a letter becomes
-// current it slides in from its spot on the right over slideMs.
+// Key caps in the console, px. The current prompt sits in the center; held
+// letters line up to its left, the most recent nearest the center, and to its
+// right come the next-letter preview and then slipped letters, in queue
+// order. Letters flow right to left: a chip that changes place slides there
+// over slideMs. A newly held chip pops from popScale; a newly slipped one
+// wobbles. Each cap is a square with its top-left and bottom-right corners
+// cut by `cut`, and the current one has a lime frame focusGap outside it.
 export const CHIP = {
   size: 68,
   currentSize: 88,
   gap: 14,
-  edgeInset: 40,
-  radius: 6, // square-ish key caps, as in the mocks
+  cut: 10,
   nextEdgeWidth: 3,
+  focusGap: 5,
+  focusWidth: 3,
   slideMs: 140,
+  popScale: 1.2,
+  popMs: 220,
+  wobble: { deg: 9, ms: 280, swings: 3 },
+} as const;
+
+// The console the key caps sit in, centered along the bottom, below the
+// runway, and wide enough for MAX_LETTERS held caps beside the current one.
+// px: padX past the outermost cap, cut on its top-left and bottom-right
+// corners. The socket outlines the current cap's slot where its lime frame
+// goes, so the slot shows while no letter is prompted.
+export const CONSOLE = {
+  height: 104,
+  padX: 22,
+  cut: 18,
+  socketWidth: 2,
+  accentLength: 96, // along the top, from the right
+} as const;
+
+// The angular UI panels (the HUD and the console): a near-black face with a
+// fine inner grid every gridSpacing px, a thin edge, and a short lime accent
+// bar accentWidth px thick along one side (its length is per panel). px.
+export const PANEL = {
+  edgeWidth: 1.5,
+  gridSpacing: 12,
+  gridAlpha: 0.55,
+  accentWidth: 5,
 } as const;
 
 // The outlined Shift arrow on capital chips, in the top-right corner. Size and
@@ -206,50 +250,68 @@ export const HORIZON_Y = 140;
 export const FIGURE_FLOOR_Y = 560;
 export const FLOOR_LINE_WIDTH = 2;
 
-// Art (PLAN.md §10, M10): an editorial collage. Torn paper at the background's
-// edges, clean geometric shapes with thin outlines for everything that plays.
-// Texture is a style added to single elements (addGrain() in
-// src/objects/grain.ts), never one layer over the scene: it shifts the
-// element's own color a little darker or lighter, only where the element is
-// drawn. Per element, in its own px: `mottle` is the most the soft, blotchy
-// paper tone shifts toward black or white (0-1), over blotches about
-// `mottleSize` px; `darken` and `lighten` are the most each fine grain cell,
-// `cell` px square, moves. Moderate on the background, very faint on the
-// floor, faint on the wall; the figure and the tray stay clean.
-// The mottle stays put; the fine grain re-rolls every GRAIN_BOIL_MS, like the
-// boil of hand-drawn animation (still for reduced motion).
-export interface GrainLook {
-  readonly cell: number;
-  readonly darken: number;
-  readonly lighten: number;
-  readonly mottle: number;
-  readonly mottleSize: number;
-}
-export const GRAIN_BOIL_MS = 160;
-export const GRAIN = {
-  background: { cell: 1, darken: 0.05, lighten: 0.05, mottle: 0.07, mottleSize: 70 },
-  floor: { cell: 1, darken: 0.025, lighten: 0.03, mottle: 0.03, mottleSize: 50 },
-  // In the wall's own space, so it shrinks with distance. Dark colors show a
-  // lift toward white far more than a darkening, so its grain lightens least.
-  wall: { cell: 2, darken: 0.08, lighten: 0.02, mottle: 0.07, mottleSize: 40 },
-} as const satisfies Record<string, GrainLook>;
-// Torn edges in the collage (src/logic/torn.ts): a point about every `step`
-// px, pushed up to `jag` px across the edge, and a pale core `rim` px deep.
-export const TEAR = { step: 9, jag: 3, rim: 5 } as const;
-// Seeds the collage's tears and the floor's tile tones, so the scene looks the
-// same every run.
+// Art (PLAN.md §10, M10b): a cream runway suspended in a dark grid void, a
+// wall that is an image panel with a cutout, and angular near-black UI with
+// lime accents. Clean edges and no texture: everything is drawn in code
+// except the wall images.
+// Seeds the runway's tile tones, so the scene looks the same every run.
 export const ART_SEED = 'shape-shift';
-// SCORE top-left and WALL top-right, in Anton: x from the screen edge, label
-// and value y from the top, px.
-export const HUD = { marginX: 40, labelY: 31, valueY: 48 } as const;
-// The floor: green verges outside its edges (vergeWidth as a share of the
-// floor's half width, the outer share in dark green), and tile seams along the
-// lanes and across it. Cross seams are evenly spaced in 1/scale, so they
-// bunch up into the distance like real tiles, and are cut so the figure's
-// plane runs through the middle of a row: the figure stands centered on its
-// lane's tile (src/logic/perspective.ts). tileDepth is in 1/scale.
-// toneMax is the most floorTone shows over a tile (0-1), picked per tile.
-export const FLOOR = { vergeWidth: 0.22, vergeOuterShare: 0.45, seamWidth: 1, tileDepth: 0.2, toneMax: 0.45 } as const;
+// The grid void (GridVoid): a ground grid in the stage's perspective,
+// continuing the runway's lanes and tile rows out to the horizon. Depths are
+// 1/scale, as for the runway's tiles. The sky darkens upward from a glow
+// glowAbove px over the horizon; the ground darkens toward the camera from a
+// glow glowBelow px under it. Grid lines fade from fadeDepth[0] to nothing at
+// fadeDepth[1], so they never bunch up at the horizon; the lines toward the
+// vanishing point fade in pieces fadeStep longer than the last. The grid
+// drifts toward the camera one tile row every driftMs. A few of its squares
+// (cells, at most cellAlpha) and a few lime pixels (pixelSize px at the
+// figure's plane, shrinking with depth) rise and fall over lifeMs each,
+// between glintDepth. Still for reduced motion.
+export const VOID = {
+  glowAbove: 90,
+  glowBelow: 190,
+  fadeDepth: [3, 16] as readonly [number, number],
+  fadeStep: 0.15,
+  lineWidth: 1,
+  lineAlpha: 0.5,
+  horizonWidth: 1.5,
+  horizonAlpha: 0.8,
+  driftMs: 9000,
+  cells: 9,
+  cellAlpha: 0.14,
+  pixels: 5,
+  pixelAlpha: 0.9,
+  pixelSize: 14,
+  glintDepth: [1.2, 6] as readonly [number, number],
+  lifeMs: [3500, 8000] as readonly [number, number],
+} as const;
+// HUD: SCORE in the top-left corner and WALL in the top-right, each on an
+// angular panel (PANEL) whose inner bottom corner is cut by `cut`, with its
+// accent down the outer side from the top. The panel grows with its number
+// from minWidth. A changed number counts up over countMs and pops from
+// popScale. px and ms; label and value y are from the panel's top.
+export const HUD = {
+  marginX: 24,
+  top: 16,
+  height: 108,
+  minWidth: 200,
+  padX: 24,
+  cut: 22,
+  accentLength: 48,
+  labelY: 10,
+  valueY: 24,
+  countMs: 380,
+  popScale: 1.14,
+  popMs: 220,
+} as const;
+// The runway: tile seams along the lanes and across it. Cross seams are
+// evenly spaced in 1/scale, so they bunch up into the distance like real
+// tiles, and are cut so the figure's plane runs through the middle of a row:
+// the figure stands centered on its lane's tile (src/logic/perspective.ts).
+// tileDepth is in 1/scale. toneMax is the most floorTone shows over a tile
+// (0-1), picked per tile. The lime spawn line sits spawnGap px beyond the far
+// edge, where the walls appear.
+export const FLOOR = { seamWidth: 1, tileDepth: 0.2, toneMax: 0.4, spawnLineWidth: 2, spawnGap: 3 } as const;
 
 // The figure's pose grid (PLAN.md §3).
 export const FIGURE_GRID = { cols: 6, rows: 8 } as const;
@@ -272,8 +334,22 @@ export const LANE_TARGET = { edgeWidth: 5, chevronWidth: 12, chevronHeight: 22, 
 // wherever the figure stands (0.35 at FIGURE_FLOOR_Y 530).
 export const WALL_START_SCALE = 0.32;
 export const WALL_HEIGHT = 410; // px at full scale
-export const WALL_EDGE_WIDTH = 3; // px at full scale
 export const WALL_EASE_POWER = 2; // scale follows t^n, so higher n rushes harder at the end
+// The wall's look (M10b), px at full scale. A cream frame round the panel,
+// and a two-tone edge round the hole: a lime line on a wider ink one, so the
+// hole reads whatever the image and whatever shows through it. Both are
+// centered on the edge they follow.
+export const WALL_FRAME_WIDTH = 3;
+export const HOLE_EDGE = { shade: 7, lime: 3 } as const;
+// A new wall fades in at the runway's far end over this, ms.
+export const WALL_APPEAR_MS = 200;
+// Pose lock: the missing piece of the image fills the hole over fillMs, under
+// a lime flash that starts at flashAlpha and fades over flashMs. It opens
+// again as the wall reaches the figure, so the figure shows through.
+export const WALL_COMPLETE = { fillMs: 160, flashAlpha: 0.85, flashMs: 320 } as const;
+// As the wall passes the figure, a lime frame round the figure's grid grows
+// to `grow` times its size and fades, over ms. Line width px.
+export const PASS_PULSE = { grow: 1.35, ms: 380, lineWidth: 3 } as const;
 
 export const WRONG_KEY_JUMP = 0.03; // added to t
 // A wrong key rattles the wall itself, side to side and dying away, rather

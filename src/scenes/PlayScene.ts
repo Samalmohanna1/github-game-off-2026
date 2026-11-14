@@ -2,18 +2,19 @@ import Phaser from 'phaser';
 import { Synth } from '@/audio/Synth';
 import {
   CLOSE_CALL_SLOWMO,
+  COLORS,
   FAIL_SHAKE_INTENSITY,
   FAIL_SHAKE_MS,
   FAIL_TO_GAME_OVER_MS,
   GAME_HEIGHT,
   GAME_WIDTH,
-  GRAIN,
   LOCK_RUSH_DURATION,
   RUSH_END_SCALE,
   SCREEN_LAYOUT,
   SHIFT_JOLT,
 } from '@/config';
 import { NEUTRAL_POSE } from '@/data/poses';
+import { WALL_IMAGES } from '@/data/wall-images';
 import { KeyboardInput } from '@/input/KeyboardInput';
 import { advanceT, jumpT, wallScale } from '@/logic/approach';
 import { Countdown } from '@/logic/countdown';
@@ -24,14 +25,15 @@ import { generateLetters } from '@/logic/letters';
 import { ScoreKeeper, gradeFor } from '@/logic/scoring';
 import { LetterSequence, type SequenceEffect } from '@/logic/sequence';
 import { ShiftWall, type ShiftWallEvent } from '@/logic/shift-wall';
+import { ShuffleBag } from '@/logic/shuffle-bag';
 import { generateWall, holeGrid, type WallSpec } from '@/logic/wall-gen';
 import { DebugOverlay, type DebugRow } from '@/objects/DebugOverlay';
 import { Figure } from '@/objects/Figure';
 import { Floor } from '@/objects/Floor';
+import { GridVoid } from '@/objects/GridVoid';
 import { Hud } from '@/objects/Hud';
-import { Collage } from '@/objects/Collage';
-import { addGrain } from '@/objects/grain';
 import { LaneTiles } from '@/objects/LaneTiles';
+import { PassPulse } from '@/objects/PassPulse';
 import { PauseOverlay } from '@/objects/PauseOverlay';
 import { PromptTray } from '@/objects/PromptTray';
 import { ShiftCallout } from '@/objects/ShiftCallout';
@@ -50,11 +52,12 @@ const LAYER = {
   wall: 3,
   figure: 4,
   wallPassed: 5,
-  label: 6,
-  tray: 7,
-  hud: 8,
-  pause: 9,
-  debug: 10,
+  pulse: 6,
+  label: 7,
+  tray: 8,
+  hud: 9,
+  pause: 10,
+  debug: 11,
 } as const;
 
 // Kept in the game registry so the overlay stays on across walls and restarts.
@@ -78,6 +81,11 @@ export class PlayScene extends Phaser.Scene {
   private scoreKeeper!: ScoreKeeper;
   private keyboard!: KeyboardInput;
   private wall!: Wall;
+  // Deals the wall images that loaded, so each comes round before any repeats.
+  private wallImages!: ShuffleBag<string>;
+  // The cleared wall has passed the figure's plane during this rush.
+  private passed = false;
+  private pulse!: PassPulse;
   private figure!: Figure;
   private laneTiles!: LaneTiles;
   private tray!: PromptTray;
@@ -105,13 +113,16 @@ export class PlayScene extends Phaser.Scene {
     this.sequence = new LetterSequence();
     this.scoreKeeper = new ScoreKeeper(this.dev.startWall);
 
-    // Paper texture, each element in its own colors (M10): moderate on the
-    // background, very faint on the floor; the wall textures its own surface.
-    addGrain(new Collage(this).setDepth(LAYER.background), GRAIN.background);
-    addGrain(new Floor(this).setDepth(LAYER.floor), GRAIN.floor);
+    // The Shift Wall jolt and the fail's shake move the camera past the
+    // scene's edge, where the void should go on.
+    this.cameras.main.setBackgroundColor(COLORS.void);
+    new GridVoid(this).setDepth(LAYER.background);
+    new Floor(this).setDepth(LAYER.floor);
     this.laneTiles = new LaneTiles(this).setDepth(LAYER.laneTiles);
     this.wall = new Wall(this).setDepth(LAYER.wall);
+    this.wallImages = new ShuffleBag(WALL_IMAGES.map(({ key }) => key).filter((key) => this.textures.exists(key)));
     this.figure = new Figure(this, this.figureLane).setDepth(LAYER.figure);
+    this.pulse = new PassPulse(this).setDepth(LAYER.pulse);
     this.label = new TimingLabel(this).setDepth(LAYER.label);
     this.callout = new ShiftCallout(this).setDepth(LAYER.label);
     this.tray = new PromptTray(this).setDepth(LAYER.tray);
@@ -207,8 +218,9 @@ export class PlayScene extends Phaser.Scene {
     this.holeLane = this.spec.holeLane;
     this.shiftWall = new ShiftWall(this.plan.shiftWall, this.holeLane);
     this.countdown = new Countdown();
-    this.wall.setHole(this.holeLane, holeGrid(this.spec.targets));
-    this.wall.setAlpha(1).setDepth(LAYER.wall);
+    this.wall.setHole(this.holeLane, holeGrid(this.spec.targets), this.wallImages.next() ?? null);
+    this.wall.setDepth(LAYER.wall).appear();
+    this.passed = false;
     this.figure.resetPose();
     this.laneTiles.setTarget(null);
     this.sequence.startWall(letters);
@@ -266,6 +278,7 @@ export class PlayScene extends Phaser.Scene {
 
     this.phase = 'rush';
     this.sequence.lock();
+    this.wall.complete();
     const score = this.scoreKeeper.clearWall(this.t);
     this.hud.setScore(this.scoreKeeper.score);
     this.label.show(score, laneCenterX(this.figureLane));
@@ -292,9 +305,15 @@ export class PlayScene extends Phaser.Scene {
 
   private rushWall(scale: number): void {
     this.wall.setScale(scale);
+    if (scale < 1) return;
     // Past the figure's plane the wall is in front of it, fading toward the
-    // camera, with the figure showing through its hole.
-    if (scale >= 1) this.wall.setDepth(LAYER.wallPassed).setAlpha(1 - (scale - 1) / (RUSH_END_SCALE - 1));
+    // camera, with its hole open again and the figure showing through, as a
+    // lime pulse marks the pass (M10b).
+    this.wall.setDepth(LAYER.wallPassed).setAlpha(1 - (scale - 1) / (RUSH_END_SCALE - 1));
+    if (this.passed) return;
+    this.passed = true;
+    this.wall.reopen();
+    this.pulse.play(this.figureLane);
   }
 
   private fail(): void {
