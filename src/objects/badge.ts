@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { BADGE, COLORS, SLASH } from '@/config';
+import type { Point } from '@/logic/perspective';
 import { fillSlash } from '@/objects/slash';
 import { toVectors } from '@/objects/vectors';
 
@@ -17,22 +18,33 @@ export function badgeLean(height: number): number {
   return (BADGE.slant * height) / BADGE.height;
 }
 
+// The badge's parallelogram, pushed out by `grow` on every side with its
+// sides kept parallel: a slanted side moves out by `grow` across itself,
+// which is further than that along the horizontal.
+function outline(b: BadgeSpec, grow: number): Point[] {
+  const lean = badgeLean(b.height);
+  const [top, bottom] = [b.y - b.height / 2, b.y + b.height / 2];
+  const left = (y: number) => b.x - b.width / 2 + (lean * (bottom - y)) / b.height;
+  const right = (y: number) => b.x + b.width / 2 - (lean * (y - top)) / b.height;
+  const side = (grow * Math.hypot(lean, b.height)) / b.height;
+  const [t, f] = [top - grow, bottom + grow];
+  return [
+    { x: left(t) - side, y: t },
+    { x: right(t) + side, y: t },
+    { x: right(f) + side, y: f },
+    { x: left(f) - side, y: f },
+  ];
+}
+
 // A badge (M10b review 4), in the HUD's angular language: a parallelogram
 // leaning like the HUD's slashes, filled solid, in a thick ink edge, so it and
-// its text stand off any wall or background.
+// its text stand off any wall or background. The edge is a filled shape
+// rather than a stroke, so it closes at every corner (M11 review).
 export function drawBadge(g: Phaser.GameObjects.Graphics, b: BadgeSpec): void {
-  const lean = badgeLean(b.height);
-  const [left, right, top, bottom] = [b.x - b.width / 2, b.x + b.width / 2, b.y - b.height / 2, b.y + b.height / 2];
-  const shape = toVectors([
-    { x: left + lean, y: top },
-    { x: right, y: top },
-    { x: right - lean, y: bottom },
-    { x: left, y: bottom },
-  ]);
-  g.lineStyle(BADGE.edgeWidth, COLORS.badgeEdge);
-  g.strokePoints(shape, true, true);
+  g.fillStyle(COLORS.badgeEdge);
+  g.fillPoints(toVectors(outline(b, BADGE.edgeWidth)), true);
   g.fillStyle(b.fill);
-  g.fillPoints(shape, true);
+  g.fillPoints(toVectors(outline(b, 0)), true);
 }
 
 // Two slashes in `color` beside a badge's right edge, leaning with it.

@@ -110,9 +110,8 @@ export const COLORS = {
   textOutline: PALETTE.ink,
   // Badges (BADGE), each in a thick ink edge that sets it off the runway and
   // the wall alike: the timing label in its grade's color with the points on
-  // an ink tab, the SHIFT callout in yellow, and the screens' prompts (Click
-  // to play, Play again, Click to resume) in lime, all with dark text. An ink
-  // tab can also carry a lime note (NEW BEST).
+  // an ink tab, the SHIFT callout in yellow, and the screens' buttons (Click
+  // to play, Start, Click to resume, Play again) in lime, all with dark text.
   badgeEdge: PALETTE.voidInk,
   badgeTab: PALETTE.ink,
   gradePerfect: PALETTE.lime,
@@ -121,6 +120,10 @@ export const COLORS = {
   calloutCard: PALETTE.yellow,
   calloutInk: PALETTE.ink,
   promptCard: PALETTE.lime,
+  // The how-to screen's step cards (M11 review): dark, like the bar, in a
+  // sage edge, with the step's number in lime and its words in cream.
+  stepCard: PALETTE.voidInk,
+  stepEdge: PALETTE.sage,
   debugPanel: PALETTE.cream,
   veil: PALETTE.voidInk, // over the paused game
 } as const;
@@ -129,11 +132,11 @@ const css = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
 
 // CSS strings because Phaser text styles take CSS colors. ink sits on the
 // chips, the debug panel, the cards and the badges; light on the hollow
-// preview chip, the badges' ink tabs, the bar (the title's controls) and the
-// void (the game-over hints); good on an ink tab. light, good and alert are
-// also the outlined text over the scene (the Caps Lock warning), measured
-// against their outline (COLORS.textOutline). Every pair must reach 4.5:1
-// (tests/config.test.ts).
+// preview chip, the badges' ink tabs, the how-to steps and the void (the
+// screens' hints); good on the how-to steps (their numbers). light, good and
+// alert are also the outlined text over the scene (the Caps Lock warning),
+// measured against their outline (COLORS.textOutline). Every pair must
+// reach 4.5:1 (tests/config.test.ts).
 export const TEXT_COLORS = {
   ink: css(PALETTE.ink),
   light: css(PALETTE.cream),
@@ -155,9 +158,11 @@ export const FONT_LOAD_TIMEOUT = 3000; // ms; past this, start with the fallback
 
 // px. Nothing goes below 24 so all text counts as "large" for WCAG contrast.
 export const FONT_SIZES = {
+  lockup: 180,
   poster: 140,
   title: 112,
   heading: 80,
+  subheading: 48,
   hud: 60,
   hudLabel: 24,
   chip: 42,
@@ -168,9 +173,11 @@ export const FONT_SIZES = {
 // Which family each size uses. Anton has one weight, so it is never bolded.
 // The HUD's captions are technical detail, so they set in IBM Plex Mono (M10b).
 export const FONT_ROLES: Readonly<Record<keyof typeof FONT_SIZES, 'display' | 'mono'>> = {
+  lockup: 'display',
   poster: 'display',
   title: 'display',
   heading: 'display',
+  subheading: 'display',
   hud: 'display',
   hudLabel: 'mono',
   chip: 'mono',
@@ -181,9 +188,11 @@ export const FONT_ROLES: Readonly<Record<keyof typeof FONT_SIZES, 'display' | 'm
 // Outlined text (outlinedStyle() in src/scenes/text-styles.ts): the stroke
 // width per size, px. Half of it lies outside the letters.
 export const TEXT_OUTLINE: Readonly<Record<keyof typeof FONT_SIZES, number>> = {
+  lockup: 24,
   poster: 20,
   title: 16,
   heading: 14,
+  subheading: 10,
   hud: 10,
   hudLabel: 6,
   chip: 8,
@@ -202,23 +211,36 @@ export const DEBUG_OVERLAY = { x: 12, y: 12, padding: 10 } as const;
 
 // The screens (M11), in the play screen's language: cards, prompt badges and
 // the bar on the grid stage. px; scales are depths on the stage.
-// Title: the play stage, with the wall down the runway, its hole in
-// TITLE_POSE holeLanes to the right of the figure, which stands part way
-// along it in the center lane, leaving the runway in front free for the
-// prompt. The logo on a banner hanging from the top of the screen (its card
-// runs on past the top), slanting both ways (logo.textNudge sets Anton's
-// capitals in its middle), and the controls as key caps in the bar.
+// Title (M11 review): the grid stage, the lockup after the mock (SHAPE over
+// SHIFT on a card slanting both ways, tilted tiltDeg like the mock's paper),
+// centered on centerY, its two lines lineGap apart and padY inside the
+// card's top and foot, padX beside the wider line; and the Click to play
+// button on promptY.
 export const TITLE = {
-  logo: { y: -14, height: 150, padX: 40, textNudge: 6 },
-  wallScale: 0.5,
-  holeLanes: 2,
-  figureScale: 0.78,
-  promptY: 540,
+  lockup: { centerY: 286, padX: 40, padY: 30, lineGap: 22, tiltDeg: -3 },
+  promptY: 620,
 } as const;
-// The title's controls in the bar: key caps capHeight px tall, padX each side
-// of their label, capGap apart, each group's caption captionGap after its
-// last cap and groupGap before the next group.
-export const CONTROLS = { capHeight: 50, padX: 14, capGap: 8, captionGap: 14, groupGap: 44 } as const;
+// How to play (M11 review), between the title and the first wall: the
+// heading on a card slanting both ways (heading.y and height), then one dark
+// card per step, `cards.top` down and cards.height tall, marginX from the
+// screen's sides and gap apart, chamfered by `cut`, in an edge edgeWidth
+// thick. Inside each, padX from its left: the step's number and name centered
+// on titleY, its keys (or a PERFECT badge) on keysY, and its text from
+// textY down. The Start button sits on promptY with its hint on hintY, and
+// input waits inputDelayMs so the title's click can't skip the screen.
+export const HOW_TO = {
+  heading: { y: 30, height: 96, padX: 40 },
+  cards: { top: 160, height: 316, marginX: 56, gap: 28, cut: 20, edgeWidth: 2, padX: 26, titleY: 54, keysY: 126, textY: 176 },
+  numberGap: 14,
+  keyGap: 10,
+  badge: { height: 64, padX: 18 },
+  promptY: 584,
+  hintY: 656,
+  inputDelayMs: 400,
+} as const;
+// Labeled key caps (keycap.ts): height px tall, padX each side of their
+// label.
+export const KEY_CAP = { height: 50, padX: 14 } as const;
 // Pause: a veil over the game, the PAUSED card (slanting both ways) centered
 // on cardY, and the Click to resume badge on promptY.
 export const PAUSE = { veilAlpha: 0.8, cardY: 260, cardHeight: 140, padX: 44, promptY: 410 } as const;
@@ -227,10 +249,10 @@ export const PAUSE = { veilAlpha: 0.8, cardY: 260, cardHeight: 140, padX: 44, pr
 // middleGap apart at their tops, their slanted edges facing, so the gap
 // widens toward their feet. The GAME OVER card is leftWidth wide. Each card's
 // text sits padX in from its straight side, every row centered on its y from
-// the card's top: a caption at captionY, then GAME and OVER (posterY), or the
-// final score, a rule ruleWidth thick, the best (NEW BEST on an ink tab
-// newBest.gap left of it when this run set it) and the walls cleared. The
-// Play again badge sits on promptY, with the hint under it on hintY.
+// the card's top: a caption at captionY, then GAME and OVER (posterY), or
+// this run's score, a rule ruleWidth thick, and the walls it cleared (M11
+// review: the run's own results, no all-time best). The Play again badge
+// sits on promptY, with the hint under it on hintY.
 export const GAME_OVER = {
   top: 56,
   cardHeight: 360,
@@ -240,8 +262,7 @@ export const GAME_OVER = {
   padX: 34,
   captionY: 34,
   posterY: [116, 258],
-  score: { valueY: 112, ruleY: 180, ruleWidth: 3, bestCaptionY: 208, bestY: 254, statsY: 322 },
-  newBest: { gap: 14, height: 40, padX: 14 },
+  score: { valueY: 116, ruleY: 186, ruleWidth: 3, wallsCaptionY: 216, wallsY: 288 },
   promptY: 520,
   hintY: 596,
 } as const;
@@ -532,7 +553,6 @@ export const WALL_CLEAR_POINTS = 100;
 export const GRADE_BONUS = { perfect: 150, great: 75, closeCall: 25 } as const;
 export const STREAK_STEP = 0.5; // multiplier added per PERFECT already in the streak
 export const MAX_MULTIPLIER = 3;
-export const BEST_SCORE_KEY = 'shape-shift.best';
 
 // Feel (PLAN.md §10, M8). Visual only: none of these touch the game state.
 // A block that snaps into its pose lands squashed (wider and shorter by
@@ -595,24 +615,23 @@ export const LABEL_Y = 270; // keeps its place over the figure's head
 // Badges (M10b review 4, when outlined text was lost against busy walls):
 // the timing label and the SHIFT callout sit on parallelograms `height` px
 // tall leaning `slant` px across it, padX each side of their text, in an ink
-// edge edgeWidth px thick. The timing label's points sit on an ink tab
-// tabHeight px tall (tabPadX each side), tucked tabOverlap px under its card,
-// and its grade's two slashes stand slashGap px off its right edge.
-// textNudge sets Anton's capitals in the card's middle. px.
+// edge edgeWidth px thick all round. The timing label's points sit on an ink
+// tab tabHeight px tall (tabPadX each side), tucked tabOverlap px under its
+// card, and its grade's two slashes stand slashGap px off its right edge.
+// Their text is centered on its letters (centerGlyphs()). px.
 export const BADGE = {
   height: 92,
   slant: 24,
   padX: 24,
-  edgeWidth: 5,
+  edgeWidth: 4,
   tabHeight: 46,
   tabPadX: 16,
   tabOverlap: 4,
   slashGap: 10,
-  textNudge: 4,
 } as const;
-// Prompt badges (M11): the screens' calls to action, lime badges `height` px
-// tall, padX each side of their Anton text, pulsing in size (PROMPT_PULSE_*).
-export const PROMPT_BADGE = { height: 78, padX: 26, textNudge: 3 } as const;
+// Buttons (M11): the screens' calls to action, lime badges `height` px tall,
+// padX each side of their Anton text, pulsing in size (PROMPT_PULSE_*).
+export const PROMPT_BADGE = { height: 78, padX: 30 } as const;
 export const LABEL_POP_FROM = 0.5; // starting scale of the pop
 export const LABEL_POP_MS = 180;
 export const LABEL_HOLD_MS = 700;

@@ -12,9 +12,8 @@ import {
   TRAY,
   TRAY_HEIGHT,
 } from '@/config';
-import { chamferedRect } from '@/logic/convex';
-import type { Point } from '@/logic/perspective';
 import { isUppercaseLetter, type SequenceView } from '@/logic/sequence';
+import { keyCapShape } from '@/objects/keycap';
 import { fillSlash } from '@/objects/slash';
 import { toVectors } from '@/objects/vectors';
 import { textStyle } from '@/scenes/text-styles';
@@ -22,7 +21,7 @@ import { prefersReducedMotion } from '@/scenes/ui';
 
 const CENTER_X = GAME_WIDTH / 2;
 // The middle of the bar's row of key caps.
-export const BAR_ROW_Y = STAGE_BOTTOM_Y + TRAY.rowY;
+const BAR_ROW_Y = STAGE_BOTTOM_Y + TRAY.rowY;
 const STEP = CHIP.size + CHIP.gap;
 // From the center to the nearest chip on either side.
 const SIDE_OFFSET = CHIP.currentSize / 2 + 2 * CHIP.gap + CHIP.size / 2;
@@ -98,16 +97,7 @@ function layout(view: SequenceView): ChipSpec[] {
   ];
 }
 
-// A key cap: a rect with its top-left and bottom-right corners cut, centered
-// on 0, 0. `grow` pushes every edge out by that much, keeping the cuts
-// parallel.
-export function keyCapShape(width: number, height: number, grow = 0): Point[] {
-  // An edge pushed out by g lengthens a 45-degree cut by g * (2 - sqrt 2).
-  const cut = CHIP.cut + grow * (2 - Math.SQRT2);
-  const [w, h] = [width + 2 * grow, height + 2 * grow];
-  return chamferedRect(-w / 2, -h / 2, w, h, { topLeft: cut, bottomRight: cut });
-}
-
+// A square key cap, grown by `grow` on every side.
 const capShape = (size: number, grow = 0) => keyCapShape(size, size, grow);
 
 // Letters keep their case: uppercase means "hold Shift" (AGENTS.md). Capitals
@@ -130,7 +120,7 @@ export class PromptTray extends Phaser.GameObjects.Container {
     super(scene);
     scene.add.existing(this);
     const bar = new Phaser.GameObjects.Graphics(scene);
-    drawBar(bar, true);
+    drawBar(bar);
     this.progress = new Phaser.GameObjects.Graphics(scene);
     this.add([bar, this.progress]);
   }
@@ -242,9 +232,8 @@ function drawShiftMark(shape: Phaser.GameObjects.Graphics, chipSize: number, col
   );
 }
 
-// The band, its stepped line, the left slashes and, in play, the current
-// prompt's socket. The title's controls sit in the same bar (M11).
-export function drawBar(g: Phaser.GameObjects.Graphics, socket: boolean): void {
+// The band, its stepped line, the left slashes and the current prompt's socket.
+function drawBar(g: Phaser.GameObjects.Graphics): void {
   const top = STAGE_BOTTOM_Y;
   g.fillStyle(COLORS.tray);
   g.fillRect(0, top, GAME_WIDTH, TRAY_HEIGHT);
@@ -270,7 +259,6 @@ export function drawBar(g: Phaser.GameObjects.Graphics, socket: boolean): void {
     fillSlash(g, { ...slash, x, top: COLORS.trayAccent, foot: COLORS.trayAccent });
   }
 
-  if (!socket) return;
   const outline = capShape(CHIP.currentSize, CHIP.focusGap).map((p) => ({ x: p.x + CENTER_X, y: p.y + BAR_ROW_Y }));
   g.lineStyle(TRAY.socketWidth, COLORS.trayLine, TRAY.socketAlpha);
   g.strokePoints(toVectors(outline), true, true);

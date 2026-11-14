@@ -167,14 +167,14 @@ Lining up is in from wall 1. Early walls are slow enough that new players learn 
 | **CLOSE CALL** (otherwise) | +25 |
 | PERFECT streak multiplier | ×(1 + 0.5 × streak), max ×3. Any result other than PERFECT resets it. |
 
-The timing label pops up big over the figure as the wall rushes past. Save the best score in `localStorage`, wrapped in try/catch.
+The timing label pops up big over the figure as the wall rushes past. The game over shows the run's own results only: nothing is saved between runs. (Until the M11 review, the best score was saved in `localStorage` and shown as BEST; the user found an all-time best beside one run's results confusing.)
 
 ---
 
 ## 7. Fail and restart
 
 - When the player fails: the wall knocks the figure off its feet, toward the camera. It flails its arms as it topples toward the middle of the stage, and when it hits the floor its blocks come apart and bounce, low like wood rather than rubber, then tip flat and lie still. A screen shake goes with the landing. (Until the fifth M10 review, the figure fell into a pool with a splash of water particles and a ripple.)
-- Game-over screen: **Walls cleared**, **Score**, **Best**, and the wall number where the run ended.
+- Game-over screen: the run's **Score** and **Walls cleared**, and the wall number where it ended.
 - **Restart:** ignore input for 1s, wait until **every key is released**, then any key or a click restarts. This stops keys still held from the failed wall from restarting the game straight away.
 
 ---
@@ -324,13 +324,15 @@ Built in this order (chosen after M7): feel and audio go on the grey box first, 
 - ✅ Every gameplay rule and test is unchanged, the contrast tests cover the new pairs (the wall's frame and the hole's edge against the void and the runway, the chips against the console), and the HUD, the console and the figure never overlap.
 
 **M11: Title and game-over screens** (done)
-- The title and game-over screens laid out from the mocks, in the M10b style: *SHAPE SHIFT* with a short how-to (Space to line up, hold letters, Shift for CAPS), and GAME OVER with the final and best scores. The title keeps "Click to play" where the mock says "Press any key", because the itch.io frame only gets keyboard focus from a click (§2).
-- As built, every screen uses only the play screen's parts on the grid stage: cream cards with lime slashes (the HUD's, made shared), badges, and the bar.
-  - **Title:** the play stage, with a wall down the runway whose hole (both arms raised) sits two lanes from the figure. SHAPE SHIFT on a card hanging from the top, a lime CLICK TO PLAY badge on the runway, and the controls in the bar as key caps (SPACE move to the hole, a s hold the letters, SHIFT for capitals), where the letters come up in play.
-  - **Pause:** a veil, PAUSED on a card, and a lime CLICK TO RESUME badge.
-  - **Game over:** GAME OVER on a card (with the wall the run ended on) facing a score card (final score, best with NEW BEST when the run set it, walls cleared), then a lime PLAY AGAIN badge once §7's restart rule allows it.
+- The title and game-over screens laid out from the mocks, in the M10b style: *SHAPE SHIFT* with a short how-to (Space to line up, hold letters, Shift for CAPS), and GAME OVER with the final score. The title keeps "Click to play" where the mock says "Press any key", because the itch.io frame only gets keyboard focus from a click (§2).
+- As built, every screen uses only the play screen's parts on the grid stage: cream cards with lime slashes (the HUD's, made shared), badges as buttons, and key caps.
+  - **Title:** the lockup after the mock, SHAPE stacked over SHIFT on a big cream card, tilted a little like the mock's paper, and a lime CLICK TO PLAY button.
+  - **How to play:** its own screen between the title and the first wall. HOW TO PLAY, then three numbered steps, each with its keys and one sentence (01 LINE UP: Space; 02 HOLD ON: the letters, Shift for capitals; 03 FIT THROUGH: a PERFECT badge), and a START button. Any key or a click starts the run.
+  - **Pause:** a veil, PAUSED on a card, and a lime CLICK TO RESUME button.
+  - **Game over:** GAME OVER on a card (with the wall the run ended on) facing a card with the run's score and walls cleared, then a lime PLAY AGAIN button once §7's restart rule allows it.
   - The mock's MAIN MENU button is left out, since a second choice would change §7's "any key or a click restarts".
-- ✅ A new player can start a run knowing the controls from the title screen alone.
+- (After the M11 review: the title dropped the stage scene and its controls bar for the stacked lockup, and the controls became the How to play screen. The buttons' ink edge is a filled shape, closed at every corner, and their text is centered on its letters rather than on Anton's line box, which had set it low. The game over shows only the run's results; the saved best score is gone.)
+- ✅ A new player can start a run knowing the controls from the title and How to play screens.
 
 **M12: Ship**
 - itch.io HTML5 upload (zip of `dist/`), set the embed to 1280×720, add the mocks' fullscreen and mute buttons, and test in Chrome, Firefox and Safari.

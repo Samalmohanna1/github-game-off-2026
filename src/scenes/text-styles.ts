@@ -31,3 +31,31 @@ export function textStyle(
 export function outlinedStyle(size: Size, color: Color, bold = false): Phaser.Types.GameObjects.Text.TextStyle {
   return { ...textStyle(size, color, bold), stroke: toCss(COLORS.textOutline), strokeThickness: TEXT_OUTLINE[size] };
 }
+
+let probe: CanvasRenderingContext2D | null = null;
+
+// Where a one-line text's letters start and end, in px from its top: its
+// baseline (where Phaser draws it) less and plus the letters' own measured
+// reach, not the font's line box.
+function glyphSpan(text: Phaser.GameObjects.Text): readonly [number, number] {
+  probe ??= document.createElement('canvas').getContext('2d');
+  if (probe === null) return [0, text.height];
+  const baseline = (text.padding.top ?? 0) + text.style.strokeThickness / 2 + text.getTextMetrics().ascent;
+  probe.font = `${text.style.fontStyle} ${text.style.fontSize} ${text.style.fontFamily}`.trim();
+  const letters = probe.measureText(text.text);
+  return [baseline - letters.actualBoundingBoxAscent, baseline + letters.actualBoundingBoxDescent];
+}
+
+// Centers a one-line text's letters on its y. Anton's line box leaves more
+// room above its capitals than below, so centering the box set them low on
+// cards and buttons (M11 review).
+export function centerGlyphs(text: Phaser.GameObjects.Text): Phaser.GameObjects.Text {
+  const [top, bottom] = glyphSpan(text);
+  return text.setOrigin(text.originX, (top + bottom) / 2 / text.height);
+}
+
+// How tall a one-line text's letters stand, px.
+export function glyphHeight(text: Phaser.GameObjects.Text): number {
+  const [top, bottom] = glyphSpan(text);
+  return bottom - top;
+}

@@ -14,7 +14,7 @@ topples and its blocks bounce to a stop), M9 synthesized
 sound with no audio files, M10 the art of the design mocks, in Anton and IBM
 Plex Mono, M10b restyled the play screen as a lit sci-fi grid stage, all
 drawn in code, with walls that are neon-framed display panels, and M11 set
-the title, pause and game-over screens in the same style. See [PLAN.md](./PLAN.md)
+the title, how-to, pause and game-over screens in the same style. See [PLAN.md](./PLAN.md)
 for the design and milestones, and [AGENTS.md](./AGENTS.md) for the working
 rules.
 

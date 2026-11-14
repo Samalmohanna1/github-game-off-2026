@@ -8,6 +8,7 @@ import { COLORS, GAME_HEIGHT, GAME_WIDTH } from '@/config';
 import { preventPageScroll } from '@/input/prevent-page-scroll';
 import { BootScene } from '@/scenes/BootScene';
 import { GameOverScene } from '@/scenes/GameOverScene';
+import { HowToScene } from '@/scenes/HowToScene';
 import { PlayScene } from '@/scenes/PlayScene';
 import { TitleScene } from '@/scenes/TitleScene';
 
@@ -23,5 +24,5 @@ new Phaser.Game({
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
-  scene: [BootScene, TitleScene, PlayScene, GameOverScene],
+  scene: [BootScene, TitleScene, HowToScene, PlayScene, GameOverScene],
 });

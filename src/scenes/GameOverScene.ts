@@ -1,24 +1,20 @@
 import Phaser from 'phaser';
 import { COLORS, GAME_OVER, GAME_WIDTH } from '@/config';
 import { RestartGate } from '@/logic/restart';
-import { badgeLean, drawBadge } from '@/objects/badge';
 import { cardSlant, drawCard, type CardSpec } from '@/objects/card';
 import { GridVoid } from '@/objects/GridVoid';
 import { PromptBadge } from '@/objects/PromptBadge';
 import { SceneKeys, type RunResult } from '@/scenes/scene-keys';
-import { textStyle } from '@/scenes/text-styles';
+import { centerGlyphs, textStyle } from '@/scenes/text-styles';
 import { formatNumber, onWindowKeys } from '@/scenes/ui';
-import { loadBest, recordBest } from '@/storage/best-score';
 
 // The game-over screen (M11), after the mock's layout in the play screen's
-// language: on the grid stage, GAME OVER on a card on the left and the scores
-// on a card on the right, their slashes facing across the gap, and the Play
-// again badge below once a restart is allowed (PLAN.md §7).
+// language: on the grid stage, GAME OVER on a card on the left and the run's
+// results on a card on the right, their slashes facing across the gap, and
+// the Play again button below once a restart is allowed (PLAN.md §7).
 export class GameOverScene extends Phaser.Scene {
   private result!: RunResult;
   private gate!: RestartGate;
-  private best = 0;
-  private newBest = false;
   private restarting = false;
   private prompt!: PromptBadge;
   private hint!: Phaser.GameObjects.Text;
@@ -30,8 +26,6 @@ export class GameOverScene extends Phaser.Scene {
   init(data: RunResult): void {
     this.result = data;
     this.gate = new RestartGate(data.keysDown);
-    this.newBest = data.score > loadBest();
-    this.best = recordBest(data.score);
     this.restarting = false;
   }
 
@@ -76,41 +70,30 @@ export class GameOverScene extends Phaser.Scene {
   private addRun(card: CardSpec): void {
     const x = card.x + GAME_OVER.padX;
     const caption = `ENDED ON WALL ${this.result.endedOnWall}`;
-    this.add.text(x, card.y + GAME_OVER.captionY, caption, textStyle('hudLabel', 'ink', true)).setOrigin(0, 0.5);
+    centerGlyphs(this.add.text(x, card.y + GAME_OVER.captionY, caption, textStyle('hudLabel', 'ink', true)).setOrigin(0, 0.5));
     ['GAME', 'OVER'].forEach((word, i) => {
-      this.add.text(x, card.y + (GAME_OVER.posterY[i] ?? 0), word, textStyle('poster', 'ink')).setOrigin(0, 0.5);
+      centerGlyphs(this.add.text(x, card.y + (GAME_OVER.posterY[i] ?? 0), word, textStyle('poster', 'ink')).setOrigin(0, 0.5));
     });
   }
 
-  // The right card, right-aligned: the final score, a rule, the best (with
-  // NEW BEST beside it when this run set it) and the walls cleared.
+  // The right card, right-aligned: this run's score, a rule, and the walls
+  // it cleared.
   private addScores(card: CardSpec, g: Phaser.GameObjects.Graphics): void {
     const s = GAME_OVER.score;
     const x = card.x + card.width - GAME_OVER.padX;
     const at = (dy: number) => card.y + dy;
     const label = (dy: number, text: string) =>
-      this.add.text(x, at(dy), text, textStyle('hudLabel', 'ink', true)).setOrigin(1, 0.5);
+      centerGlyphs(this.add.text(x, at(dy), text, textStyle('hudLabel', 'ink', true)).setOrigin(1, 0.5));
+    const value = (dy: number, n: number) => centerGlyphs(this.add.text(x, at(dy), formatNumber(n), textStyle('title', 'ink')).setOrigin(1, 0.5));
 
-    label(GAME_OVER.captionY, 'FINAL SCORE');
-    this.add.text(x, at(s.valueY), formatNumber(this.result.score), textStyle('title', 'ink')).setOrigin(1, 0.5);
+    label(GAME_OVER.captionY, 'SCORE');
+    value(s.valueY, this.result.score);
     // From just inside the slanted edge, where it crosses the rule's row.
     const ruleFrom = card.x + (cardSlant(card.height) * s.ruleY) / card.height + GAME_OVER.padX;
     g.fillStyle(COLORS.cardRule);
     g.fillRect(ruleFrom, at(s.ruleY) - s.ruleWidth / 2, x - ruleFrom, s.ruleWidth);
-    label(s.bestCaptionY, 'BEST');
-    const best = this.add.text(x, at(s.bestY), formatNumber(this.best), textStyle('hud', 'ink')).setOrigin(1, 0.5);
-    if (this.newBest) this.addNewBest(best.x - best.width - GAME_OVER.newBest.gap, at(s.bestY), g);
-    const walls = this.result.wallsCleared;
-    label(s.statsY, `${formatNumber(walls)} ${walls === 1 ? 'WALL' : 'WALLS'} CLEARED`);
-  }
-
-  // NEW BEST in lime on an ink tab, ending at `right`.
-  private addNewBest(right: number, y: number, g: Phaser.GameObjects.Graphics): void {
-    const { height, padX } = GAME_OVER.newBest;
-    const text = this.add.text(0, y, 'NEW BEST', textStyle('small', 'good', true)).setOrigin(0.5);
-    const width = text.width + 2 * padX + badgeLean(height);
-    text.setX(right - width / 2);
-    drawBadge(g, { x: right - width / 2, y, width, height, fill: COLORS.badgeTab });
+    label(s.wallsCaptionY, 'WALLS CLEARED');
+    value(s.wallsY, this.result.wallsCleared);
   }
 
   private restart(): void {

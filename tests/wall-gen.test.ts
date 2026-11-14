@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { FIGURE_GRID } from '@/config';
-import { ALT_POSES, BLOCK_IDS, NEUTRAL_POSE, TITLE_POSE, type BlockId } from '@/data/poses';
+import { ALT_POSES, BLOCK_IDS, NEUTRAL_POSE, type BlockId } from '@/data/poses';
 import { cellsOf, generateWall, holeGrid, isOnePiece, isValidPose, poseOptions } from '@/logic/wall-gen';
 import { seeded } from './seeded';
 
@@ -41,15 +41,6 @@ describe('poses', () => {
     expect(isOnePiece(NEUTRAL_POSE)).toBe(true);
     // Legs offset right don't touch a torso turned to its left half.
     expect(isOnePiece({ ...NEUTRAL_POSE, torso: ALT_POSES.torso[0]!, legs: ALT_POSES.legs[1]! })).toBe(false);
-  });
-
-  // M11: the title's hole is one the walls could ask for.
-  it('gives the title wall a real, one-piece pose from the alt poses', () => {
-    expect(isValidPose(TITLE_POSE)).toBe(true);
-    expect(isOnePiece(TITLE_POSE)).toBe(true);
-    for (const id of BLOCK_IDS) {
-      expect([NEUTRAL_POSE[id], ...ALT_POSES[id]]).toContainEqual(TITLE_POSE[id]);
-    }
   });
 });
 

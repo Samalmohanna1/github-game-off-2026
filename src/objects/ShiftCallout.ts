@@ -10,7 +10,7 @@ import {
   SHIFT_CALLOUT_ARROW,
 } from '@/config';
 import { drawBadge } from '@/objects/badge';
-import { textStyle } from '@/scenes/text-styles';
+import { centerGlyphs, textStyle } from '@/scenes/text-styles';
 import { prefersReducedMotion } from '@/scenes/ui';
 
 // A Shift Wall's "SHIFT" callout (PLAN.md §5) with an arrow on the side the
@@ -26,7 +26,7 @@ export class ShiftCallout extends Phaser.GameObjects.Container {
     super(scene, GAME_WIDTH / 2, GAME_HEIGHT * SCREEN_LAYOUT.shiftCalloutY);
     scene.add.existing(this);
     this.card = new Phaser.GameObjects.Graphics(scene);
-    this.text = new Phaser.GameObjects.Text(scene, 0, BADGE.textNudge, 'SHIFT', textStyle('heading', 'ink')).setOrigin(0.5);
+    this.text = centerGlyphs(new Phaser.GameObjects.Text(scene, 0, 0, 'SHIFT', textStyle('heading', 'ink')).setOrigin(0.5));
     this.add([this.card, this.text]);
     this.setVisible(false);
   }

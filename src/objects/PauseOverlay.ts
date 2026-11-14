@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { COLORS, GAME_HEIGHT, GAME_WIDTH, PAUSE } from '@/config';
 import { cardSlant, drawCard } from '@/objects/card';
 import { PromptBadge } from '@/objects/PromptBadge';
-import { textStyle } from '@/scenes/text-styles';
+import { centerGlyphs, textStyle } from '@/scenes/text-styles';
 
 // The pause screen (M11): a void-colored veil over the paused game, PAUSED on
 // a card slanting both ways, and the Click to resume badge, all of them solid,
@@ -14,7 +14,9 @@ export class PauseOverlay extends Phaser.GameObjects.Container {
 
     const veil = new Phaser.GameObjects.Rectangle(scene, 0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.veil, PAUSE.veilAlpha);
     veil.setOrigin(0, 0);
-    const heading = new Phaser.GameObjects.Text(scene, GAME_WIDTH / 2, PAUSE.cardY, 'PAUSED', textStyle('heading', 'ink')).setOrigin(0.5);
+    const heading = centerGlyphs(
+      new Phaser.GameObjects.Text(scene, GAME_WIDTH / 2, PAUSE.cardY, 'PAUSED', textStyle('heading', 'ink')).setOrigin(0.5),
+    );
     const height = PAUSE.cardHeight;
     const width = heading.width + 2 * PAUSE.padX + 2 * cardSlant(height);
     const card = new Phaser.GameObjects.Graphics(scene);

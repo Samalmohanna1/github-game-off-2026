@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { BADGE, COLORS, GAME_WIDTH, LABEL_EDGE_MARGIN, LABEL_HOLD_MS, LABEL_POP_FROM, LABEL_POP_MS, LABEL_Y } from '@/config';
 import type { Grade, WallScore } from '@/logic/scoring';
 import { badgeReach, drawBadge, drawBadgeSlashes } from '@/objects/badge';
-import { textStyle } from '@/scenes/text-styles';
+import { centerGlyphs, textStyle } from '@/scenes/text-styles';
 import { prefersReducedMotion } from '@/scenes/ui';
 
 const GRADE_TEXT: Record<Grade, string> = { perfect: 'PERFECT', great: 'GREAT', closeCall: 'CLOSE CALL' };
@@ -37,6 +37,8 @@ export class TimingLabel extends Phaser.GameObjects.Container {
   show(score: WallScore, x: number): void {
     this.gradeText.setText(GRADE_TEXT[score.grade]);
     this.pointsText.setText(score.multiplier > 1 ? `+${score.points}  ×${score.multiplier}` : `+${score.points}`);
+    centerGlyphs(this.gradeText);
+    centerGlyphs(this.pointsText);
 
     const card = {
       x: 0,
@@ -56,7 +58,7 @@ export class TimingLabel extends Phaser.GameObjects.Container {
     drawBadgeSlashes(this.cards, card, GRADE_CARD[score.grade]);
     drawBadge(this.cards, tab);
     drawBadge(this.cards, card);
-    this.gradeText.setPosition(0, BADGE.textNudge);
+    this.gradeText.setPosition(0, 0);
     this.pointsText.setPosition(tab.x, tab.y);
 
     const reach = Math.max(badgeReach(card.width), tab.x + tab.width / 2) + LABEL_EDGE_MARGIN;

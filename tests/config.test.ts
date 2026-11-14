@@ -253,6 +253,14 @@ describe('graphics contrast', () => {
     expect(contrastRatio(C.COLORS.cardRule, C.COLORS.card)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
+  // The how-to steps are as dark as the void, so their edge outlines them,
+  // and their key caps read on them.
+  it('edges the how-to steps clearly on the void, with key caps that read on them', () => {
+    expect(contrastRatio(C.COLORS.stepEdge, C.COLORS.void)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(contrastRatio(C.COLORS.stepEdge, C.COLORS.stepCard)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(contrastRatio(C.COLORS.chipCurrent, C.COLORS.stepCard)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  });
+
   it.each(['trayLine', 'trayAccent', 'trayDim'] as const)('%s reads on the bar', (name) => {
     expect(contrastRatio(C.COLORS[name], C.COLORS.tray)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
@@ -280,18 +288,19 @@ const css = (color: string) => parseInt(color.slice(1), 16);
 // outline, which is all that touches it.
 const TEXT_ON = {
   textOutline: ['light', 'good', 'alert'],
-  // The badges (M10b review 4), the timing label's points tab and NEW BEST.
+  // The badges (M10b review 4) and the timing label's points tab.
   gradePerfect: ['ink'],
   gradeGreat: ['ink'],
   gradeCloseCall: ['ink'],
   calloutCard: ['ink'],
   promptCard: ['ink'],
-  badgeTab: ['light', 'good'],
+  badgeTab: ['light'],
   debugPanel: ['ink'],
-  // The HUD's, the logo's, the pause card's and the game-over cards' text.
+  // The HUD's, the lockup's and the screens' cards.
   card: ['ink'],
-  // The title's controls (M11) on the bar, and the game-over hint on the void.
-  tray: ['light'],
+  // The how-to steps (M11 review): lime numbers, cream names and text.
+  stepCard: ['light', 'good'],
+  // The screens' hints on the void.
   void: ['light'],
   chipNext: ['light'],
   chipHeld: ['ink'],
@@ -306,20 +315,23 @@ describe('screen layouts', () => {
   const k = (height: number) => height / C.CARD.height;
   const slashReach = (height: number) => (C.CARD.slashGap + C.SLASH.width + C.SLASH.gap + C.SLASH.width / 3) * k(height);
 
-  // The wall's top stands just below the horizon at any depth.
-  it('sets the title logo above the wall, and the prompt between the figure and the bar', () => {
-    const wallTop = C.HORIZON_Y + C.TITLE.wallScale * (C.FIGURE_FLOOR_Y - C.HORIZON_Y - C.WALL_HEIGHT);
-    expect(C.TITLE.logo.y + C.TITLE.logo.height).toBeLessThan(wallTop);
-    const feet = C.HORIZON_Y + C.TITLE.figureScale * (C.FIGURE_FLOOR_Y - C.HORIZON_Y);
-    expect(C.TITLE.promptY - C.PROMPT_BADGE.height / 2).toBeGreaterThan(feet);
-    expect(C.TITLE.promptY + C.PROMPT_BADGE.height / 2).toBeLessThan(C.STAGE_BOTTOM_Y);
-    expect(C.TITLE.wallScale).toBeLessThan(C.TITLE.figureScale);
-    expect(Math.floor(C.LANE_COUNT / 2) + C.TITLE.holeLanes).toBeLessThan(C.LANE_COUNT);
+  // Anton's capitals stand about 0.9 of its size; the lockup is two lines.
+  it('fits the title lockup on screen, above the button', () => {
+    const { centerY, padY, lineGap } = C.TITLE.lockup;
+    const half = (2 * 0.9 * C.FONT_SIZES.lockup + lineGap) / 2 + padY;
+    expect(centerY - half).toBeGreaterThan(0);
+    expect(centerY + half).toBeLessThan(C.TITLE.promptY - C.PROMPT_BADGE.height / 2);
+    expect(C.TITLE.promptY + C.PROMPT_BADGE.height / 2).toBeLessThan(C.GAME_HEIGHT);
   });
 
-  it('fits the title controls in the bar', () => {
-    expect(C.TRAY.rowY + C.CONTROLS.capHeight / 2).toBeLessThan(C.TRAY.lowY);
-    expect(C.TRAY.rowY - C.CONTROLS.capHeight / 2).toBeGreaterThan(0);
+  it('stacks the how-to heading, steps, button and hint without overlap', () => {
+    const { heading, cards, promptY, hintY } = C.HOW_TO;
+    expect(heading.y + heading.height).toBeLessThan(cards.top);
+    expect(cards.top + cards.height).toBeLessThan(promptY - C.PROMPT_BADGE.height / 2);
+    expect(promptY + C.PROMPT_BADGE.height / 2).toBeLessThan(hintY);
+    expect(hintY).toBeLessThan(C.GAME_HEIGHT);
+    expect(cards.titleY).toBeLessThan(cards.keysY);
+    expect(cards.keysY + Math.max(C.KEY_CAP.height, C.HOW_TO.badge.height) / 2).toBeLessThan(cards.textY);
   });
 
   it('keeps the game-over cards apart, with Play again below them', () => {
