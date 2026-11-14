@@ -1,17 +1,20 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, HUD } from '@/config';
-import { chamferedRect } from '@/logic/convex';
-import { drawPanel } from '@/objects/panel';
+import { COLORS, GAME_WIDTH, HUD, SLASH } from '@/config';
+import type { Point } from '@/logic/perspective';
+import { fillSlash } from '@/objects/slash';
+import { toVectors } from '@/objects/vectors';
 import { textStyle } from '@/scenes/text-styles';
 import { prefersReducedMotion } from '@/scenes/ui';
 
 type Side = 'left' | 'right';
 
-// One corner's readout: a caption in IBM Plex Mono over a big number in
-// Anton, on an angular panel whose inner bottom corner is cut. The panel grows
-// inward with its number. A new number counts up (if asked to) and pops.
+// One corner's readout, after the mockup: a cream card, its outer corners cut
+// and its inner edge slanting toward the middle of the screen, with a sage
+// fold in that corner and lime slashes beside it. A caption in IBM Plex Mono
+// over a big number in Anton, both dark. The card grows inward with its
+// number. A new number counts up (if asked to) and pops.
 class Readout {
-  private readonly panel: Phaser.GameObjects.Graphics;
+  private readonly card: Phaser.GameObjects.Graphics;
   private readonly caption: Phaser.GameObjects.Text;
   private readonly value: Phaser.GameObjects.Text;
   private target = 0;
@@ -25,12 +28,12 @@ class Readout {
     private readonly countUp: boolean,
   ) {
     const align = side === 'left' ? 0 : 1;
-    this.panel = new Phaser.GameObjects.Graphics(scene);
-    this.caption = new Phaser.GameObjects.Text(scene, 0, HUD.top + HUD.labelY, caption, textStyle('hudLabel', 'light'));
-    this.value = new Phaser.GameObjects.Text(scene, 0, HUD.top + HUD.valueY, format(0), textStyle('hud', 'light'));
+    this.card = new Phaser.GameObjects.Graphics(scene);
+    this.caption = new Phaser.GameObjects.Text(scene, 0, HUD.top + HUD.labelY, caption, textStyle('hudLabel', 'ink', true));
+    this.value = new Phaser.GameObjects.Text(scene, 0, HUD.top + HUD.valueY, format(0), textStyle('hud', 'ink'));
     this.caption.setOrigin(align, 0);
     this.value.setOrigin(align, 0);
-    hud.add([this.panel, this.caption, this.value]);
+    hud.add([this.card, this.caption, this.value]);
     this.layOut();
   }
 
@@ -59,15 +62,55 @@ class Readout {
   }
 
   // Sized for the number it's heading to, so it doesn't jitter as it counts.
+  // Drawn as the left card, mirrored for the right one.
   private layOut(): void {
+    const { marginX: x, top: y, height: h, cut, slant } = HUD;
     const content = Math.max(this.value.width, this.caption.width);
-    const width = Math.max(HUD.minWidth, content + 2 * HUD.padX);
-    const x = this.side === 'left' ? HUD.marginX : GAME_WIDTH - HUD.marginX - width;
-    const cuts = this.side === 'left' ? { bottomRight: HUD.cut } : { bottomLeft: HUD.cut };
-    this.panel.clear();
-    const accent = { side: this.side, fromEnd: false, length: HUD.accentLength };
-    drawPanel(this.panel, chamferedRect(x, HUD.top, width, HUD.height, cuts), { accent });
-    const textX = this.side === 'left' ? x + HUD.padX : x + width - HUD.padX;
+    const w = Math.max(HUD.minWidth, content + 2 * HUD.padX + slant);
+    const flip = (p: Point): Point => (this.side === 'left' ? p : { x: GAME_WIDTH - p.x, y: p.y });
+    // The slanted inner edge's x at height y.
+    const edge = (at: number) => x + w - (slant * (at - y)) / h;
+
+    const g = this.card;
+    g.clear();
+    g.fillStyle(COLORS.hudCard);
+    g.fillPoints(
+      toVectors(
+        [
+          { x: x + cut, y },
+          { x: x + w, y },
+          { x: x + w - slant, y: y + h },
+          { x: x + cut, y: y + h },
+          { x, y: y + h - cut },
+          { x, y: y + cut },
+        ].map(flip),
+      ),
+      true,
+    );
+    const foldTop = y + h * HUD.foldFrom;
+    g.fillStyle(COLORS.hudFold, HUD.foldAlpha);
+    g.fillPoints(
+      toVectors(
+        [
+          { x: edge(foldTop) - HUD.foldWidth, y: foldTop },
+          { x: edge(foldTop), y: foldTop },
+          { x: edge(y + h), y: y + h },
+          { x: edge(y + h) - HUD.foldWidth, y: y + h },
+        ].map(flip),
+      ),
+      true,
+    );
+
+    const lean = this.side === 'left' ? slant : -slant;
+    const slashAt = (offset: number, width: number) =>
+      this.side === 'left' ? x + w + offset : GAME_WIDTH - (x + w + offset) - width;
+    const slash = { y, height: h, lean, slices: HUD.slashSlices };
+    fillSlash(g, { ...slash, x: slashAt(HUD.slashGap, SLASH.width), width: SLASH.width, top: COLORS.hudSlash, foot: COLORS.hudSlashEnd });
+    const thin = SLASH.width / 3;
+    const thinAt = slashAt(HUD.slashGap + SLASH.width + SLASH.gap, thin);
+    fillSlash(g, { ...slash, x: thinAt, width: thin, top: COLORS.hudSlashEnd, foot: COLORS.void });
+
+    const textX = this.side === 'left' ? x + HUD.padX : GAME_WIDTH - x - HUD.padX;
     this.caption.setX(textX);
     this.value.setX(textX);
   }
@@ -77,9 +120,9 @@ function format(n: number): string {
   return n.toLocaleString('en-US');
 }
 
-// SCORE top-left and WALL top-right (M10b): angular near-black panels with a
-// lime accent and a fine inner grid, in the void above the horizon, where
-// nothing that moves ever reaches.
+// SCORE top-left and WALL top-right (M10b, after the mockup): cream cards
+// with lime slashes, in the dark above the play area, where nothing that
+// moves ever reaches.
 export class Hud extends Phaser.GameObjects.Container {
   private readonly score: Readout;
   private readonly wall: Readout;

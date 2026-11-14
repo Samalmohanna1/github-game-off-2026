@@ -67,13 +67,15 @@ describe('config', () => {
     expect(C.FIGURE_HEIGHT).toBeLessThan(C.WALL_HEIGHT);
   });
 
-  // M10b: the console sits below the runway, so it never covers it or the
-  // figure, and the current key cap's lime frame stays inside it.
-  it('fits every chip, and the current one with its frame, inside the console, inside the tray', () => {
-    const framed = C.CHIP.currentSize + 2 * (C.CHIP.focusGap + C.CHIP.focusWidth / 2);
+  // M10b: the bar sits below the runway, so it never covers it or the
+  // figure, and the current key cap's lime frame stays clear of the
+  // runway above and of the bar's line below.
+  it('fits every chip, and the current one with its frame, between the runway and the bar line', () => {
+    const framedHalf = C.CHIP.currentSize / 2 + C.CHIP.focusGap + C.CHIP.focusWidth / 2;
     expect(C.CHIP.size).toBeLessThan(C.CHIP.currentSize);
-    expect(framed).toBeLessThanOrEqual(C.CONSOLE.height);
-    expect(C.CONSOLE.height).toBeLessThanOrEqual(C.TRAY_HEIGHT);
+    expect(C.TRAY.rowY - framedHalf).toBeGreaterThanOrEqual(0);
+    expect(C.TRAY.rowY + framedHalf).toBeLessThanOrEqual(C.TRAY.lowY - C.TRAY.lineWidth / 2);
+    expect(C.TRAY.lowY).toBeLessThanOrEqual(C.TRAY_HEIGHT);
   });
 
   it('keeps the HUD above the horizon, where nothing that moves reaches', () => {
@@ -198,9 +200,8 @@ describe('graphics contrast', () => {
     expect(contrastRatio(C.COLORS.holeEdge, C.COLORS[name])).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
-  // The lit tile and the Shift Wall's target outline sit on the runway, and
-  // its edge lines run along it.
-  it.each(['laneLit', 'wallWarning', 'floorLine', 'figure'] as const)('%s stands out from the runway', (name) => {
+  // The lined-up marker and the Shift Wall's target outline sit on the runway.
+  it.each(['laneLit', 'wallWarning', 'figure'] as const)('%s stands out from the runway', (name) => {
     expect(contrastRatio(C.COLORS[name], C.COLORS.floor)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
@@ -220,18 +221,20 @@ describe('graphics contrast', () => {
     expect(contrastRatio(C.COLORS.shiftArrow, C.COLORS.textOutline)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
-  // M10b review: the panels are solid charcoal, the console thinly edged and
-  // the HUD accented in lime.
-  it('sets the UI panels off by their edge and accent', () => {
-    expect(contrastRatio(C.COLORS.panelEdge, C.COLORS.void)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
-    expect(contrastRatio(C.COLORS.panelEdge, C.COLORS.panel)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
-    expect(contrastRatio(C.COLORS.panelAccent, C.COLORS.panel)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  // The HUD's cream cards stand on the void; the bar's line, slashes and its
+  // letter squares, lit and unlit, all read on the bar.
+  it('sets the HUD cards off from the void', () => {
+    expect(contrastRatio(C.COLORS.hudCard, C.COLORS.void)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  });
+
+  it.each(['trayLine', 'trayAccent', 'trayDim'] as const)('%s reads on the bar', (name) => {
+    expect(contrastRatio(C.COLORS[name], C.COLORS.tray)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
   it.each(['chipHeld', 'chipHeldEdge', 'chipCurrent', 'chipSlipped', 'chipFocus'] as const)(
-    '%s stands out from the console',
+    '%s stands out from the bar',
     (name) => {
-      expect(contrastRatio(C.COLORS[name], C.COLORS.panel)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+      expect(contrastRatio(C.COLORS[name], C.COLORS.tray)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
     },
   );
 
@@ -239,8 +242,8 @@ describe('graphics contrast', () => {
     expect(contrastRatio(C.COLORS.chipShiftMark, C.COLORS[name])).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
-  it('outlines the next-letter preview, and its Shift mark, clearly on the console', () => {
-    expect(contrastRatio(C.COLORS.chipNextEdge, C.COLORS.panel)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  it('outlines the next-letter preview, and its Shift mark, clearly on the bar', () => {
+    expect(contrastRatio(C.COLORS.chipNextEdge, C.COLORS.tray)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
     expect(contrastRatio(C.COLORS.chipNextEdge, C.COLORS.chipNext)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 });
@@ -253,8 +256,8 @@ const TEXT_ON = {
   stage: ['ink', 'muted', 'accent', 'danger'],
   textOutline: ['light', 'good', 'alert', 'shift'],
   debugPanel: ['ink'],
-  // The HUD's numbers and captions sit on its panels.
-  panel: ['light'],
+  // The HUD's numbers and captions sit on its cream cards.
+  hudCard: ['ink'],
   chipNext: ['light'],
   chipHeld: ['ink'],
   chipCurrent: ['ink'],

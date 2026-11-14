@@ -225,6 +225,7 @@ export class PlayScene extends Phaser.Scene {
     this.figure.resetPose();
     this.laneTiles.setTarget(null);
     this.sequence.startWall(letters);
+    this.tray.setLetters(letters.length);
     this.phase = 'approach';
     this.setT(0);
     this.refreshAlignment();

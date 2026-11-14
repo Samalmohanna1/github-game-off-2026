@@ -10,17 +10,16 @@ export const GAME_HEIGHT = 720;
 // The other entries are darker steps of those, so each can be used on cream,
 // where the logo accents are too light to read.
 export const PALETTE = {
-  cream: 0xefdfca, // mock swatch: the runway, light text, the wall's frame
-  creamDeep: 0xd3c5ae, // cream, darkened for the runway's seams and tile tones
-  sage: 0x86a064, // the secondary environment color, and quiet labels
-  forest: 0x4a6e43, // the void's grid, UI hairlines, and a wall with no image
-  graphite: 0x4a433b, // the runway's outline, and quiet text on cream
-  charcoal: 0x3b3a37, // the fine grid inside UI panels
-  ink: 0x20201f, // mock swatch: UI surfaces and the figure
-  greenDark: 0x17472d, // mock swatch: the glow along the horizon
-  voidInk: 0x0b1510, // greenDark, taken almost to black: the void
-  greenDeep: 0x2f7f3a, // deepened to hold 3:1 on cream: the lit lane tile
-  lime: 0xb4ec4a, // the acid accent, used sparingly
+  cream: 0xefdfca, // mock swatch: the runway, the HUD cards, the wall's frame
+  creamDeep: 0xd3c5ae, // cream, darkened for the runway's seams
+  sage: 0x86a064, // the secondary environment color: the HUD's fold, the bar's line
+  forest: 0x4a6e43, // the void's grid, and a wall with no image
+  graphite: 0x4a433b, // quiet text on cream
+  ink: 0x20201f, // mock swatch: the figure and dark text
+  greenDark: 0x17472d, // mock swatch: the void's light toward the seam
+  voidInk: 0x0b1510, // greenDark, taken almost to black: the void and the bar
+  greenDeep: 0x2f7f3a, // deepened to hold 3:1 on cream: the lit lane tile, lit squares
+  lime: 0xb4ec4a, // the acid accent: the seam, edges, slashes, held keys
   yellow: 0xffff7f, // mock logo
   ochre: 0x8f6a00, // yellow, darkened to hold 3:1 on cream
   coral: 0xff7f7f, // mock logo
@@ -29,29 +28,33 @@ export const PALETTE = {
 } as const;
 
 // What each color means. The play screen (M10b) is a cream runway in a dark
-// grid void. Graphics that carry meaning must hold 3:1 against what they sit
-// on (tests/config.test.ts): the wall's cream frame and the hole's cream edge
-// against the void and its glow, the runway's lines and tiles against the
-// runway, and the key caps against their console. The wall's image can be any
-// color, so its frame and hole edge carry its contrast where the void shows
-// through; where the runway does, the image's own darks set the hole off.
-// The figure's cream edge outlines it against the void and the wall, where
-// its black can't. Lime is the accent, used sparingly: the HUD's edge
-// accents, the held and current key caps, PERFECT, and the trace round a
-// completed image. The two alert families stay: yellow means the hole is
-// moving (Shift Walls), and coral means a mistake (a wrong key, a slip, a
-// close call, Caps Lock).
+// grid stage: a glossy floor grid meeting a gridded back wall at a glowing
+// lime seam, where the walls are born. Graphics that carry meaning must hold
+// 3:1 against what they sit on (tests/config.test.ts): the wall's cream frame
+// and the hole's cream edge against the void and its glow, the runway's tiles
+// against the runway, and the key caps against the bar. The wall's image can
+// be any color, so its frame and hole edge carry its contrast where the void
+// shows through; where the runway does, the image's own darks set the hole
+// off. The figure's cream edge outlines it against the void and the wall,
+// where its black can't. Lime is the accent: the seam, the runway's edges,
+// the HUD's and the bar's slashes, the lit squares, held keys, PERFECT, and
+// the trace round a completed image. The two alert families stay: yellow
+// means the hole is moving (Shift Walls), and coral means a mistake (a wrong
+// key, a slip, a close call, Caps Lock).
 export const COLORS = {
   // The title and game-over screens, until M11 restyles them.
   stage: PALETTE.cream,
-  // The grid void behind the play screen: near-black, with a soft glow behind
-  // the incoming wall and a faint perspective grid. All decoration.
+  // The grid stage behind the play screen (GridVoid). All decoration.
   void: PALETTE.voidInk,
-  voidGlow: PALETTE.greenDark,
+  voidGlow: PALETTE.greenDark, // the light rising toward the seam
   voidGrid: PALETTE.forest,
+  seam: PALETTE.lime, // where the floor meets the back wall, and its bloom
+  squareDim: PALETTE.forest,
+  squareMid: PALETTE.greenDeep,
+  squareBright: PALETTE.lime,
   // The runway.
   floor: PALETTE.cream,
-  floorLine: PALETTE.graphite,
+  floorEdge: PALETTE.lime, // the glowing lines down its sides
   floorSeam: PALETTE.creamDeep, // decorative tile seams
   laneLit: PALETTE.greenDeep,
   // The wall: an image panel (src/assets/walls/) in a cream frame.
@@ -67,13 +70,20 @@ export const COLORS = {
   wallWarning: PALETTE.ochre,
   shiftArrow: PALETTE.yellow,
   wallFlash: PALETTE.red,
-  // Angular UI panels, solid charcoal: the HUD, with a lime edge accent, and
-  // the console the key caps sit in, with a thin sage border.
-  panel: PALETTE.charcoal,
-  panelEdge: PALETTE.sage,
-  panelAccent: PALETTE.lime,
-  // Key caps on the console: cream with charcoal letters, lime-edged once
-  // held, framed in lime while current, coral when slipped.
+  // The HUD: cream cards with a slanted inner edge, a sage fold in its
+  // corner and a lime slash beside it that fades to deep green.
+  hudCard: PALETTE.cream,
+  hudFold: PALETTE.sage,
+  hudSlash: PALETTE.lime,
+  hudSlashEnd: PALETTE.greenDeep,
+  // The bar along the bottom: a dark band with a thin stepped line, lime
+  // slashes, and a square per letter of the wall, lit once held.
+  tray: PALETTE.voidInk,
+  trayLine: PALETTE.sage,
+  trayAccent: PALETTE.lime,
+  trayDim: PALETTE.forest,
+  // Key caps in the bar: cream with dark letters, lime-edged once held,
+  // framed in lime while current, coral when slipped.
   chipHeld: PALETTE.cream,
   chipHeldEdge: PALETTE.lime,
   chipCurrent: PALETTE.cream,
@@ -82,7 +92,7 @@ export const COLORS = {
   chipFocus: PALETTE.lime, // the frame round the current key cap
   // The next-letter preview is hollow rather than faded, so its letter keeps
   // full contrast while still reading as "not yet".
-  chipNext: PALETTE.charcoal,
+  chipNext: PALETTE.voidInk,
   chipNextEdge: PALETTE.cream,
   // Text drawn over the moving scene (the timing label, the SHIFT callout and
   // its arrow, the Caps Lock warning, the pause text) is bright, inside a thick
@@ -128,7 +138,7 @@ export const FONT_LOAD_TIMEOUT = 3000; // ms; past this, start with the fallback
 export const FONT_SIZES = {
   title: 112,
   heading: 80,
-  hud: 68,
+  hud: 60,
   hudLabel: 24,
   chip: 42,
   body: 34,
@@ -179,7 +189,7 @@ export const DEBUG_OVERLAY = { x: 12, y: 12, padding: 10 } as const;
 
 export const PAUSE_DIM_ALPHA = 0.7; // void-colored veil over the paused game
 
-// Key caps in the console, px. The current prompt sits in the center; held
+// Key caps in the bar, px. The current prompt sits in the center; held
 // letters line up to its left, the most recent nearest the center, and to its
 // right come the next-letter preview and then slipped letters, in queue
 // order. Letters flow right to left: a chip that changes place slides there
@@ -194,33 +204,44 @@ export const CHIP = {
   cut: 10,
   nextEdgeWidth: 3,
   heldEdgeWidth: 3,
-  focusGap: 5,
-  focusWidth: 3,
+  focusGap: 4,
+  focusWidth: 2.5,
   slideMs: 140,
   popScale: 1.2,
   popMs: 220,
   wobble: { deg: 9, ms: 280, swings: 3 },
 } as const;
 
-// The console the key caps sit in, centered along the bottom, below the
-// runway, and wide enough for MAX_LETTERS held caps beside the current one.
-// px: padX past the outermost cap, cut on its top-left and bottom-right
-// corners. The socket outlines the current cap's slot where its lime frame
-// goes, so the slot shows while no letter is prompted.
-export const CONSOLE = {
-  height: 104,
+// The bar along the bottom (PromptTray), below the runway, after the mockup:
+// a dark band whose key caps sit in a row rowY px below its top, wide enough
+// for MAX_LETTERS held caps beside the current one, plus padX. A thin line
+// runs along its foot, low (lowY from the bar's top) under the caps, stepping
+// up over `ramp` px to highY beyond them, from lineFromX on the left to
+// lineEndInset from the right edge. Lime slashes (SLASH) sit at its left end, slashY from the top; at its
+// right end, one square per letter of the wall, lit as each is held. A faint
+// socket marks the current cap's slot. A faint tint of the void's light runs
+// tintHeight px down from its top, at most tintAlpha. px.
+export const TRAY = {
+  tintHeight: 44,
+  tintAlpha: 0.7,
+  rowY: 50,
   padX: 22,
-  cut: 18,
+  lineWidth: 1.5,
+  lineAlpha: 0.75,
+  lowY: 104,
+  highY: 88,
+  ramp: 14,
+  lineFromX: 88,
+  lineEndInset: 24,
+  slashY: 76,
+  squares: { size: 13, gap: 8, rightX: 34, y: 66 },
   socketWidth: 1.5,
+  socketAlpha: 0.45,
 } as const;
 
-// The angular UI panels (the HUD and the console): a solid charcoal face, and
-// either a thin edge (the console) or a short lime accent bar accentWidth px
-// thick along one side (the HUD; its length is per panel). px.
-export const PANEL = {
-  edgeWidth: 1.5,
-  accentWidth: 5,
-} as const;
+// The "//" slashes of the HUD and the bar: parallelograms `width` px wide,
+// `gap` apart, leaning `lean` px over a height of `height` px.
+export const SLASH = { width: 9, gap: 7, lean: 14, height: 26 } as const;
 
 // The outlined Shift arrow on capital chips, in the top-right corner. Size and
 // inset are fractions of the chip, sized to clear even wide capitals (W, M).
@@ -241,57 +262,101 @@ export const HORIZON_Y = 140;
 // then). Everything sized at its plane (CELL_SIZE, WALL_HEIGHT, the shadow,
 // the Shift arrow) scales with its depth, so the figure still fits its lane.
 export const FIGURE_FLOOR_Y = 560;
-export const FLOOR_LINE_WIDTH = 2;
 
-// Art (PLAN.md §10, M10b): a cream runway in a dark grid void, a wall that is
-// an image panel with a cutout, and angular charcoal UI with lime accents.
-// Clean edges and no texture: everything is drawn in code except the wall
-// images.
-// The grid void (GridVoid): a ground grid in the stage's perspective,
-// continuing the runway's lanes and tile rows into the dark. Depths are
-// 1/scale, as for the runway's tiles. Grid lines fade from fadeDepth[0] to
-// nothing at fadeDepth[1], so they melt into the dark instead of meeting at a
-// hard horizon; the lines toward the vanishing point fade in pieces fadeStep
-// longer than the last. The grid drifts toward the camera one tile row every
-// driftMs, and a slow wave of light runs through its rows the same way: one
-// crest every wave.rows rows, passing a row every wave.ms, dimming the lines
-// between crests by up to wave.dip of their alpha. A soft glow, glow.width by
-// glow.height px at glow.alpha, sits glow.below px under the vanishing point,
-// behind the incoming wall. The motion is still for reduced motion.
+// Art (PLAN.md §10, M10b): a cream runway on a dark grid stage, a wall that is
+// an image panel with a cutout, cream HUD cards and a line-art bar with lime
+// accents. Everything is drawn in code except the wall images.
+// The grid stage (GridVoid), after the mockup: the floor's grid runs in the
+// stage's perspective, continuing the runway's lanes and tile rows back to a
+// back wall at the runway's far end, where the walls appear, and the back
+// wall's square grid carries the same lanes up the screen. They meet at a
+// glowing lime seam. Depths are 1/scale, as for the runway's tiles.
+// - Floor lines brighten from floorAlpha[0] at the screen's foot to [1] at the
+//   seam, the lines toward the vanishing point in pieces fadeStep longer than
+//   the last; back wall lines dim from wallAlpha[0] at the seam to [1] at the
+//   top, with lime dots dotSize px at their crossings (at most dotAlpha).
+// - Light rises toward the seam (voidGlow, at most lightAlpha), with a round
+//   glow behind the wall; the seam is a lime line seamWidth px thick in a
+//   bloom bloomAbove px above it and bloomBelow px below, at most bloomAlpha.
+// - The floor drifts toward the camera one tile row every driftMs, with a slow
+//   wave of light through its rows: a crest every wave.rows rows, passing a
+//   row every wave.ms, dimming the rows between by up to wave.dip.
+// - The squares and light pillars (src/data/void-art.ts) are a fixed
+//   composition. They breathe together, their alpha swinging by `breathe` of
+//   itself over breatheMs in a wave that sweeps across the screen (one cycle
+//   per sweepPx); floating squares bob bobPx. Each tone has its alpha; a
+//   reflecting square shows on the floor below the seam, reflectLength px
+//   long at reflectAlpha. Pillars are lime at most pillarAlpha.
+// Still for reduced motion.
 export const VOID = {
-  fadeDepth: [1.4, 6.5] as readonly [number, number],
-  fadeStep: 0.15,
+  floorAlpha: [0.16, 0.55] as readonly [number, number],
+  wallAlpha: [0.42, 0.05] as readonly [number, number],
+  dotSize: 2,
+  dotAlpha: 0.55,
   lineWidth: 1,
-  lineAlpha: 0.3,
+  fadeStep: 0.15,
+  lightAlpha: 0.85,
+  glow: { width: 1100, height: 380, alpha: 0.45 },
+  seamWidth: 2,
+  bloomAbove: 50,
+  bloomBelow: 36,
+  bloomAlpha: 0.2,
   driftMs: 9000,
-  wave: { rows: 12, ms: 900, dip: 0.5 },
-  glow: { below: 70, width: 1180, height: 460, alpha: 0.7 },
+  wave: { rows: 12, ms: 900, dip: 0.45 },
+  breathe: 0.35,
+  breatheMs: 5200,
+  sweepPx: 520,
+  bobPx: 4,
+  tones: { dim: 0.32, mid: 0.7, bright: 0.95 },
+  reflectLength: 70,
+  reflectAlpha: 0.22,
+  pillarAlpha: 0.3,
 } as const;
-// HUD: SCORE in the top-left corner and WALL in the top-right, each on an
-// angular panel (PANEL) whose inner bottom corner is cut by `cut`, with its
-// accent down the outer side from the top. The panel grows with its number
-// from minWidth. A changed number counts up over countMs and pops from
-// popScale. px and ms; label and value y are from the panel's top.
+// HUD: SCORE top-left and WALL top-right on cream cards, after the mockup: the
+// outer corners cut by `cut`, the inner edge slanting `slant` px across the
+// card's height, a sage fold (foldAlpha) foldWidth px wide inside that edge
+// from foldFrom of the height down, and SLASH-shaped lime slashes beside it,
+// slashGap px out, the first full height and fading to deep green toward its
+// foot. The card grows with its number from minWidth. A changed number counts
+// up over countMs and pops from popScale. px and ms; label and value y are
+// from the card's top.
 export const HUD = {
   marginX: 24,
-  top: 16,
+  top: 18,
   height: 108,
-  minWidth: 200,
-  padX: 24,
-  cut: 22,
-  accentLength: 48,
-  labelY: 10,
-  valueY: 24,
+  minWidth: 236,
+  padX: 26,
+  cut: 9,
+  slant: 52,
+  foldWidth: 46,
+  foldFrom: 0.52,
+  foldAlpha: 0.5,
+  slashGap: 9,
+  slashSlices: 12,
+  labelY: 8,
+  valueY: 28,
   countMs: 380,
   popScale: 1.14,
   popMs: 220,
 } as const;
-// The runway: plain cream with thin cream-gray seams along the lanes and
-// across it. Cross seams are evenly spaced in 1/scale, so they bunch up into
-// the distance like real tiles, and are cut so the figure's plane runs
-// through the middle of a row: the figure stands centered on its lane's tile
+// The runway: cream with thin cream-gray seams along the lanes and across it,
+// its tile rows shading toward the deeper cream into the distance (up to
+// farShade at the far end), and glowing lime lines down its sides: a line
+// edgeWidth px thick in a glow of wider, fainter strokes (edgeGlow). Cross
+// seams are evenly spaced in 1/scale, so they bunch up into the distance like
+// real tiles, and are cut so the figure's plane runs through the middle of a
+// row: the figure stands centered on its lane's tile
 // (src/logic/perspective.ts). tileDepth is in 1/scale.
-export const FLOOR = { seamWidth: 1, tileDepth: 0.2 } as const;
+export const FLOOR = {
+  seamWidth: 1,
+  tileDepth: 0.2,
+  farShade: 0.55,
+  edgeWidth: 2.5,
+  edgeGlow: [
+    { width: 16, alpha: 0.08 },
+    { width: 8, alpha: 0.18 },
+  ],
+} as const;
 // The lined-up marker (M10b review): a deep green outline lineWidth px thick
 // round the figure's tile, inset by `inset` of its size. Each time the figure
 // lines up it flashes in as a filled pad, growing from `from` of its size over

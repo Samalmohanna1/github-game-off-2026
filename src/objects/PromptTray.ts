@@ -3,29 +3,30 @@ import {
   CHIP,
   CHIP_FONT_FAMILY,
   COLORS,
-  CONSOLE,
   GAME_WIDTH,
   MAX_LETTERS,
   SHIFT_MARK,
+  SLASH,
   STAGE_BOTTOM_Y,
   TEXT_COLORS,
+  TRAY,
   TRAY_HEIGHT,
 } from '@/config';
 import { chamferedRect } from '@/logic/convex';
 import type { Point } from '@/logic/perspective';
 import { isUppercaseLetter, type SequenceView } from '@/logic/sequence';
-import { drawPanel } from '@/objects/panel';
+import { fillSlash } from '@/objects/slash';
 import { toVectors } from '@/objects/vectors';
 import { textStyle } from '@/scenes/text-styles';
 import { prefersReducedMotion } from '@/scenes/ui';
 
 const CENTER_X = GAME_WIDTH / 2;
-const MID_Y = STAGE_BOTTOM_Y + TRAY_HEIGHT / 2;
+const MID_Y = STAGE_BOTTOM_Y + TRAY.rowY;
 const STEP = CHIP.size + CHIP.gap;
 // From the center to the nearest chip on either side.
 const SIDE_OFFSET = CHIP.currentSize / 2 + 2 * CHIP.gap + CHIP.size / 2;
-// Wide enough for every letter held, beside the current prompt's slot.
-const CONSOLE_HALF_WIDTH = SIDE_OFFSET + (MAX_LETTERS - 1) * STEP + CHIP.size / 2 + CONSOLE.padX;
+// The caps' reach: every letter held, beside the current prompt's slot.
+const ROW_HALF_WIDTH = SIDE_OFFSET + (MAX_LETTERS - 1) * STEP + CHIP.size / 2 + TRAY.padX;
 
 type ChipKind = 'held' | 'current' | 'next' | 'slipped';
 
@@ -36,7 +37,7 @@ interface ChipLook {
   readonly mark: number;
 }
 
-// Key caps on the console (M10b review): cream with charcoal letters, edged in
+// Key caps in the bar (M10b review): cream with dark letters, edged in
 // lime once held, coral when slipped, and a hollow cream outline for the
 // preview. The current cap gets a lime frame round it (addChip).
 const LOOKS: Readonly<Record<ChipKind, ChipLook>> = {
@@ -107,10 +108,15 @@ function capShape(size: number, grow = 0): Point[] {
 
 // Letters keep their case: uppercase means "hold Shift" (AGENTS.md). Capitals
 // also carry the Shift mark, because case alone is hard to read in a lone chip
-// (o/O, s/S, x/X differ only in size). The console's center socket is the
-// current prompt's slot; a prompt there gets a lime frame over it.
+// (o/O, s/S, x/X differ only in size).
+// The bar itself (M10b, after the mockup): a dark band under the runway with
+// a thin stepped line along its foot, lime slashes at its left end, a faint
+// socket for the current prompt, and at its right end one square per letter
+// of the wall, lit lime as each is held.
 export class PromptTray extends Phaser.GameObjects.Container {
   private chips: Phaser.GameObjects.Container[] = [];
+  private readonly progress: Phaser.GameObjects.Graphics;
+  private letters = 0;
   // Where each letter sat last time, and how big, so a moved chip can glide
   // from there.
   private lastLayout = new Map<string, ChipSpec>();
@@ -119,24 +125,23 @@ export class PromptTray extends Phaser.GameObjects.Container {
   constructor(scene: Phaser.Scene) {
     super(scene);
     scene.add.existing(this);
+    const bar = new Phaser.GameObjects.Graphics(scene);
+    drawBar(bar);
+    this.progress = new Phaser.GameObjects.Graphics(scene);
+    this.add([bar, this.progress]);
+  }
 
-    const panel = new Phaser.GameObjects.Graphics(scene);
-    const height = CONSOLE.height;
-    const shape = chamferedRect(CENTER_X - CONSOLE_HALF_WIDTH, MID_Y - height / 2, 2 * CONSOLE_HALF_WIDTH, height, {
-      topLeft: CONSOLE.cut,
-      bottomRight: CONSOLE.cut,
-    });
-    drawPanel(panel, shape, { edged: true });
-    const socket = capShape(CHIP.currentSize, CHIP.focusGap).map((p) => ({ x: p.x + CENTER_X, y: p.y + MID_Y }));
-    panel.lineStyle(CONSOLE.socketWidth, COLORS.panelEdge);
-    panel.strokePoints(toVectors(socket), true, true);
-    this.add(panel);
+  // A new wall: how many letters it asks for, one square each.
+  setLetters(count: number): void {
+    this.letters = count;
+    this.shown = '';
   }
 
   show(view: SequenceView): void {
     const key = JSON.stringify(view);
     if (key === this.shown) return;
     this.shown = key;
+    this.drawProgress(view.held.length);
 
     for (const chip of this.chips) {
       this.scene.tweens.killTweensOf(chip);
@@ -145,6 +150,19 @@ export class PromptTray extends Phaser.GameObjects.Container {
     const specs = layout(view);
     this.chips = specs.map((spec) => this.addChip(spec));
     this.lastLayout = new Map(specs.map((spec) => [spec.letter, spec]));
+  }
+
+  // One square per letter, right-aligned at the bar's right end, the first
+  // `held` of them lit.
+  private drawProgress(held: number): void {
+    const { size, gap, rightX, y } = TRAY.squares;
+    const g = this.progress;
+    g.clear();
+    for (let i = 0; i < this.letters; i++) {
+      const x = GAME_WIDTH - rightX - (this.letters - i) * size - (this.letters - 1 - i) * gap;
+      g.fillStyle(i < held ? COLORS.trayAccent : COLORS.trayDim);
+      g.fillRect(x, STAGE_BOTTOM_Y + y, size, size);
+    }
   }
 
   private addChip(spec: ChipSpec): Phaser.GameObjects.Container {
@@ -218,4 +236,36 @@ function drawShiftMark(shape: Phaser.GameObjects.Graphics, chipSize: number, col
     SHIFT_ARROW.map(([u, v]) => new Phaser.Math.Vector2(left + u * markSize, top + v * markSize)),
     true,
   );
+}
+
+// The band, its stepped line, the left slashes and the current prompt's socket.
+function drawBar(g: Phaser.GameObjects.Graphics): void {
+  const top = STAGE_BOTTOM_Y;
+  g.fillStyle(COLORS.tray);
+  g.fillRect(0, top, GAME_WIDTH, TRAY_HEIGHT);
+  const tint = COLORS.voidGlow;
+  g.fillGradientStyle(tint, tint, tint, tint, TRAY.tintAlpha, TRAY.tintAlpha, 0, 0);
+  g.fillRect(0, top, GAME_WIDTH, TRAY.tintHeight);
+
+  const [low, high] = [top + TRAY.lowY, top + TRAY.highY];
+  const line = [
+    { x: TRAY.lineFromX, y: high },
+    { x: CENTER_X - ROW_HALF_WIDTH - TRAY.ramp, y: high },
+    { x: CENTER_X - ROW_HALF_WIDTH, y: low },
+    { x: CENTER_X + ROW_HALF_WIDTH, y: low },
+    { x: CENTER_X + ROW_HALF_WIDTH + TRAY.ramp, y: high },
+    { x: GAME_WIDTH - TRAY.lineEndInset, y: high },
+  ];
+  g.lineStyle(TRAY.lineWidth, COLORS.trayLine, TRAY.lineAlpha);
+  g.strokePoints(toVectors(line));
+
+  const slash = { y: top + TRAY.slashY, width: SLASH.width, height: SLASH.height, lean: SLASH.lean, slices: 1 };
+  const firstX = TRAY.lineFromX - SLASH.gap - 2 * SLASH.width - SLASH.gap + SLASH.lean;
+  for (const x of [firstX, firstX + SLASH.width + SLASH.gap]) {
+    fillSlash(g, { ...slash, x, top: COLORS.trayAccent, foot: COLORS.trayAccent });
+  }
+
+  const socket = capShape(CHIP.currentSize, CHIP.focusGap).map((p) => ({ x: p.x + CENTER_X, y: p.y + MID_Y }));
+  g.lineStyle(TRAY.socketWidth, COLORS.trayLine, TRAY.socketAlpha);
+  g.strokePoints(toVectors(socket), true, true);
 }

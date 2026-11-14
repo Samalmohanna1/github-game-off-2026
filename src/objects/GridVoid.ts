@@ -1,77 +1,186 @@
 import Phaser from 'phaser';
-import { COLORS, FIGURE_FLOOR_Y, FLOOR, GAME_HEIGHT, GAME_WIDTH, HORIZON_Y, VOID } from '@/config';
+import { COLORS, FIGURE_FLOOR_Y, FLOOR, GAME_HEIGHT, GAME_WIDTH, HORIZON_Y, VOID, WALL_START_SCALE } from '@/config';
+import { FLOATING_SQUARES, PILLARS, WALL_CELLS, type SquareTone } from '@/data/void-art';
 import { LANE_WIDTH } from '@/logic/lanes';
 import { VANISHING_POINT, project, type Point } from '@/logic/perspective';
 import { prefersReducedMotion } from '@/scenes/ui';
 
-// A point on the ground at lateral offset x (px at the figure's plane) and
+// A point on the floor at lateral offset x (px at the figure's plane) and
 // depth (1/scale): the same perspective as the runway.
 const ground = (x: number, depth: number): Point =>
   project({ x: VANISHING_POINT.x + x, y: FIGURE_FLOOR_Y }, 1 / depth);
 
-// The ground's nearest visible depth, at the bottom of the screen.
-const NEAR_DEPTH = (FIGURE_FLOOR_Y - HORIZON_Y) / (GAME_HEIGHT - HORIZON_Y);
-const [FADE_FROM, FAR_DEPTH] = VOID.fadeDepth;
 const HALF_WIDTH = GAME_WIDTH / 2;
-// Lines run along the runway's lane seams and on out to the sides (line k at
-// k + 1/2 lane widths from the middle), and across at its tile rows, so the
-// runway sits in the grid.
+// The floor runs from the foot of the screen back to the back wall, which
+// stands at the runway's far end, where the walls appear.
+const NEAR_DEPTH = (FIGURE_FLOOR_Y - HORIZON_Y) / (GAME_HEIGHT - HORIZON_Y);
+const BACK_DEPTH = 1 / WALL_START_SCALE;
+const SEAM_Y = ground(0, BACK_DEPTH).y;
+// The back wall's grid squares, so its columns carry on the floor's lanes.
+const CELL = LANE_WIDTH / BACK_DEPTH;
+// Floor lines run along the runway's lane seams and on out (line k at
+// k + 1/2 lane widths from the middle), and across at its tile rows.
 const lineX = (k: number) => (k + 0.5) * LANE_WIDTH;
-// The outermost line still on screen before the grid fades out.
-const LAST_LINE = Math.floor((FAR_DEPTH * HALF_WIDTH) / LANE_WIDTH);
+const LAST_LINE = Math.ceil(HALF_WIDTH / CELL) + 1;
 const GLOW_TEXTURE = 'void-glow';
 const GLOW_TEXTURE_SIZE = 256;
 
-// Lines fade out smoothly with depth, into the dark, well before they bunch
-// up, so there is no hard horizon.
-function fade(depth: number): number {
-  return 1 - Phaser.Math.SmoothStep(depth, FADE_FROM, FAR_DEPTH);
-}
+const lerp = (a: number, b: number, t: number) => a + (b - a) * Phaser.Math.Clamp(t, 0, 1);
+// How far back a floor depth is, 0 at the foot of the screen, 1 at the seam.
+const backness = (depth: number) => (depth - NEAR_DEPTH) / (BACK_DEPTH - NEAR_DEPTH);
+const floorAlpha = (depth: number) => lerp(VOID.floorAlpha[0], VOID.floorAlpha[1], backness(depth));
+// How high up the back wall, 0 at the seam, 1 at the top of the screen.
+const wallAlpha = (y: number) => lerp(VOID.wallAlpha[0], VOID.wallAlpha[1], (SEAM_Y - y) / SEAM_Y);
+const TONE_COLOR: Readonly<Record<SquareTone, number>> = {
+  dim: COLORS.squareDim,
+  mid: COLORS.squareMid,
+  bright: COLORS.squareBright,
+};
 
-// The background (M10b, refined at its review): a dark void with a soft glow
-// behind the incoming wall, and a faint ground grid in the stage's
-// perspective that melts into the dark. The grid drifts slowly toward the
-// camera, and a gentle wave of light runs through its rows the same way:
-// one even, continuous motion, still for reduced motion. Nothing else moves.
+// The background (M10b, after the mockup): a dark grid stage. A glossy floor
+// grid in the stage's perspective runs back to a gridded back wall at the
+// runway's far end, where the walls appear, and the two meet at a glowing
+// lime seam, with light rising toward it. A fixed composition of lit cells,
+// floating squares and light pillars (src/data/void-art.ts) frames the play.
+// The motion is slow and even: the floor drifts toward the camera with a
+// wave of light through its rows, and the squares and pillars breathe and
+// bob together in a wave across the screen. All still for reduced motion.
 export class GridVoid extends Phaser.GameObjects.Container {
-  private readonly rows: Phaser.GameObjects.Graphics;
+  private readonly moving: Phaser.GameObjects.Graphics;
   private readonly still = prefersReducedMotion();
 
   constructor(scene: Phaser.Scene) {
     super(scene);
-    const dark = new Phaser.GameObjects.Rectangle(scene, 0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.void).setOrigin(0, 0);
-    const { below, width, height, alpha } = VOID.glow;
-    const glow = new Phaser.GameObjects.Image(scene, VANISHING_POINT.x, HORIZON_Y + below, glowTexture(scene));
+    const light = new Phaser.GameObjects.Graphics(scene);
+    drawLight(light);
+    const { width, height, alpha } = VOID.glow;
+    const glow = new Phaser.GameObjects.Image(scene, VANISHING_POINT.x, SEAM_Y, glowTexture(scene));
     glow.setDisplaySize(width, height).setAlpha(alpha);
-    const lines = new Phaser.GameObjects.Graphics(scene);
-    drawLinesToHorizon(lines);
-    this.rows = new Phaser.GameObjects.Graphics(scene);
-    this.add([dark, glow, lines, this.rows]);
+    const grid = new Phaser.GameObjects.Graphics(scene);
+    drawBackWall(grid);
+    drawFloorLines(grid);
+    this.moving = new Phaser.GameObjects.Graphics(scene);
+    const seam = new Phaser.GameObjects.Graphics(scene);
+    drawSeam(seam);
+    this.add([light, glow, grid, this.moving, seam]);
     scene.add.existing(this);
-    this.drawRows(0);
+    this.drawMoving(0);
   }
 
   preUpdate(time: number): void {
-    if (!this.still) this.drawRows(time);
+    if (!this.still) this.drawMoving(time);
   }
 
-  // The lines across the ground, at the runway's tile rows, drifted toward
+  private drawMoving(time: number): void {
+    const g = this.moving;
+    g.clear();
+    this.drawRows(time);
+    // Every square and pillar breathes in one wave sweeping across the screen.
+    const phase = (x: number) => 2 * Math.PI * (time / VOID.breatheMs - x / VOID.sweepPx);
+    const breath = (x: number) => (this.still ? 1 - VOID.breathe / 2 : 1 - VOID.breathe * (0.5 + 0.5 * Math.sin(phase(x))));
+    const bob = (x: number) => (this.still ? 0 : VOID.bobPx * Math.sin(phase(x) * 0.7));
+
+    for (const { x, below, width, height } of PILLARS) {
+      const foot = SEAM_Y + below;
+      const a = VOID.pillarAlpha * breath(x);
+      g.fillGradientStyle(COLORS.seam, COLORS.seam, COLORS.seam, COLORS.seam, 0, 0, a, a);
+      g.fillRect(x - width / 2, foot - height, width, height);
+      g.fillStyle(COLORS.seam, a * 1.6);
+      g.fillRect(x - width / 2, foot - 1, width, 2);
+    }
+    for (const { column, row, tone } of WALL_CELLS) {
+      const x = VANISHING_POINT.x + (column - 0.5) * CELL;
+      const y = SEAM_Y - (row + 1) * CELL;
+      g.fillStyle(TONE_COLOR[tone], VOID.tones[tone] * 0.5 * breath(x));
+      g.fillRect(x + 1, y + 1, CELL - 2, CELL - 2);
+    }
+    for (const { x, y, size, tone, reflect } of FLOATING_SQUARES) {
+      const a = VOID.tones[tone] * breath(x);
+      if (reflect === true) {
+        const r = VOID.reflectAlpha * a;
+        g.fillGradientStyle(TONE_COLOR[tone], TONE_COLOR[tone], TONE_COLOR[tone], TONE_COLOR[tone], r, r, 0, 0);
+        g.fillRect(x - size / 2, SEAM_Y + 2, size, VOID.reflectLength);
+      }
+      g.fillStyle(TONE_COLOR[tone], a);
+      g.fillRect(x - size / 2, y - size / 2 + bob(x), size, size);
+    }
+  }
+
+  // The lines across the floor, at the runway's tile rows, drifted toward
   // the camera, each dimmed by the wave between its crests.
   private drawRows(time: number): void {
-    const g = this.rows;
-    g.clear();
-    const travel = time / VOID.driftMs;
+    const g = this.moving;
+    const travel = this.still ? 0 : time / VOID.driftMs;
     const depthOf = (row: number) => 1 + (row + 0.5 - travel) * FLOOR.tileDepth;
     const { rows: crestEvery, ms: msPerRow, dip } = VOID.wave;
-    for (let row = Math.ceil((NEAR_DEPTH - 1) / FLOOR.tileDepth - 0.5 + travel); depthOf(row) < FAR_DEPTH; row++) {
+    for (let row = Math.ceil((NEAR_DEPTH - 1) / FLOOR.tileDepth - 0.5 + travel); depthOf(row) < BACK_DEPTH; row++) {
       const depth = depthOf(row);
       const along = (depth - 1) / FLOOR.tileDepth + time / msPerRow;
       const wave = this.still ? 1 : 1 - dip * (0.5 - 0.5 * Math.cos((2 * Math.PI * along) / crestEvery));
       const y = ground(0, depth).y;
-      g.lineStyle(VOID.lineWidth, COLORS.voidGrid, VOID.lineAlpha * fade(depth) * wave);
+      g.lineStyle(VOID.lineWidth, COLORS.voidGrid, floorAlpha(depth) * wave);
       g.lineBetween(0, y, GAME_WIDTH, y);
     }
   }
+}
+
+// Light rising toward the seam, down the back wall and up the floor.
+function drawLight(g: Phaser.GameObjects.Graphics): void {
+  const { void: dark, voidGlow: glow } = COLORS;
+  const a = VOID.lightAlpha;
+  g.fillStyle(dark);
+  g.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+  g.fillGradientStyle(glow, glow, glow, glow, 0, 0, a, a);
+  g.fillRect(0, 0, GAME_WIDTH, SEAM_Y);
+  g.fillGradientStyle(glow, glow, glow, glow, a * 0.8, a * 0.8, 0, 0);
+  g.fillRect(0, SEAM_Y, GAME_WIDTH, GAME_HEIGHT - SEAM_Y);
+}
+
+// The back wall's square grid, dimming upward, with a dot at each crossing.
+function drawBackWall(g: Phaser.GameObjects.Graphics): void {
+  for (let y = SEAM_Y - CELL; y > -CELL; y -= CELL) {
+    g.lineStyle(VOID.lineWidth, COLORS.voidGrid, wallAlpha(y));
+    g.lineBetween(0, y, GAME_WIDTH, y);
+  }
+  for (let k = -LAST_LINE; k <= LAST_LINE; k++) {
+    const x = VANISHING_POINT.x + (k + 0.5) * CELL;
+    for (let y = SEAM_Y; y > 0; y -= CELL) {
+      g.lineStyle(VOID.lineWidth, COLORS.voidGrid, wallAlpha(y - CELL / 2));
+      g.lineBetween(x, y, x, y - CELL);
+      if (y === SEAM_Y) continue;
+      const d = VOID.dotSize;
+      g.fillStyle(COLORS.seam, VOID.dotAlpha * (wallAlpha(y) / VOID.wallAlpha[0]));
+      g.fillRect(x - d / 2, y - d / 2, d, d);
+    }
+  }
+}
+
+// The floor's lines toward the vanishing point, from where each leaves the
+// screen back to the seam, in pieces that brighten toward it.
+function drawFloorLines(g: Phaser.GameObjects.Graphics): void {
+  const step = 1 + VOID.fadeStep;
+  const outermost = Math.ceil((HALF_WIDTH * BACK_DEPTH) / LANE_WIDTH);
+  for (let k = -outermost - 1; k <= outermost; k++) {
+    const x = lineX(k);
+    for (let near = Math.max(NEAR_DEPTH, Math.abs(x) / HALF_WIDTH); near < BACK_DEPTH; near *= step) {
+      const far = Math.min(near * step, BACK_DEPTH);
+      const [a, b] = [ground(x, near), ground(x, far)];
+      g.lineStyle(VOID.lineWidth, COLORS.voidGrid, floorAlpha((near + far) / 2));
+      g.lineBetween(a.x, a.y, b.x, b.y);
+    }
+  }
+}
+
+// The glowing seam where floor meets back wall: a soft bloom and a lime line.
+function drawSeam(g: Phaser.GameObjects.Graphics): void {
+  const c = COLORS.seam;
+  const a = VOID.bloomAlpha;
+  g.fillGradientStyle(c, c, c, c, 0, 0, a, a);
+  g.fillRect(0, SEAM_Y - VOID.bloomAbove, GAME_WIDTH, VOID.bloomAbove);
+  g.fillGradientStyle(c, c, c, c, a, a, 0, 0);
+  g.fillRect(0, SEAM_Y, GAME_WIDTH, VOID.bloomBelow);
+  g.fillStyle(c);
+  g.fillRect(0, SEAM_Y - VOID.seamWidth / 2, GAME_WIDTH, VOID.seamWidth);
 }
 
 // A round glow, its color fading smoothly to nothing at the edge, made once
@@ -92,20 +201,4 @@ function glowTexture(scene: Phaser.Scene): string {
   context.fillRect(0, 0, GLOW_TEXTURE_SIZE, GLOW_TEXTURE_SIZE);
   texture.refresh();
   return GLOW_TEXTURE;
-}
-
-// The lines toward the vanishing point never move, so they're drawn once, in
-// short pieces that fade with depth, from where each leaves the screen. The
-// runway covers the ones under it.
-function drawLinesToHorizon(g: Phaser.GameObjects.Graphics): void {
-  const step = 1 + VOID.fadeStep;
-  for (let k = -LAST_LINE - 1; k <= LAST_LINE; k++) {
-    const x = lineX(k);
-    for (let near = Math.max(NEAR_DEPTH, Math.abs(x) / HALF_WIDTH); near < FAR_DEPTH; near *= step) {
-      const far = Math.min(near * step, FAR_DEPTH);
-      const [a, b] = [ground(x, near), ground(x, far)];
-      g.lineStyle(VOID.lineWidth, COLORS.voidGrid, VOID.lineAlpha * fade((near + far) / 2));
-      g.lineBetween(a.x, a.y, b.x, b.y);
-    }
-  }
 }
