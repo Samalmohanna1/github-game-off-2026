@@ -1,4 +1,4 @@
-import { FIGURE_FLOOR_Y, GAME_WIDTH, HORIZON_Y, STAGE_BOTTOM_Y } from '@/config';
+import { FIGURE_FLOOR_Y, FLOOR, GAME_WIDTH, HORIZON_Y, STAGE_BOTTOM_Y, WALL_START_SCALE } from '@/config';
 
 export interface Point {
   readonly x: number;
@@ -29,4 +29,24 @@ export const FLOOR_HALF_WIDTH = GAME_WIDTH / 2 / STAGE_FRONT_SCALE;
 
 export function floorEdge(side: -1 | 1): Point {
   return { x: VANISHING_POINT.x + side * FLOOR_HALF_WIDTH, y: FIGURE_FLOOR_Y };
+}
+
+// The floor's tile rows: seams across the floor, evenly spaced in depth
+// (1/scale), cut so the figure's plane runs through the middle of a row.
+// Seam k sits at depth 1 + (k + 1/2) * FLOOR.tileDepth.
+const seamDepth = (k: number) => 1 + (k + 0.5) * FLOOR.tileDepth;
+
+// The row the figure stands in, as the scales of its back and front seams:
+// in each lane, the figure stands centered on this tile.
+export const FIGURE_TILE = { back: 1 / seamDepth(0), front: 1 / seamDepth(-1) } as const;
+
+// Every cross seam between the floor's far end (WALL_START_SCALE) and the
+// stage front, far to near.
+export function crossSeamScales(): number[] {
+  const scales: number[] = [];
+  const farDepth = 1 / WALL_START_SCALE;
+  for (let k = Math.floor((farDepth - 1) / FLOOR.tileDepth - 0.5); seamDepth(k) > 1 / STAGE_FRONT_SCALE; k--) {
+    if (seamDepth(k) < farDepth) scales.push(1 / seamDepth(k));
+  }
+  return scales;
 }

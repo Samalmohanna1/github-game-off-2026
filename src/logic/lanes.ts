@@ -5,14 +5,18 @@ import { pick, type Random } from '@/logic/random';
 export const CENTER_LANE = Math.floor(LANE_COUNT / 2);
 export const LANE_WIDTH = (2 * FLOOR_HALF_WIDTH) / LANE_COUNT; // px at the figure's plane
 
-export function moveLane(lane: number, dir: -1 | 1): number {
-  return Math.min(LANE_COUNT - 1, Math.max(0, lane + dir));
-}
-
-// Space: one lane toward the hole, so a thumb can line up either way without
-// the hands leaving the letters. Once lined up, it stays put.
+// Space, the only way to move: one lane toward the hole, so a thumb lines up
+// either way without the hands leaving the letters. Once lined up, it stays
+// put. (← / → moved the figure too, until after M10.)
 export function stepToward(lane: number, targetLane: number): number {
   return lane + Math.sign(targetLane - lane);
+}
+
+// On a fail the figure topples toward the middle of the stage, so it lands on
+// the floor; from the center lane, either way.
+export function fallDirection(lane: number, random: Random = Math.random): -1 | 1 {
+  if (lane === CENTER_LANE) return random() < 0.5 ? -1 : 1;
+  return lane < CENTER_LANE ? 1 : -1;
 }
 
 export function isAligned(figureLane: number, holeLane: number): boolean {

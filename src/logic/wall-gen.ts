@@ -14,14 +14,6 @@ export interface WallSpec {
   readonly blockFor: Readonly<Record<string, BlockId>>;
 }
 
-// A cell-unit line on the pose grid: x is a column edge, y is a row edge.
-export interface Segment {
-  readonly x1: number;
-  readonly y1: number;
-  readonly x2: number;
-  readonly y2: number;
-}
-
 export type HoleGrid = readonly (readonly boolean[])[];
 
 const cellKey = (col: number, row: number) => `${col},${row}`;
@@ -90,17 +82,23 @@ export function generateWall(
   if (letters.length > BLOCK_IDS.length) {
     throw new Error(`${letters.length} letters but only ${BLOCK_IDS.length} blocks`);
   }
-  const changed = shuffled(BLOCK_IDS, random).slice(0, letters.length);
-  // Prefer a one-piece silhouette. The torso sits between both arms, so turning
-  // it always parts it from one arm; those walls fall back to a hole with a gap.
-  const valid = poseOptions(changed);
-  const onePiece = valid.filter(isOnePiece);
-  const targets = pick(onePiece.length > 0 ? onePiece : valid, random);
-  if (targets === undefined) throw new Error(`No valid pose changes ${changed.join(', ')}`);
+  // The hole is always one clean piece (M10). A few block sets can't make one
+  // (the torso turned on its own parts it from an arm), so the letters go to
+  // the first set, in shuffled order, that can.
+  for (const changed of subsetsInOrder(shuffled(BLOCK_IDS, random), letters.length)) {
+    const targets = pick(poseOptions(changed).filter(isOnePiece), random);
+    if (targets === undefined) continue;
+    const blockFor: Record<string, BlockId> = {};
+    letters.forEach((letter, i) => (blockFor[letter] = changed[i]!));
+    return { holeLane: pickHoleLane(figureLane, holeDistance, random), targets, blockFor };
+  }
+  throw new Error(`No one-piece pose moves ${letters.length} blocks`);
+}
 
-  const blockFor: Record<string, BlockId> = {};
-  letters.forEach((letter, i) => (blockFor[letter] = changed[i]!));
-  return { holeLane: pickHoleLane(figureLane, holeDistance, random), targets, blockFor };
+// Every k-item subset, keeping the items' order and starting with the first k.
+function subsetsInOrder<T>(items: readonly T[], k: number): T[][] {
+  if (k === 0) return [[]];
+  return items.flatMap((item, i) => subsetsInOrder(items.slice(i + 1), k - 1).map((rest) => [item, ...rest]));
 }
 
 // grid[row][col] is true where the hole is.
@@ -113,23 +111,4 @@ export function holeGrid(pose: Pose): HoleGrid {
     }
   }
   return grid;
-}
-
-// The hole's edge against the wall, as unit segments. The bottom row opens
-// onto the floor, so it has no bottom edge.
-export function holeOutline(grid: HoleGrid): Segment[] {
-  const isHole = (row: number, col: number) => grid[row]?.[col] === true;
-  const segments: Segment[] = [];
-  grid.forEach((cells, row) =>
-    cells.forEach((hole, col) => {
-      if (!hole) return;
-      if (!isHole(row - 1, col)) segments.push({ x1: col, y1: row, x2: col + 1, y2: row });
-      if (row < grid.length - 1 && !isHole(row + 1, col)) {
-        segments.push({ x1: col, y1: row + 1, x2: col + 1, y2: row + 1 });
-      }
-      if (!isHole(row, col - 1)) segments.push({ x1: col, y1: row, x2: col, y2: row + 1 });
-      if (!isHole(row, col + 1)) segments.push({ x1: col + 1, y1: row, x2: col + 1, y2: row + 1 });
-    }),
-  );
-  return segments;
 }

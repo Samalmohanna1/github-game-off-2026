@@ -7,11 +7,11 @@ import {
   FAIL_TO_GAME_OVER_MS,
   GAME_HEIGHT,
   GAME_WIDTH,
+  GRAIN,
   LOCK_RUSH_DURATION,
   RUSH_END_SCALE,
   SCREEN_LAYOUT,
   SHIFT_JOLT,
-  STAGE_BOTTOM_Y,
 } from '@/config';
 import { NEUTRAL_POSE } from '@/data/poses';
 import { KeyboardInput } from '@/input/KeyboardInput';
@@ -19,7 +19,7 @@ import { advanceT, jumpT, wallScale } from '@/logic/approach';
 import { Countdown } from '@/logic/countdown';
 import { NO_DEV_OPTIONS, parseDevOptions, type DevOptions } from '@/logic/dev-options';
 import { planWall, type WallPlan } from '@/logic/difficulty';
-import { CENTER_LANE, isAligned, laneCenterX, moveLane, stepToward } from '@/logic/lanes';
+import { CENTER_LANE, fallDirection, isAligned, laneCenterX, stepToward } from '@/logic/lanes';
 import { generateLetters } from '@/logic/letters';
 import { ScoreKeeper, gradeFor } from '@/logic/scoring';
 import { LetterSequence, type SequenceEffect } from '@/logic/sequence';
@@ -28,26 +28,28 @@ import { generateWall, holeGrid, type WallSpec } from '@/logic/wall-gen';
 import { DebugOverlay, type DebugRow } from '@/objects/DebugOverlay';
 import { Figure } from '@/objects/Figure';
 import { Floor } from '@/objects/Floor';
-import { LaneMarkers } from '@/objects/LaneMarkers';
+import { Hud } from '@/objects/Hud';
+import { Collage } from '@/objects/Collage';
+import { addGrain } from '@/objects/grain';
+import { LaneTiles } from '@/objects/LaneTiles';
 import { PauseOverlay } from '@/objects/PauseOverlay';
 import { PromptTray } from '@/objects/PromptTray';
 import { ShiftCallout } from '@/objects/ShiftCallout';
-import { playSplash } from '@/objects/splash';
 import { TimingLabel } from '@/objects/TimingLabel';
 import { Wall } from '@/objects/Wall';
 import { SceneKeys, type RunResult } from '@/scenes/scene-keys';
-import { textStyle } from '@/scenes/text-styles';
+import { outlinedStyle } from '@/scenes/text-styles';
 import { prefersReducedMotion } from '@/scenes/ui';
 
 // Draw order. The wall moves from behind the figure to in front of it once it
 // rushes past the figure's plane.
 const LAYER = {
-  floor: 0,
-  laneMarkers: 1,
-  wall: 2,
-  figure: 3,
-  wallPassed: 4,
-  splash: 5,
+  background: 0,
+  floor: 1,
+  laneTiles: 2,
+  wall: 3,
+  figure: 4,
+  wallPassed: 5,
   label: 6,
   tray: 7,
   hud: 8,
@@ -77,11 +79,12 @@ export class PlayScene extends Phaser.Scene {
   private keyboard!: KeyboardInput;
   private wall!: Wall;
   private figure!: Figure;
-  private laneMarkers!: LaneMarkers;
+  private laneTiles!: LaneTiles;
   private tray!: PromptTray;
   private label!: TimingLabel;
   private callout!: ShiftCallout;
   private capsWarning!: Phaser.GameObjects.Text;
+  private hud!: Hud;
   private pauseOverlay!: PauseOverlay;
   private debug!: DebugOverlay;
   // Null when the browser has no Web Audio; the game then plays silent.
@@ -102,20 +105,21 @@ export class PlayScene extends Phaser.Scene {
     this.sequence = new LetterSequence();
     this.scoreKeeper = new ScoreKeeper(this.dev.startWall);
 
-    new Floor(this).setDepth(LAYER.floor);
-    this.laneMarkers = new LaneMarkers(this).setDepth(LAYER.laneMarkers);
+    // Paper texture, each element in its own colors (M10): moderate on the
+    // background, very faint on the floor; the wall textures its own surface.
+    addGrain(new Collage(this).setDepth(LAYER.background), GRAIN.background);
+    addGrain(new Floor(this).setDepth(LAYER.floor), GRAIN.floor);
+    this.laneTiles = new LaneTiles(this).setDepth(LAYER.laneTiles);
     this.wall = new Wall(this).setDepth(LAYER.wall);
     this.figure = new Figure(this, this.figureLane).setDepth(LAYER.figure);
     this.label = new TimingLabel(this).setDepth(LAYER.label);
     this.callout = new ShiftCallout(this).setDepth(LAYER.label);
     this.tray = new PromptTray(this).setDepth(LAYER.tray);
+    this.hud = new Hud(this).setDepth(LAYER.hud);
+    // Sized to fit between SCORE and WALL.
+    const capsText = 'Caps Lock is on. Use Shift for capitals.';
     this.capsWarning = this.add
-      .text(
-        GAME_WIDTH / 2,
-        GAME_HEIGHT * SCREEN_LAYOUT.capsWarningY,
-        'Caps Lock is on. Turn it off and use Shift for capitals.',
-        textStyle('body', 'danger', true),
-      )
+      .text(GAME_WIDTH / 2, GAME_HEIGHT * SCREEN_LAYOUT.capsWarningY, capsText, outlinedStyle('small', 'alert', true))
       .setOrigin(0.5)
       .setDepth(LAYER.hud)
       .setVisible(false);
@@ -126,7 +130,6 @@ export class PlayScene extends Phaser.Scene {
       if (this.sequence.paused) this.resume();
     });
     this.keyboard = new KeyboardInput({
-      onMove: (dir) => this.moveFigure(moveLane(this.figureLane, dir)),
       onSpace: () => this.moveFigure(stepToward(this.figureLane, this.shiftWall.upcomingLane ?? this.holeLane)),
       onKeyDown: (key, code) => this.apply(this.sequence.press(key, code)),
       onKeyUp: (code) => this.apply(this.sequence.release(code)),
@@ -146,6 +149,7 @@ export class PlayScene extends Phaser.Scene {
   update(_time: number, deltaMs: number): void {
     if (this.debug.visible) this.debug.show(this.debugRows());
     if (this.sequence.paused) return;
+    if (this.phase === 'failing') this.figure.updateTumble(deltaMs);
     if (this.phase === 'approach') {
       this.sequence.tick(deltaMs);
       this.applyShift(this.shiftWall.update(this.t, this.sequence.heldCount, this.sequence.leftCount, deltaMs));
@@ -168,7 +172,7 @@ export class PlayScene extends Phaser.Scene {
       this.wall.warn(event.dir);
       this.callout.show(event.dir);
       this.synth?.shiftAlert(event.dir);
-      this.laneMarkers.setTarget({ lane: event.toLane, dir: event.dir });
+      this.laneTiles.setTarget({ lane: event.toLane, dir: event.dir });
       return;
     }
     const dir = event.toLane > this.holeLane ? 1 : -1;
@@ -196,6 +200,7 @@ export class PlayScene extends Phaser.Scene {
 
   private startWall(): void {
     this.plan = planWall(this.scoreKeeper.wallNumber, Math.random, this.dev.forceShiftWall);
+    this.hud.setWall(this.scoreKeeper.wallNumber);
     const { letters, stretch } = generateLetters(this.plan);
     this.stretch = stretch;
     this.spec = generateWall(this.figureLane, letters, this.plan.holeDistance);
@@ -205,7 +210,7 @@ export class PlayScene extends Phaser.Scene {
     this.wall.setHole(this.holeLane, holeGrid(this.spec.targets));
     this.wall.setAlpha(1).setDepth(LAYER.wall);
     this.figure.resetPose();
-    this.laneMarkers.setTarget(null);
+    this.laneTiles.setTarget(null);
     this.sequence.startWall(letters);
     this.phase = 'approach';
     this.setT(0);
@@ -246,9 +251,9 @@ export class PlayScene extends Phaser.Scene {
   private refreshAlignment(): void {
     const aligned = isAligned(this.figureLane, this.holeLane);
     this.sequence.setAligned(aligned);
-    this.laneMarkers.setLit(aligned ? this.figureLane : null);
+    this.laneTiles.setLit(aligned ? this.figureLane : null);
     // The target stays through the warning, while the old lane still counts.
-    if (aligned && !this.shiftWall.warning) this.laneMarkers.setTarget(null);
+    if (aligned && !this.shiftWall.warning) this.laneTiles.setTarget(null);
     this.maybeLock();
   }
 
@@ -262,6 +267,7 @@ export class PlayScene extends Phaser.Scene {
     this.phase = 'rush';
     this.sequence.lock();
     const score = this.scoreKeeper.clearWall(this.t);
+    this.hud.setScore(this.scoreKeeper.score);
     this.label.show(score, laneCenterX(this.figureLane));
     if (score.grade === 'closeCall') this.slowMotion();
     if (score.grade === 'perfect') this.synth?.fanfare();
@@ -286,10 +292,9 @@ export class PlayScene extends Phaser.Scene {
 
   private rushWall(scale: number): void {
     this.wall.setScale(scale);
-    // Past the figure's plane the wall is in front of it, fading toward the camera.
-    if (scale >= 1) {
-      this.wall.setDepth(LAYER.wallPassed).setAlpha(1 - (scale - 1) / (RUSH_END_SCALE - 1));
-    }
+    // Past the figure's plane the wall is in front of it, fading toward the
+    // camera, with the figure showing through its hole.
+    if (scale >= 1) this.wall.setDepth(LAYER.wallPassed).setAlpha(1 - (scale - 1) / (RUSH_END_SCALE - 1));
   }
 
   private fail(): void {
@@ -297,8 +302,7 @@ export class PlayScene extends Phaser.Scene {
     this.phase = 'failing';
     this.sequence.lock();
     this.synth?.hit();
-    this.figure.shove(() => {
-      playSplash(this, this.figure.x, STAGE_BOTTOM_Y, LAYER.splash);
+    this.figure.topple(fallDirection(this.figureLane), () => {
       this.synth?.whomp();
       if (!prefersReducedMotion()) this.cameras.main.shake(FAIL_SHAKE_MS, FAIL_SHAKE_INTENSITY);
     });

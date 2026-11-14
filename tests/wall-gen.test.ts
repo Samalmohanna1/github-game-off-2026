@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FIGURE_GRID } from '@/config';
 import { ALT_POSES, BLOCK_IDS, NEUTRAL_POSE, type BlockId } from '@/data/poses';
-import { cellsOf, generateWall, holeGrid, holeOutline, isOnePiece, isValidPose, poseOptions } from '@/logic/wall-gen';
+import { cellsOf, generateWall, holeGrid, isOnePiece, isValidPose, poseOptions } from '@/logic/wall-gen';
 import { seeded } from './seeded';
 
 const SEEDS = Array.from({ length: 200 }, (_, i) => i + 1);
@@ -65,11 +65,23 @@ describe('generateWall', () => {
     }
   });
 
-  it('keeps the silhouette in one piece whenever the torso stays put', () => {
-    for (const seed of SEEDS) {
-      const wall = generateWall(3, ['a', 'b', 'c'], DISTANCE, seeded(seed));
-      if (!Object.values(wall.blockFor).includes('torso')) expect(isOnePiece(wall.targets)).toBe(true);
+  // M10: the hole is always one clean shape, never broken-up pieces.
+  it('always makes a one-piece hole, for every letter count', () => {
+    const letters = ['q', 'w', 'e', 'r', 't'];
+    for (let count = 1; count <= letters.length; count++) {
+      for (const seed of SEEDS) {
+        const wall = generateWall(3, letters.slice(0, count), DISTANCE, seeded(seed));
+        expect(isOnePiece(wall.targets), `${count} letters, seed ${seed}`).toBe(true);
+      }
     }
+  });
+
+  it('still lets every block, the torso included, take a letter', () => {
+    const moved = new Set<BlockId>();
+    for (const seed of SEEDS) {
+      for (const id of Object.values(generateWall(3, ['a', 'b', 'c'], DISTANCE, seeded(seed)).blockFor)) moved.add(id);
+    }
+    expect([...moved].sort()).toEqual([...BLOCK_IDS].sort());
   });
 
   it('puts the hole the requested number of lanes from the figure', () => {
@@ -99,28 +111,5 @@ describe('hole', () => {
     );
     expect(count).toBe(expected.size);
     expect(grid).toHaveLength(FIGURE_GRID.rows);
-  });
-
-  it('outlines a hole on every side except the floor', () => {
-    // A single open cell in the bottom-left corner of a 2x2 grid.
-    const outline = holeOutline([
-      [false, false],
-      [true, false],
-    ]);
-    expect(outline).toEqual(
-      expect.arrayContaining([
-        { x1: 0, y1: 1, x2: 1, y2: 1 }, // top
-        { x1: 0, y1: 1, x2: 0, y2: 2 }, // left
-        { x1: 1, y1: 1, x2: 1, y2: 2 }, // right
-      ]),
-    );
-    expect(outline).toHaveLength(3);
-  });
-
-  it('draws no edge between two hole cells', () => {
-    // Two side-by-side cells on the floor: two tops, the far left, the far right.
-    const outline = holeOutline([[true, true]]);
-    expect(outline).not.toContainEqual({ x1: 1, y1: 0, x2: 1, y2: 1 });
-    expect(outline).toHaveLength(4);
   });
 });

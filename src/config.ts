@@ -1,67 +1,155 @@
 export const GAME_WIDTH = 1280;
 export const GAME_HEIGHT = 720;
 
-// Non-text graphics that carry meaning (wall and hole, floor, tray edge, lane
-// markers, figure) must stay at or above 3:1 against COLORS.stage, and the
-// figure also against the wall it passes in front of (tests/config.test.ts).
+// The color system (M10). Every color the game draws is named once in PALETTE,
+// and components only use the roles in COLORS and TEXT_COLORS, never a raw
+// value (tests/config.test.ts checks both). The base swatches were sampled
+// from the design mocks (cream, near-black, the two greens), the collage's
+// paper colors from the M10 review 4 reference (sage, forest, stone,
+// charcoal), and the yellow and coral accents from the mock's logo. The other
+// entries are darker steps of those, so each can be used on cream, where the
+// logo accents are too light to read.
+export const PALETTE = {
+  cream: 0xefdfca, // mock swatch: the stage and the floor
+  creamDeep: 0xd3c5ae, // cream, darkened for the floor's seams and tile tones
+  paper: 0xf5ede0, // a lighter sheet in the collage
+  paperCore: 0xfbf7ef, // the pale core a tear shows
+  sage: 0x86a064,
+  forest: 0x4a6e43,
+  stone: 0x8b8473,
+  charcoal: 0x3b3a37,
+  graphite: 0x4a433b, // every outline, and quiet text
+  ink: 0x20201f, // mock swatch
+  green: 0x49a443, // mock swatch
+  greenDeep: 0x2f7f3a, // green, deepened to hold 3:1 on cream
+  greenDark: 0x17472d, // mock swatch
+  yellow: 0xffff7f, // mock logo
+  ochre: 0x8f6a00, // yellow, darkened to hold 3:1 on cream
+  coral: 0xff7f7f, // mock logo
+  red: 0xd8453c, // coral, darkened to hold 3:1 on cream
+  redDark: 0xa32a22, // coral, darkened for text
+} as const;
+
+// What each color means. Graphics that carry meaning (the wall and its hole,
+// the floor edges, the tray, the figure, outlines) must stay at or above 3:1
+// against COLORS.stage, and the lane tiles against COLORS.floor; the figure's
+// cream edge outlines it against the dark green wall, where its black can't.
+// The bright green only reaches 2.4:1 on cream, so it decorates (verges, held
+// chips on the black tray) and a deeper green lights the lined-up lane's tile.
+// The collage's colors only decorate the background, at its edges.
+// The two accent families are the alerts: yellow means the hole is moving
+// (Shift Walls), and coral means a mistake (a wrong key, a slip, a close call,
+// Caps Lock).
 export const COLORS = {
-  stage: 0xf7dde3,
-  floorLine: 0x6e5662,
-  wall: 0x6b7a8f,
-  wallEdge: 0x3b4656,
-  tray: 0xffffff,
-  trayEdge: 0x6e5662,
-  laneMarker: 0x6e5662,
-  laneMarkerLit: 0x1f8a4c,
-  figure: 0x241c29,
-  figureEdge: 0xf7dde3,
-  wallFlash: 0xd6374a,
-  chipHeld: 0x1a7a43,
-  chipCurrent: 0x1d4fb8,
-  chipSlipped: 0xb3243a,
-  chipShiftMark: 0xffffff,
-  // The next-letter preview is hollow rather than faded, so its letter keeps
-  // full contrast while still reading as "not yet".
-  chipNext: 0xffffff,
-  chipNextEdge: 0x1d4fb8,
-  panel: 0xffffff,
-  panelEdge: 0x6e5662,
-  labelStroke: 0xffffff,
-  splash: 0x3d8fd6,
+  stage: PALETTE.cream,
+  floor: PALETTE.cream,
+  floorLine: PALETTE.graphite,
+  floorSeam: PALETTE.creamDeep, // decorative tile seams
+  floorTone: PALETTE.creamDeep, // laid faintly over some tiles, so they vary
+  verge: PALETTE.green, // decorative grass strips beside the floor
+  vergeOuter: PALETTE.greenDark,
+  outline: PALETTE.graphite,
+  wall: PALETTE.greenDark,
+  tray: PALETTE.ink,
+  laneLit: PALETTE.greenDeep,
+  figure: PALETTE.ink,
+  figureEdge: PALETTE.cream,
+  figureShadow: PALETTE.ink,
   // Shift Wall warning. It's as bright as the wrong-key flash, so the arrow is
   // what tells the two apart, not the color.
-  wallWarning: 0xa86400,
-  shiftArrow: 0xffffff,
+  wallWarning: PALETTE.ochre,
+  shiftArrow: PALETTE.yellow,
+  wallFlash: PALETTE.red,
+  // Key caps on the black tray, each with black letters.
+  chipHeld: PALETTE.green,
+  chipCurrent: PALETTE.cream,
+  chipSlipped: PALETTE.coral,
+  chipShiftMark: PALETTE.ink,
+  // The next-letter preview is hollow rather than faded, so its letter keeps
+  // full contrast while still reading as "not yet".
+  chipNext: PALETTE.ink,
+  chipNextEdge: PALETTE.cream,
+  // Text drawn over the moving scene (the timing label, the SHIFT callout and
+  // its arrow, the Caps Lock warning, the pause text) is bright, inside a thick
+  // outline of this, so it reads over anything.
+  textOutline: PALETTE.ink,
+  debugPanel: PALETTE.cream,
+  // The background collage (src/data/collage.ts).
+  collagePaper: PALETTE.paper,
+  collageCore: PALETTE.paperCore,
+  collageSage: PALETTE.sage,
+  collageForest: PALETTE.forest,
+  collageStone: PALETTE.stone,
+  collageCharcoal: PALETTE.charcoal,
+  collageGrid: PALETTE.graphite,
+  collageForestGrid: PALETTE.greenDark,
 } as const;
+
+const css = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
 
 // CSS strings because Phaser text styles take CSS colors. ink, muted, accent
-// and danger sit on the stage, a white panel, or a timing label's white
-// stroke; onChip sits on the chip colors. Every pair must reach 4.5:1
+// and danger sit on the stage (the title and game-over screens); ink also sits
+// on the chips, the debug panel and the collage under the HUD, and light on
+// the black tray.
+// light, good, alert and shift are the outlined text over the scene, measured
+// against their outline (COLORS.textOutline). Every pair must reach 4.5:1
 // (tests/config.test.ts).
 export const TEXT_COLORS = {
-  ink: '#3b2a33',
-  muted: '#6e5662',
-  accent: '#1d4fb8',
-  danger: '#b3243a',
-  onChip: '#ffffff',
-  warning: '#a86400', // the Shift Wall callout; matches COLORS.wallWarning
+  ink: css(PALETTE.ink),
+  muted: css(PALETTE.graphite),
+  accent: css(PALETTE.greenDark),
+  danger: css(PALETTE.redDark),
+  light: css(PALETTE.cream),
+  good: css(PALETTE.green),
+  alert: css(PALETTE.coral),
+  shift: css(PALETTE.yellow),
 } as const;
 
-export const FONT_FAMILY = 'Arial, Helvetica, sans-serif';
+// Anton for display text (titles, grades, big numbers) and IBM Plex Mono for
+// the rest, as in the design mocks. Both are bundled from @fontsource (SIL
+// OFL) and never fetched at runtime; the fallbacks only show if loading fails.
+export const DISPLAY_FONT_FAMILY = 'Anton, Impact, "Arial Narrow", sans-serif';
+export const FONT_FAMILY = '"IBM Plex Mono", Consolas, Menlo, monospace';
 // Prompt letters need a capital I that can't be mistaken for a lowercase l;
-// Verdana and Tahoma give the I crossbars, Arial does not.
-export const CHIP_FONT_FAMILY = 'Verdana, Tahoma, sans-serif';
+// IBM Plex Mono's I has crossbars.
+export const CHIP_FONT_FAMILY = FONT_FAMILY;
 // Monospace so the debug overlay's columns line up.
-export const DEBUG_FONT_FAMILY = 'Consolas, Menlo, "Courier New", monospace';
+export const DEBUG_FONT_FAMILY = FONT_FAMILY;
+export const FONT_LOAD_TIMEOUT = 3000; // ms; past this, start with the fallbacks
 
 // px. Nothing goes below 24 so all text counts as "large" for WCAG contrast.
 export const FONT_SIZES = {
   title: 112,
   heading: 80,
+  hud: 68,
+  hudLabel: 24,
   chip: 42,
   body: 34,
   small: 24,
 } as const;
+
+// Which family each size uses. Anton has one weight, so it is never bolded.
+export const FONT_ROLES: Readonly<Record<keyof typeof FONT_SIZES, 'display' | 'mono'>> = {
+  title: 'display',
+  heading: 'display',
+  hud: 'display',
+  hudLabel: 'display',
+  chip: 'mono',
+  body: 'mono',
+  small: 'mono',
+};
+
+// Outlined text (outlinedStyle() in src/scenes/text-styles.ts): the stroke
+// width per size, px. Half of it lies outside the letters.
+export const TEXT_OUTLINE: Readonly<Record<keyof typeof FONT_SIZES, number>> = {
+  title: 16,
+  heading: 14,
+  hud: 10,
+  hudLabel: 6,
+  chip: 8,
+  body: 9,
+  small: 7,
+};
 
 // Fractions of GAME_HEIGHT.
 export const SCREEN_LAYOUT = {
@@ -73,17 +161,15 @@ export const SCREEN_LAYOUT = {
   gameOverStatsLineGap: 0.08,
   gameOverPromptY: 0.85,
   capsWarningY: 0.07,
-  shiftCalloutY: 0.15, // above the wall while it is far enough away to shift
-  pauseHeadingY: 0.44,
-  pausePromptY: 0.56,
+  shiftCalloutY: 0.12, // above the wall while it is far enough away to shift
+  pauseHeadingY: 0.42,
+  pausePromptY: 0.58,
 } as const;
 
 // Debug overlay (PLAN.md §8), toggled with F2: top-left corner, px.
 export const DEBUG_OVERLAY = { x: 12, y: 12, padding: 10 } as const;
 
-export const PAUSE_PANEL = { width: 560, height: 220 } as const; // px
 export const PAUSE_DIM_ALPHA = 0.7; // stage-colored veil over the paused game
-export const PANEL_EDGE_WIDTH = 3;
 
 // Prompt tray chips, px. Held chips line up from the tray's left edge, the
 // current prompt sits in the center, and to its right come the next-letter
@@ -94,7 +180,7 @@ export const CHIP = {
   currentSize: 88,
   gap: 14,
   edgeInset: 40,
-  radius: 12,
+  radius: 6, // square-ish key caps, as in the mocks
   nextEdgeWidth: 3,
   slideMs: 140,
 } as const;
@@ -113,29 +199,80 @@ export const PROMPT_PULSE_MS = 700;
 export const TRAY_HEIGHT = 110;
 export const STAGE_BOTTOM_Y = GAME_HEIGHT - TRAY_HEIGHT;
 export const HORIZON_Y = 140;
+// The figure stands on the front-most whole row of floor tiles, so there's no
+// spare floor between it and the camera (M10 review 6; 530, then 495, until
+// then). Everything sized at its plane (CELL_SIZE, WALL_HEIGHT, the shadow,
+// the Shift arrow) scales with its depth, so the figure still fits its lane.
 export const FIGURE_FLOOR_Y = 560;
-export const FLOOR_LINE_WIDTH = 3;
-export const TRAY_EDGE_WIDTH = 3;
+export const FLOOR_LINE_WIDTH = 2;
+
+// Art (PLAN.md §10, M10): an editorial collage. Torn paper at the background's
+// edges, clean geometric shapes with thin outlines for everything that plays.
+// Texture is a style added to single elements (addGrain() in
+// src/objects/grain.ts), never one layer over the scene: it shifts the
+// element's own color a little darker or lighter, only where the element is
+// drawn. Per element, in its own px: `mottle` is the most the soft, blotchy
+// paper tone shifts toward black or white (0-1), over blotches about
+// `mottleSize` px; `darken` and `lighten` are the most each fine grain cell,
+// `cell` px square, moves. Moderate on the background, very faint on the
+// floor, faint on the wall; the figure and the tray stay clean.
+// The mottle stays put; the fine grain re-rolls every GRAIN_BOIL_MS, like the
+// boil of hand-drawn animation (still for reduced motion).
+export interface GrainLook {
+  readonly cell: number;
+  readonly darken: number;
+  readonly lighten: number;
+  readonly mottle: number;
+  readonly mottleSize: number;
+}
+export const GRAIN_BOIL_MS = 160;
+export const GRAIN = {
+  background: { cell: 1, darken: 0.05, lighten: 0.05, mottle: 0.07, mottleSize: 70 },
+  floor: { cell: 1, darken: 0.025, lighten: 0.03, mottle: 0.03, mottleSize: 50 },
+  // In the wall's own space, so it shrinks with distance. Dark colors show a
+  // lift toward white far more than a darkening, so its grain lightens least.
+  wall: { cell: 2, darken: 0.08, lighten: 0.02, mottle: 0.07, mottleSize: 40 },
+} as const satisfies Record<string, GrainLook>;
+// Torn edges in the collage (src/logic/torn.ts): a point about every `step`
+// px, pushed up to `jag` px across the edge, and a pale core `rim` px deep.
+export const TEAR = { step: 9, jag: 3, rim: 5 } as const;
+// Seeds the collage's tears and the floor's tile tones, so the scene looks the
+// same every run.
+export const ART_SEED = 'shape-shift';
+// SCORE top-left and WALL top-right, in Anton: x from the screen edge, label
+// and value y from the top, px.
+export const HUD = { marginX: 40, labelY: 31, valueY: 48 } as const;
+// The floor: green verges outside its edges (vergeWidth as a share of the
+// floor's half width, the outer share in dark green), and tile seams along the
+// lanes and across it. Cross seams are evenly spaced in 1/scale, so they
+// bunch up into the distance like real tiles, and are cut so the figure's
+// plane runs through the middle of a row: the figure stands centered on its
+// lane's tile (src/logic/perspective.ts). tileDepth is in 1/scale.
+// toneMax is the most floorTone shows over a tile (0-1), picked per tile.
+export const FLOOR = { vergeWidth: 0.22, vergeOuterShare: 0.45, seamWidth: 1, tileDepth: 0.2, toneMax: 0.45 } as const;
 
 // The figure's pose grid (PLAN.md §3).
 export const FIGURE_GRID = { cols: 6, rows: 8 } as const;
-export const CELL_SIZE = 24; // px at full scale
+export const CELL_SIZE = 26; // px at full scale
 export const FIGURE_WIDTH = FIGURE_GRID.cols * CELL_SIZE;
 export const FIGURE_HEIGHT = FIGURE_GRID.rows * CELL_SIZE;
-export const FIGURE_EDGE_WIDTH = 2; // px; the gap line that separates the blocks
+export const FIGURE_EDGE_WIDTH = 3; // px; the cream edge round each block
+export const FIGURE_SEAM_WIDTH = 1.5; // px; the thinner seams between a block's cells
+// The soft shadow under the figure's feet, px.
+export const FIGURE_SHADOW = { width: 183, height: 24, alpha: 0.22 } as const;
 export const FIGURE_SLIDE_MS = 90; // one lane, visual only: the lane changes instantly
 
 export const LANE_COUNT = 7;
-export const LANE_MARKER_FRONT_Y = 600; // px; strips run from FIGURE_FLOOR_Y down to here
-export const LANE_MARKER_GAP = 12; // px between strips, at the figure's plane
-export const LANE_MARKER_EDGE_WIDTH = 2;
-// The Shift Wall's target lane: an orange outline with chevrons pointing the
-// way the hole went, until the figure is lined up with it. px.
+// The Shift Wall's target lane: its tile under the figure's row gets a thick
+// ochre outline with chevrons pointing the way the hole went, until the figure
+// is lined up with it. px.
 export const LANE_TARGET = { edgeWidth: 5, chevronWidth: 12, chevronHeight: 22, chevronGap: 20, chevronLineWidth: 4 } as const;
 
-export const WALL_START_SCALE = 0.35;
-export const WALL_HEIGHT = 380; // px at full scale
-export const WALL_EDGE_WIDTH = 4; // px at full scale
+// Set with the figure's depth, so the wall starts at the same place on screen
+// wherever the figure stands (0.35 at FIGURE_FLOOR_Y 530).
+export const WALL_START_SCALE = 0.32;
+export const WALL_HEIGHT = 410; // px at full scale
+export const WALL_EDGE_WIDTH = 3; // px at full scale
 export const WALL_EASE_POWER = 2; // scale follows t^n, so higher n rushes harder at the end
 
 export const WRONG_KEY_JUMP = 0.03; // added to t
@@ -151,7 +288,7 @@ export const PROMPT_APPEAR_DELAY = 120; // ms after the previous letter is held
 // hole slides SHIFT_WALL_SLIDE lanes in the arrow's direction.
 export const SHIFT_WALL_TELEGRAPH = 300; // ms
 export const SHIFT_WALL_T_RANGE: readonly [number, number] = [0.3, 0.5];
-// lanes; one, so a single Space or arrow tap lines up again (1-2 before the
+// lanes; one, so a single Space press lines up again (1-2 before the
 // M7 follow-up, when moving meant taking a hand off the letters)
 export const SHIFT_WALL_SLIDE: readonly [number, number] = [1, 1];
 export const SHIFT_WALL_SLIDE_MS = 220; // visual only: the hole's lane changes at once
@@ -165,7 +302,7 @@ export const SHIFT_JOLT = { distance: 16, ms: 90 } as const; // px, ms each way
 export const SHIFT_CALLOUT_ARROW = { gap: 24, length: 90, shaftThickness: 26, headLength: 44, headWidth: 64 } as const;
 // The warning arrow, px at full scale, centered over the hole in the band of
 // wall above it.
-export const SHIFT_ARROW = { length: 220, shaftThickness: 40, headLength: 90, headWidth: 120 } as const;
+export const SHIFT_ARROW = { length: 236, shaftThickness: 42, headLength: 96, headWidth: 130 } as const;
 
 // Scoring (PLAN.md §6).
 export const PERFECT_T = 0.5;
@@ -237,38 +374,65 @@ export const AUDIO = {
 } as const;
 
 // The timing label over the figure, px and ms.
-export const LABEL_Y = 300;
+export const LABEL_Y = 284; // keeps its place over the figure's head
 export const LABEL_POP_FROM = 0.5; // starting scale of the pop
 export const LABEL_POP_MS = 180;
 export const LABEL_HOLD_MS = 700;
-export const LABEL_STROKE_WIDTH = 10;
 export const LABEL_EDGE_MARGIN = 20;
 
-// Fail (PLAN.md §7): the figure is shoved toward the camera and falls into
-// the pool below the stage.
-export const FAIL_SHOVE_MS = 450;
-export const FAIL_FALL_DISTANCE = 220; // px
-export const FAIL_SPIN_DEG = 70;
-export const FAIL_SHOVE_SCALE = 1.2;
+// Fail (PLAN.md §7, M10 review 5): the wall knocks the figure off its feet,
+// toward the camera, onto the floor at the depth landScale over shoveMs. It
+// hops, drifts and turns the way it falls (toward the stage's middle), its
+// arms flailing flailDeg either way at flailHz. When it hits the floor its
+// blocks come apart (src/logic/tumble.ts), each flying outward from the
+// figure's middle at `scatter` px/s per px it sits from it, and bounce low,
+// like wood rather than rubber: a bounce keeps `restitution` of the landing
+// speed, `friction` of the sideways speed and `spinKeep` of the spin. A
+// landing slower than restSpeed stops bouncing, and the block tips flat onto a
+// side at settleRate (1/s), a long block onto a long side. Speeds are px/s in the figure's own
+// space; angles are degrees, spinDeg deg/s.
+export interface FailTumbleTuning {
+  readonly hop: number;
+  readonly push: number;
+  readonly spinDeg: number;
+  readonly gravity: number;
+  readonly restitution: number;
+  readonly friction: number;
+  readonly spinKeep: number;
+  readonly restSpeed: number;
+  readonly settleRate: number;
+  readonly scatter: number;
+  readonly flailDeg: number;
+  readonly flailHz: number;
+}
+export const FAIL_TUMBLE = {
+  landScale: 1.08, // the figure stands at the front of the floor, so it can't come far
+  shoveMs: 450,
+  // A bounce rises about restitution^2 of the height it fell from, so the
+  // knock lifts the figure high enough for wood-like bounces to show.
+  hop: 770,
+  push: 140,
+  spinDeg: 200,
+  gravity: 4250, // px/s^2
+  restitution: 0.45,
+  friction: 0.7,
+  spinKeep: 0.5,
+  restSpeed: 130,
+  settleRate: 12,
+  scatter: 1.5,
+  flailDeg: 35,
+  flailHz: 4.5,
+} as const satisfies FailTumbleTuning & { readonly landScale: number; readonly shoveMs: number };
 export const FAIL_SHAKE_MS = 300;
 export const FAIL_SHAKE_INTENSITY = 0.012;
-export const FAIL_TO_GAME_OVER_MS = 1400; // from the fail to the game-over screen
-// The splash as it lands (M8): a column of big drops shoots up, a wide spray of
-// small ones fans out, both fall back under gravity, and a ripple spreads on
-// the water. Angles in degrees (270 is straight up), speeds in px/s.
-export const SPLASH = {
-  column: { drops: 28, radius: 9, speed: [520, 900], angle: [255, 285] },
-  spray: { drops: 44, radius: 5, speed: [260, 620], angle: [200, 340] },
-  gravity: 1700, // px/s^2
-  lifespan: 1100, // ms; long enough for the fastest drop to fall back
-  endScale: 0.4,
-  ripple: { width: 300, height: 46, lineWidth: 5, ms: 600 },
-} as const;
+// From the fail to the game-over screen: 1400 until M10 review 5, raised so
+// the fallen blocks lie still for a moment first.
+export const FAIL_TO_GAME_OVER_MS = 1800;
 
 export const RESTART_LOCKOUT = 1000; // ms
 
 export const MIN_WALL_TIME = 3.5; // s
-// PLAN.md §4: with an arrow and Shift on top, more keys than this at once
+// PLAN.md §4: with Space and Shift on top, more keys than this at once
 // ghost on many keyboards.
 export const MAX_LETTERS = 5;
 export const MAX_LETTERS_SHIFT_WALL = 4;

@@ -7,7 +7,7 @@ import {
   SHIFT_WALL_TELEGRAPH,
   SHIFT_WALL_T_RANGE,
 } from '@/config';
-import { isAligned, moveLane, stepToward } from '@/logic/lanes';
+import { isAligned, stepToward } from '@/logic/lanes';
 import { LetterSequence } from '@/logic/sequence';
 import { ShiftWall, pickSlideLane } from '@/logic/shift-wall';
 import { seeded } from './seeded';
@@ -142,7 +142,7 @@ describe('pickSlideLane', () => {
   });
 });
 
-// PLAN.md M6 done-when: holding 3 letters while tapping an arrow to line up
+// PLAN.md M6 done-when: holding 3 letters while pressing Space to line up
 // again works, and the next letter appears right away.
 describe('lining up again after a Shift Wall', () => {
   it('takes one Space press, made during the warning or after the slide', () => {
@@ -189,9 +189,8 @@ describe('lining up again after a Shift Wall', () => {
     expect(seq.view().held).toEqual(['a', 'k', 'v']);
     expect(seq.press('p', 'KeyP')).toEqual({ type: 'wrongKey', key: 'p' });
 
-    const dir = holeLane > figureLane ? 1 : -1;
     while (figureLane !== holeLane) {
-      figureLane = moveLane(figureLane, dir);
+      figureLane = stepToward(figureLane, holeLane);
       seq.setAligned(isAligned(figureLane, holeLane));
     }
     expect(seq.current).toBe('p');

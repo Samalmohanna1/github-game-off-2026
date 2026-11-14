@@ -16,7 +16,7 @@ export class TitleScene extends Phaser.Scene {
 
     this.add.text(cx, GAME_HEIGHT * SCREEN_LAYOUT.titleY, 'SHAPE SHIFT', textStyle('title', 'ink', true)).setOrigin(0.5);
     this.add
-      .text(cx, GAME_HEIGHT * SCREEN_LAYOUT.subtitleY, '← → to line up · hold letters · Shift for CAPS', textStyle('small', 'muted'))
+      .text(cx, GAME_HEIGHT * SCREEN_LAYOUT.subtitleY, 'Space to line up · hold letters · Shift for CAPS', textStyle('small', 'muted'))
       .setOrigin(0.5);
     addPulsingPrompt(this, GAME_HEIGHT * SCREEN_LAYOUT.promptY, 'Click to play');
 

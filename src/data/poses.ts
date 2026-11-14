@@ -30,6 +30,11 @@ export const ALT_POSES: Readonly<Record<BlockId, readonly CellRect[]>> = {
   torso: [
     { col: 2, row: 2, cols: 1, rows: 3 }, // turned, left half
     { col: 3, row: 2, cols: 1, rows: 3 }, // turned, right half
+    // Turned and stretched up into the spot a shifted head leaves. These keep
+    // the silhouette in one piece where turning alone would part it from an
+    // arm, so every wall can have a one-piece hole (M10).
+    { col: 2, row: 1, cols: 1, rows: 4 }, // stretched, left half
+    { col: 3, row: 1, cols: 1, rows: 4 }, // stretched, right half
   ],
   armL: [
     { col: 1, row: 0, cols: 1, rows: 3 }, // raised

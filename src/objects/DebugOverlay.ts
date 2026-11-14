@@ -12,7 +12,7 @@ export class DebugOverlay extends Phaser.GameObjects.Text {
       ...textStyle('small', 'ink'),
       fontFamily: DEBUG_FONT_FAMILY,
       align: 'left',
-      backgroundColor: toCss(COLORS.panel),
+      backgroundColor: toCss(COLORS.debugPanel),
       padding: { x: DEBUG_OVERLAY.padding, y: DEBUG_OVERLAY.padding },
     });
     scene.add.existing(this);

@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { DIFFICULTY_TIERS, FIGURE_WIDTH, LANE_COUNT, LANE_MARKER_GAP } from '@/config';
+import { DIFFICULTY_TIERS, FIGURE_WIDTH, LANE_COUNT } from '@/config';
 import {
   CENTER_LANE,
   LANE_WIDTH,
+  fallDirection,
   holeLaneCandidates,
   isAligned,
   laneCenterX,
   laneLeftX,
-  moveLane,
   pickHoleLane,
   stepToward,
 } from '@/logic/lanes';
@@ -16,15 +16,17 @@ import { VANISHING_POINT, floorEdge } from '@/logic/perspective';
 const LAST_LANE = LANE_COUNT - 1;
 const ALL_LANES = Array.from({ length: LANE_COUNT }, (_, i) => i);
 
-describe('moveLane', () => {
-  it('moves one lane per tap', () => {
-    expect(moveLane(CENTER_LANE, -1)).toBe(CENTER_LANE - 1);
-    expect(moveLane(CENTER_LANE, 1)).toBe(CENTER_LANE + 1);
+describe('fallDirection', () => {
+  it('topples the figure toward the middle of the stage', () => {
+    expect(fallDirection(0)).toBe(1);
+    expect(fallDirection(CENTER_LANE - 1)).toBe(1);
+    expect(fallDirection(CENTER_LANE + 1)).toBe(-1);
+    expect(fallDirection(LAST_LANE)).toBe(-1);
   });
 
-  it('never leaves the stage', () => {
-    expect(moveLane(0, -1)).toBe(0);
-    expect(moveLane(LAST_LANE, 1)).toBe(LAST_LANE);
+  it('topples either way from the center lane', () => {
+    expect(fallDirection(CENTER_LANE, () => 0.2)).toBe(-1);
+    expect(fallDirection(CENTER_LANE, () => 0.8)).toBe(1);
   });
 });
 
@@ -78,8 +80,8 @@ describe('lane geometry', () => {
     }
   });
 
-  it('fits the figure inside one lane marker', () => {
-    expect(FIGURE_WIDTH).toBeLessThanOrEqual(LANE_WIDTH - LANE_MARKER_GAP);
+  it('fits the figure inside one lane', () => {
+    expect(FIGURE_WIDTH).toBeLessThan(LANE_WIDTH);
   });
 });
 

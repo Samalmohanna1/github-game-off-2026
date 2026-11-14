@@ -1,5 +1,4 @@
 export interface KeyboardHandlers {
-  onMove(dir: -1 | 1): void;
   onSpace(): void;
   onKeyDown(key: string, code: string): void;
   onKeyUp(code: string): void;
@@ -22,9 +21,9 @@ export class KeyboardInput {
     if (event.repeat) return;
     // Browser and OS shortcuts (Ctrl/Cmd/Alt + key) are never gameplay.
     if (event.ctrlKey || event.metaKey || event.altKey) return;
-    if (event.key === 'ArrowLeft') this.handlers.onMove(-1);
-    else if (event.key === 'ArrowRight') this.handlers.onMove(1);
-    else if (event.code === 'Space') this.handlers.onSpace();
+    // Space is the only move. Arrows, like any other non-letter, fall through
+    // to the letter rules, which ignore them.
+    if (event.code === 'Space') this.handlers.onSpace();
     // F2 is the debug overlay and never reaches the letter rules (PLAN.md §8).
     else if (event.code === 'F2') this.handlers.onToggleDebug();
     else this.handlers.onKeyDown(event.key, event.code);

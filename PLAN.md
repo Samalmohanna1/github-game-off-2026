@@ -2,7 +2,7 @@
 
 A keyboard version of Japan's *Nōkabe* ("Brain Wall", a.k.a. Human Tetris) for a game jam with the theme **SHIFT**.
 
-A wall with a hole cut in it comes toward the player. They slide their block figure under the hole with the arrow keys, then hold down a growing set of letter keys to pose the figure so it fits through. If the figure doesn't fit, the wall shoves it into the pool.
+A wall with a hole cut in it comes toward the player. They slide their block figure under the hole with Space, then hold down a growing set of letter keys to pose the figure so it fits through. If the figure doesn't fit, the wall knocks it over.
 
 **How the theme fits:** the **Shift key** (uppercase letters need it), **shape-shifting** (the figure changes pose), and a **shifting wall** (the hole slides mid-approach on later walls).
 
@@ -18,7 +18,8 @@ A wall with a hole cut in it comes toward the player. They slide their block fig
 | Tests | Vitest | For game logic only (see the "pure logic" rule below). |
 | Resolution | 1280×720, `Phaser.Scale.FIT`, centered | |
 | Art (Week 1) | Phaser shapes (rectangles/Graphics) only | No SVG yet. |
-| Art (Week 2+) | One SVG per body part, cutout style | Phaser turns SVGs into flat images when it loads them, so it can't change a path's shape while the game runs. Animate by moving and rotating separate parts instead. Load SVGs at the largest size they'll appear (the wall grows as it gets closer). |
+| Art (M10+) | An editorial collage after the design mocks, drawn in code | Cream, sage, forest and deep greens, stone, charcoal and near-black. Torn paper only at the background's edges; clean shapes with thin outlines for everything that plays. Paper texture is a filter added to single elements, so there are no image files. The figure stays five blocks, styled as in the mocks. (Planned as one SVG per body part until the mocks arrived.) |
+| Fonts | Anton (display) and IBM Plex Mono (everything else) | Bundled from `@fontsource` (SIL OFL), never fetched at runtime. BootScene waits for them, because Phaser draws text once with whatever font is ready. |
 
 ### Rule: keep game logic separate from Phaser
 Write the sequence/queue state machine, the letter generator, the difficulty curve and the scoring as **plain TS modules that don't import Phaser**. Phaser scenes only render that state and pass input into it. This keeps the core rules testable and easy to tune.
@@ -32,12 +33,12 @@ SPAWN → ALIGN → POSE → (SHIFT WALL?) → RESOLVE → next wall | GAME OVER
 ```
 
 1. **SPAWN.** A wall appears far away, with its hole at a random lane. It starts moving toward the camera immediately. The hole's shape is visible from the start.
-2. **ALIGN.** The player taps **← / →** to slide the whole figure one lane per tap, or **Space** to step one lane toward the hole. During a Shift Wall's warning, Space steps toward the lane the hole is about to slide to. Space lets a thumb line up either way without the hands leaving the letters. (Added in the M7 tuning pass as a step right that wrapped around. Changed after M7 to step toward the hole, because reaching for the arrows meant re-gripping the letters.) **No letters appear until the figure's lane matches the hole's lane.** When they match, the lane marker under the figure lights up.
+2. **ALIGN.** The player taps **Space** to slide the whole figure one lane toward the hole per tap. During a Shift Wall's warning, Space steps toward the lane the hole is about to slide to. Space lets a thumb line up either way without the hands leaving the letters. (Added in the M7 tuning pass as a step right that wrapped around. Changed after M7 to step toward the hole, because reaching for the arrows meant re-gripping the letters. After M10, the ← / → arrows were dropped, and Space is the only move.) **No letters appear until the figure's lane matches the hole's lane.** When they match, the floor tile the figure stands on lights up.
 3. **POSE.** Letters appear **one at a time** in the prompt tray. Holding the current letter moves its body block into the target pose, and the letter turns green. The next letter appears once the current one is held. While lined up, that next letter waits on the right as a hollow preview chip and slides to the center when it becomes current, so the player can get a finger ready (added in the M7 tuning pass).
 4. **SHIFT WALL** (walls 4+). Partway through the approach, the hole slides 1 lane. Held letters keep their blocks in place, but **new letters stop appearing until the player lines up again**, which they have to do while still holding letters.
 5. **RESOLVE.**
    - **Pass:** once every letter is held and the figure is lined up, the pose **locks**. The wall rushes past (about 0.4s), and the player gets a timing bonus.
-   - **Fail:** the wall reaches the figure first. It shoves the figure into the pool with a splash, and the run ends.
+   - **Fail:** the wall reaches the figure first. It knocks the figure over, its blocks clatter onto the floor, and the run ends.
 
 ### Input rules (be exact here)
 
@@ -50,7 +51,7 @@ SPAWN → ALIGN → POSE → (SHIFT WALL?) → RESOLVE → next wall | GAME OVER
 | A held letter is released before the pose locks (**slip**) | The block goes limp (back to neutral), the letter turns red, and it moves to the **end of the queue**. It can only be pressed again when it comes back around as the current prompt. |
 | Any letter key that isn't the current prompt and isn't held | **Wrong key:** the wall jumps forward (`WRONG_KEY_JUMP`), rattles side to side and flashes. (Week 1 shook the camera; M8 shakes only the wall, so the tray stays still while the player reads it.) This includes pressing a slipped letter before its turn comes back. |
 | Letter pressed during ALIGN (no prompt showing) | Counts as a **wrong key**. |
-| Arrow keys, Space, Shift, and all other non-letter keys | Never count as wrong keys. Arrows and Space move the figure, and the rest are ignored. |
+| Space, Shift, the arrow keys and all other non-letter keys | Never count as wrong keys. Space moves the figure, and the rest are ignored. |
 | Pose locked | Input is ignored until the next wall. Keys still held from this wall are ignored until they're released. |
 | Window loses focus (`blur`) | Pause the game and show "Click to resume". Every held letter counts as slipped. |
 
@@ -68,18 +69,19 @@ SPAWN → ALIGN → POSE → (SHIFT WALL?) → RESOLVE → next wall | GAME OVER
 ## 3. Stage, lanes, wall and figure
 
 ### Layout (matches the concept sketch)
-- Pale pink background, with a floor drawn in perspective as two lines running from the bottom corners toward the wall.
+- A cream background with layers of torn sage, forest, stone and charcoal paper at its outer edges, clear of play. The cream floor, its tiles faintly varied, is drawn in perspective from the bottom corners toward the wall, with thin pale seams and green verges beyond its edge lines. (Week 1 was a pale pink background with two floor lines. M10's first pass had paper cards and pencil lines, dropped at its second review; a pale disc behind the stage, dropped at its third; and the fourth brought torn paper back, but only at the background's edges.)
 - The wall comes in from the far end. It starts small (scale ≈ 0.35) and grows to full size at the figure's position. Drive everything from a single `progress` value, `t ∈ [0, 1]`, with an ease-in so the wall seems to speed up as it gets closer.
-- A white **prompt tray** across the bottom:
+- A black **prompt tray** across the bottom. Its chips are key caps with black letters:
   - **Held** letters as green chips, lined up from the left.
-  - The **current** prompt as a blue chip in the center.
-  - The **next** letter as a hollow, blue-outlined preview chip just right of center (only while lined up). It slides to the center when it becomes current.
-  - **Slipped/queued** letters as red chips on the right.
+  - The **current** prompt as a cream chip in the center.
+  - The **next** letter as a hollow, cream-outlined preview chip just right of center (only while lined up). It slides to the center when it becomes current.
+  - **Slipped/queued** letters as coral chips on the right.
   - **Capital** letters also carry a Shift mark (⇧) on their chip, because case alone is hard to read for letters like o/O, s/S and x/X.
+- **SCORE** and the **WALL** number sit in the top corners, in Anton, on pale paper (M10). Text over the moving scene (the timing label, the SHIFT callout, the Caps Lock warning, the pause text) is bright inside a thick dark outline.
 
 ### Lanes
 - `LANE_COUNT = 7` lanes across the stage.
-- A **lane marker** (a floor strip) sits under each lane. The one under the figure lights up green when the figure's lane matches the hole's lane.
+- The floor's tiles are cut so the figure stands centered on a tile in its lane. That **lane tile** lights up green when the figure's lane matches the hole's lane. (Until M10's second review, each lane had a separate outlined strip in front of the figure.)
 - The figure keeps its lane from one wall to the next. It doesn't recenter.
 
 ### The figure (5 blocks)
@@ -92,7 +94,7 @@ Put these in `src/data/poses.ts` so they're easy to edit. Use a cell grid such a
 ### Wall generation
 1. Pick `N` blocks to change, where `N` is the key count for this wall (3–5).
 2. For each of those blocks, pick one alt pose. Blocks that aren't picked stay neutral.
-3. The **hole** is the union of every block's target rectangle, placed at the hole's lane.
+3. The **hole** is the union of every block's target rectangle, placed at the hole's lane. It is always **one piece** (M10): if no pose of the picked blocks makes one, the letters go to another set of blocks that can.
 4. Give each changed block one letter (§4).
 
 ### Pass/fail check
@@ -146,8 +148,8 @@ Lining up is in from wall 1. Early walls are slow enough that new players learn 
 - **Every Shift Wall shifts:** it also triggers early once only one letter is left to hold, and the pose can't lock during the warning. Otherwise a quick player could finish an easy wall before `t` reached the trigger, and the shift would never happen. (Added in the M7 tuning pass, with Shift Walls moving to 3-letter walls.)
 - **Warning first:** the wall flashes and an arrow appears on it for 0.3s before the hole slides.
 - **The wall holds still** for 1s from the warning: through the warning, the slide and time to line up again, then it carries on.
-- **It reads as a change:** while the wall holds, a big **SHIFT** callout with an arrow pointing the hole's way pops up above the wall. The lane marker under the hole's new lane gets an orange outline and chevrons until the player is lined up with it. As the hole slides, the screen gives a short sideways jolt the same way (skipped for reduced motion).
-- The hole slides 1 lane, staying inside the stage, so one tap of Space or an arrow lines up again. (It slid 1–2 lanes until the M7 follow-up.)
+- **It reads as a change:** while the wall holds, a big **SHIFT** callout with an arrow pointing the hole's way pops up above the wall. The hole's new lane's tile gets an orange outline and chevrons until the player is lined up with it. As the hole slides, the screen gives a short sideways jolt the same way (skipped for reduced motion).
+- The hole slides 1 lane, staying inside the stage, so one tap of Space lines up again. (It slid 1–2 lanes until the M7 follow-up.)
 - New letters stop appearing until the player lines up again. Held letters stay held.
 - Shift Wall rounds score their 4 letters against a stretch range set for 4-letter combos. A range set for 5 letters would only accept the most cramped 4.
 
@@ -171,7 +173,7 @@ The timing label pops up big over the figure as the wall rushes past. Save the b
 
 ## 7. Fail and restart
 
-- When the player fails: the wall shoves the figure backward, it flails and falls, and a splash of blue particles and a screen shake follow.
+- When the player fails: the wall knocks the figure off its feet, toward the camera. It flails its arms as it topples toward the middle of the stage, and when it hits the floor its blocks come apart and bounce, low like wood rather than rubber, then tip flat and lie still. A screen shake goes with the landing. (Until the fifth M10 review, the figure fell into a pool with a splash of water particles and a ripple.)
 - Game-over screen: **Walls cleared**, **Score**, **Best**, and the wall number where the run ended.
 - **Restart:** ignore input for 1s, wait until **every key is released**, then any key or a click restarts. This stops keys still held from the failed wall from restarting the game straight away.
 
@@ -181,7 +183,7 @@ The timing label pops up big over the figure as the wall rushes past. Save the b
 
 ```ts
 LANE_COUNT = 7
-WALL_START_SCALE = 0.35
+WALL_START_SCALE = 0.32        // set with the figure's depth (0.35 at FIGURE_FLOOR_Y 530)
 WRONG_KEY_JUMP = 0.03          // added to t (0.06 before the M7 tuning pass)
 LOCK_RUSH_DURATION = 400       // ms
 PROMPT_APPEAR_DELAY = 120      // ms after the previous letter is held
@@ -226,7 +228,7 @@ shape-shift/
 │  ├─ objects/
 │  │  ├─ Wall.ts
 │  │  ├─ Figure.ts
-│  │  ├─ LaneMarkers.ts
+│  │  ├─ LaneTiles.ts
 │  │  └─ PromptTray.ts
 │  └─ scenes/
 │     ├─ BootScene.ts
@@ -294,20 +296,28 @@ Built in this order (chosen after M7): feel and audio go on the grey box first, 
   - a quick cartoon "bloop" on a slip (the forced slips of a blur pause make no sound)
   - a fanfare on PERFECT
   - a Shift Wall alert heard from the side the hole is moving to, then a whoosh that way as it slides
-  - on a fail: a hit the moment the wall reaches the figure, then a game-show "whomp whomp whooom" (falling brassy notes, the last one long and sagging) as the figure lands in the pool
-- (After the M9 playtest, the countdown replaced a wall rumble that swelled with `t`. The slip sound got lighter, and the Shift Wall alert and the hit were added. After the second playtest, the crowd "OOOH" that followed the hit was cut, and the hit moved up into a range laptop speakers play. After the third, the splash sound, which kept sounding like a second hit, was replaced by the "whomp whomp whooom". The visual splash stays.)
+  - on a fail: a hit the moment the wall reaches the figure, then a game-show "whomp whomp whooom" (falling brassy notes, the last one long and sagging) as the figure lands
+- (After the M9 playtest, the countdown replaced a wall rumble that swelled with `t`. The slip sound got lighter, and the Shift Wall alert and the hit were added. After the second playtest, the crowd "OOOH" that followed the hit was cut, and the hit moved up into a range laptop speakers play. After the third, the splash sound, which kept sounding like a second hit, was replaced by the "whomp whomp whooom". The visual splash stayed until the fifth M10 review.)
 - ✅ Each sound plays at its moment, the countdown follows `t`, and nothing plays before the player's first click (browser autoplay rules).
 
-**M10: Art**
-- Replace the blocks with hand-written SVG cutout body parts, keeping the same 5 parts and pose data. Use game-show style lettering for the wall and tray.
-- ✅ Every pose still fits its hole exactly, the SVGs load at the largest size they appear, and the contrast tests still pass.
+**M10: Art** (done)
+- Re-skin the play screen from the design mocks (kept outside the repo, in `design-mocks/`): the collage palette and fonts, a pale disc behind the far end of the stage, the floor with verges and tile seams, a dark green wall with a clean paper hole, the figure as black blocks with cream seams and a shadow, a black key-cap tray, SCORE and WALL cards, and paper cards behind the timing label, the SHIFT callout, the Caps Lock warning and the pause panel. Every paper edge and outline is a pencil line. A paper grain lies over the stage. All of it is drawn in code.
+- **One color system:** every color is named once in `PALETTE`: the mocks' swatches, the yellow and coral of the mock's logo, and darker steps of those for use on cream. Components only use roles (`COLORS`, `TEXT_COLORS`), and a test checks that every role comes from the palette. The alerts are two families: yellow/ochre for a Shift Wall, coral/red for a mistake.
+- The mocks' blocky figure replaced the planned SVG body parts, and the HUD shows the wall number where the mocks show a run timer, since the game has none.
+- (After the first M10 review: the collage scraps, grid paper and halftone were cut as tacked-on. The pale disc moved behind the stage, where it frames the incoming wall, and breathes and drifts very slowly. The grain boils, and every outline became a pencil line. The prototype alert colors were replaced by the palette. Holes are now always one piece: two stretched torso poses were added, since turning the torso alone always split the hole, and 5-letter walls could never be one piece.)
+- (After the second M10 review: the torn paper went. Cards, torn edges, tilts and pencil lines were replaced by clean straight lines, and the HUD sits straight on the stage. The timing label, the SHIFT callout, the Caps Lock warning and the pause text are bright letters inside a thick dark outline. The floor took the disc's pale green. The lane strips were cut; the floor's tiles are cut so the figure stands centered on one, and that tile lights up. The one grain layer over the scene became a filter added to single elements (the stage, the disc, the floor and the wall), darkening and lightening each one's own colors.)
+- (After the third M10 review: the grain read as harsh, so its sparse strong specks became a faint, fine nudge on every pixel. The backdrop disc was cut, and the figure moved 30 px further back (`FIGURE_FLOOR_Y` 560 to 530).)
+- (After the fourth M10 review, from a reference image: torn sage, forest, stone and charcoal paper at the background's outer edges, two pieces gridded; the floor back to cream, its tiles faintly varied, with thinner, paler seams; a paper texture of soft mottle and fine grain, moderate on the background, very faint on the floor, faint on the wall, and none on the figure or the cutout; the cutout lost its outline; the figure's blocks are solid with split legs; the HUD is all Anton, its number bigger.)
+- (After the fifth M10 review: the figure's blocks have their cream seams between cells again, the pixel look the user preferred. The figure stands further back (`FIGURE_FLOOR_Y` 530 to 495), and everything sized at its plane shrank by the same depth, so it still fits its lane. The cutout is really cut out: the floor and the background show through it, with no cream fill. On a fail the figure flails as it topples, and its blocks bounce low on the floor and come to rest, replacing the splash and the ripple.)
+- (After the sixth M10 review: "further back" had meant toward the camera, into the empty floor behind the figure. The figure now stands one tile nearer than at first, on the front-most whole row of floor tiles (`FIGURE_FLOOR_Y` 495 to 560), and everything sized at its plane grew with it. On a fail it is knocked only a little further forward, since the floor ends there.)
+- ✅ Every pose still fits its hole, and every hole is one piece. The fonts are bundled and loaded before any text is drawn, and the contrast and color-system tests pass.
 
-**M11: Title screen**
-- *SHAPE SHIFT*, with a short how-to (← → or Space to line up, hold letters, Shift for CAPS).
+**M11: Title and game-over screens**
+- The title and game-over screens laid out from the mocks, in the M10 style: *SHAPE SHIFT* with a short how-to (Space to line up, hold letters, Shift for CAPS), and GAME OVER with the final and best scores. The title keeps "Click to play" where the mock says "Press any key", because the itch.io frame only gets keyboard focus from a click (§2).
 - ✅ A new player can start a run knowing the controls from the title screen alone.
 
 **M12: Ship**
-- itch.io HTML5 upload (zip of `dist/`), set the embed to 1280×720, add a fullscreen button, and test in Chrome, Firefox and Safari.
+- itch.io HTML5 upload (zip of `dist/`), set the embed to 1280×720, add the mocks' fullscreen and mute buttons, and test in Chrome, Firefox and Safari.
 - ✅ The itch.io build plays a full run in Chrome, Firefox and Safari, both embedded and fullscreen.
 
 ### Stretch goals (only if there's time)
