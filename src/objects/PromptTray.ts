@@ -31,17 +31,28 @@ type ChipKind = 'held' | 'current' | 'next' | 'slipped';
 
 interface ChipLook {
   readonly fill: number;
-  readonly edge: number | null;
+  readonly edge: { readonly color: number; readonly width: number } | null;
   readonly text: keyof typeof TEXT_COLORS;
   readonly mark: number;
 }
 
-// Key caps on the console (M10b): cream for the current letter, lime once
-// held, coral when slipped, and a hollow cream outline for the preview.
+// Key caps on the console (M10b review): cream with charcoal letters, edged in
+// lime once held, coral when slipped, and a hollow cream outline for the
+// preview. The current cap gets a lime frame round it (addChip).
 const LOOKS: Readonly<Record<ChipKind, ChipLook>> = {
-  held: { fill: COLORS.chipHeld, edge: null, text: 'ink', mark: COLORS.chipShiftMark },
+  held: {
+    fill: COLORS.chipHeld,
+    edge: { color: COLORS.chipHeldEdge, width: CHIP.heldEdgeWidth },
+    text: 'ink',
+    mark: COLORS.chipShiftMark,
+  },
   current: { fill: COLORS.chipCurrent, edge: null, text: 'ink', mark: COLORS.chipShiftMark },
-  next: { fill: COLORS.chipNext, edge: COLORS.chipNextEdge, text: 'light', mark: COLORS.chipNextEdge },
+  next: {
+    fill: COLORS.chipNext,
+    edge: { color: COLORS.chipNextEdge, width: CHIP.nextEdgeWidth },
+    text: 'light',
+    mark: COLORS.chipNextEdge,
+  },
   slipped: { fill: COLORS.chipSlipped, edge: null, text: 'ink', mark: COLORS.chipShiftMark },
 };
 
@@ -115,7 +126,7 @@ export class PromptTray extends Phaser.GameObjects.Container {
       topLeft: CONSOLE.cut,
       bottomRight: CONSOLE.cut,
     });
-    drawPanel(panel, shape, { side: 'top', fromEnd: true, length: CONSOLE.accentLength });
+    drawPanel(panel, shape, { edged: true });
     const socket = capShape(CHIP.currentSize, CHIP.focusGap).map((p) => ({ x: p.x + CENTER_X, y: p.y + MID_Y }));
     panel.lineStyle(CONSOLE.socketWidth, COLORS.panelEdge);
     panel.strokePoints(toVectors(socket), true, true);
@@ -143,7 +154,7 @@ export class PromptTray extends Phaser.GameObjects.Container {
     shape.fillStyle(look.fill);
     shape.fillPoints(cap, true);
     if (look.edge !== null) {
-      shape.lineStyle(CHIP.nextEdgeWidth, look.edge);
+      shape.lineStyle(look.edge.width, look.edge.color);
       shape.strokePoints(cap, true, true);
     }
     if (spec.kind === 'current') {

@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
 import { COLORS, PANEL } from '@/config';
-import { spanAt } from '@/logic/convex';
 import type { Point } from '@/logic/perspective';
 import { toVectors } from '@/objects/vectors';
 
@@ -13,31 +12,25 @@ export interface Accent {
   readonly length: number;
 }
 
-// One of the angular UI panels (M10b), the HUD's and the console's: a
-// near-black face with a fine grid inside, a thin edge, and a short lime
-// accent bar laid just inside one side. Keep the accent off the panel's cut
-// corners.
-export function drawPanel(g: Phaser.GameObjects.Graphics, shape: readonly Point[], accent: Accent): void {
+// One of the angular UI panels (M10b): a solid charcoal face, with either a
+// thin sage edge (`edged`) or a short lime accent bar laid just inside one
+// side. Keep the accent off the panel's cut corners.
+export function drawPanel(
+  g: Phaser.GameObjects.Graphics,
+  shape: readonly Point[],
+  { edged = false, accent }: { readonly edged?: boolean; readonly accent?: Accent },
+): void {
   g.fillStyle(COLORS.panel);
   g.fillPoints(toVectors(shape), true);
+  if (edged) {
+    g.lineStyle(PANEL.edgeWidth, COLORS.panelEdge);
+    g.strokePoints(toVectors(shape), true, true);
+  }
+  if (accent === undefined) return;
 
   const xs = shape.map((p) => p.x);
   const ys = shape.map((p) => p.y);
   const [left, right, top, bottom] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
-
-  g.lineStyle(1, COLORS.panelGrid, PANEL.gridAlpha);
-  for (let x = left + PANEL.gridSpacing; x < right; x += PANEL.gridSpacing) {
-    const span = spanAt(shape, 'x', x);
-    if (span !== null) g.lineBetween(x, span[0], x, span[1]);
-  }
-  for (let y = top + PANEL.gridSpacing; y < bottom; y += PANEL.gridSpacing) {
-    const span = spanAt(shape, 'y', y);
-    if (span !== null) g.lineBetween(span[0], y, span[1], y);
-  }
-
-  g.lineStyle(PANEL.edgeWidth, COLORS.panelEdge);
-  g.strokePoints(toVectors(shape), true, true);
-
   const { length } = accent;
   const thick = PANEL.accentWidth;
   g.fillStyle(COLORS.panelAccent);

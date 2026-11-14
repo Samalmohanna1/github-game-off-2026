@@ -1,3 +1,6 @@
+import { CELL_SIZE, FIGURE_FLOOR_Y, FIGURE_HEIGHT, FIGURE_WIDTH, WALL_HEIGHT } from '@/config';
+import { laneCenterX } from '@/logic/lanes';
+import { FLOOR_HALF_WIDTH, VANISHING_POINT } from '@/logic/perspective';
 import type { HoleGrid } from '@/logic/wall-gen';
 
 export interface Rect {
@@ -24,6 +27,26 @@ export interface WallLayout {
   readonly gridLeft: number;
   readonly gridTop: number;
   readonly cell: number;
+}
+
+// The wall at full size, relative to the vanishing point: scaled by s about
+// it, it sits at depth s, exactly as project() places things. Its floor is
+// the figure's, so at scale 1 its hole lines up with the figure's pose.
+const FLOOR = FIGURE_FLOOR_Y - VANISHING_POINT.y;
+export const WALL_PANEL: Rect = { x: -FLOOR_HALF_WIDTH, y: FLOOR - WALL_HEIGHT, width: 2 * FLOOR_HALF_WIDTH, height: WALL_HEIGHT };
+
+// The wall with its hole's pose grid at a lane (fractional during a Shift
+// Wall's slide).
+export function wallLayout(holeLane: number): WallLayout {
+  return {
+    left: WALL_PANEL.x,
+    right: WALL_PANEL.x + WALL_PANEL.width,
+    top: WALL_PANEL.y,
+    floor: FLOOR,
+    gridLeft: laneCenterX(holeLane) - VANISHING_POINT.x - FIGURE_WIDTH / 2,
+    gridTop: FLOOR - FIGURE_HEIGHT,
+    cell: CELL_SIZE,
+  };
 }
 
 type Span = readonly [number, number];
@@ -92,8 +115,8 @@ export function holeRects(grid: HoleGrid, layout: WallLayout): Rect[] {
 
 // Every cell side between the hole and the wall, one cell long. The hole is
 // open at the bottom, where it meets the floor, so the bottom row's lower
-// sides have none.
-export function holeEdges(grid: HoleGrid, layout: WallLayout): Segment[] {
+// sides have none, unless `closed` asks for the whole silhouette.
+export function holeEdges(grid: HoleGrid, layout: WallLayout, closed = false): Segment[] {
   const isHole = (row: number, col: number) => grid[row]?.[col] === true;
   const lastRow = grid.length - 1;
   const segments: Segment[] = [];
@@ -105,7 +128,7 @@ export function holeEdges(grid: HoleGrid, layout: WallLayout): Segment[] {
       const x2 = x1 + layout.cell;
       const y2 = y1 + layout.cell;
       if (!isHole(row - 1, col)) segments.push({ x1, y1, x2, y2: y1 });
-      if (row < lastRow && !isHole(row + 1, col)) segments.push({ x1, y1: y2, x2, y2 });
+      if ((row < lastRow || closed) && !isHole(row + 1, col)) segments.push({ x1, y1: y2, x2, y2 });
       if (!isHole(row, col - 1)) segments.push({ x1, y1, x2: x1, y2 });
       if (!isHole(row, col + 1)) segments.push({ x1: x2, y1, x2, y2 });
     }),

@@ -1,14 +1,41 @@
 import { describe, expect, it } from 'vitest';
+import { CELL_SIZE, FIGURE_FLOOR_Y, FIGURE_HEIGHT, FIGURE_WIDTH, LANE_COUNT } from '@/config';
+import { laneCenterX } from '@/logic/lanes';
+import { VANISHING_POINT } from '@/logic/perspective';
 import {
+  WALL_PANEL,
   coverFit,
   cropOf,
   frameEdges,
   holeEdges,
   holeRects,
   solidRects,
+  wallLayout,
   type Rect,
   type WallLayout,
 } from '@/logic/wall-shape';
+
+// At scale 1 the wall's space is the screen moved by the vanishing point.
+describe('wallLayout', () => {
+  it('stands the pose grid on the figure floor, centered on the lane, as the figure stands', () => {
+    for (let lane = 0; lane < LANE_COUNT; lane++) {
+      const layout = wallLayout(lane);
+      expect(VANISHING_POINT.y + layout.floor).toBe(FIGURE_FLOOR_Y);
+      expect(layout.floor - layout.gridTop).toBe(FIGURE_HEIGHT);
+      expect(VANISHING_POINT.x + layout.gridLeft + FIGURE_WIDTH / 2).toBeCloseTo(laneCenterX(lane));
+      expect(layout.cell).toBe(CELL_SIZE);
+    }
+  });
+
+  it('keeps the grid inside the panel in every lane', () => {
+    for (let lane = 0; lane < LANE_COUNT; lane++) {
+      const layout = wallLayout(lane);
+      expect(layout.gridLeft).toBeGreaterThanOrEqual(WALL_PANEL.x);
+      expect(layout.gridLeft + FIGURE_WIDTH).toBeLessThanOrEqual(WALL_PANEL.x + WALL_PANEL.width);
+      expect(layout.gridTop).toBeGreaterThan(WALL_PANEL.y);
+    }
+  });
+});
 
 // A small wall: 100 wide, 60 tall, with a 3 × 3 grid of 10 px cells whose
 // left edge is at x 40 and whose rows run from y 30 down to the floor at 60.
@@ -64,6 +91,12 @@ describe('holeEdges', () => {
 
   it('runs every edge along the grid, one cell long', () => {
     for (const s of edges) expect(Math.abs(s.x2 - s.x1) + Math.abs(s.y2 - s.y1)).toBe(LAYOUT.cell);
+  });
+
+  it('closes the silhouette along the floor when asked, for the completion trace', () => {
+    const closed = holeEdges(T, LAYOUT, true);
+    expect(closed).toHaveLength(12);
+    expect(closed.filter((s) => s.y1 === LAYOUT.floor && s.y2 === LAYOUT.floor)).toHaveLength(3);
   });
 
   it('outlines a hole at the grid edge against the wall beside it', () => {

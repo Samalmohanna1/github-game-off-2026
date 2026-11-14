@@ -26,7 +26,7 @@ class Readout {
   ) {
     const align = side === 'left' ? 0 : 1;
     this.panel = new Phaser.GameObjects.Graphics(scene);
-    this.caption = new Phaser.GameObjects.Text(scene, 0, HUD.top + HUD.labelY, caption, textStyle('hudLabel', 'label'));
+    this.caption = new Phaser.GameObjects.Text(scene, 0, HUD.top + HUD.labelY, caption, textStyle('hudLabel', 'light'));
     this.value = new Phaser.GameObjects.Text(scene, 0, HUD.top + HUD.valueY, format(0), textStyle('hud', 'light'));
     this.caption.setOrigin(align, 0);
     this.value.setOrigin(align, 0);
@@ -66,7 +66,7 @@ class Readout {
     const cuts = this.side === 'left' ? { bottomRight: HUD.cut } : { bottomLeft: HUD.cut };
     this.panel.clear();
     const accent = { side: this.side, fromEnd: false, length: HUD.accentLength };
-    drawPanel(this.panel, chamferedRect(x, HUD.top, width, HUD.height, cuts), accent);
+    drawPanel(this.panel, chamferedRect(x, HUD.top, width, HUD.height, cuts), { accent });
     const textX = this.side === 'left' ? x + HUD.padX : x + width - HUD.padX;
     this.caption.setX(textX);
     this.value.setX(textX);

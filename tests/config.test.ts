@@ -185,22 +185,17 @@ describe('color system', () => {
 });
 
 describe('graphics contrast', () => {
-  // M10b: the wall stands in the dark void, which is lit along the horizon.
-  // Its image can be any color, so its cream frame is what sets it apart.
+  // M10b: the wall stands in the dark void, with a glow behind it. Its image
+  // can be any color, so its cream frame is what sets it apart.
   it.each(['void', 'voidGlow'] as const)('frames the wall clearly against the %s', (name) => {
     expect(contrastRatio(C.COLORS.wallFrame, C.COLORS[name])).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
-  // The hole shows the void and the runway behind the wall: its lime edge
-  // reads on the one and its ink edge on the other, whatever the image.
-  it('edges the hole clearly against whatever shows through it', () => {
-    expect(contrastRatio(C.COLORS.holeEdge, C.COLORS.void)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
-    expect(contrastRatio(C.COLORS.holeEdge, C.COLORS.voidGlow)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
-    expect(contrastRatio(C.COLORS.holeEdgeShade, C.COLORS.floor)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
-  });
-
-  it('edges the hole clearly on a wall with no image', () => {
-    expect(contrastRatio(C.COLORS.holeEdge, C.COLORS.wall)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  // While the wall is far off, the hole shows the void; its cream edge reads
+  // there whatever the image. Nearer, it shows the cream runway, which the
+  // images' own darks set off.
+  it.each(['void', 'voidGlow', 'wall'] as const)('edges the hole clearly against the %s', (name) => {
+    expect(contrastRatio(C.COLORS.holeEdge, C.COLORS[name])).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
   // The lit tile and the Shift Wall's target outline sit on the runway, and
@@ -215,7 +210,7 @@ describe('graphics contrast', () => {
     expect(contrastRatio(C.COLORS.figureEdge, C.COLORS[name])).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
-  // Over the horizon's glow, the wall's frame carries the alert walls too.
+  // Over the glow, the wall's frame carries the alert walls too.
   it.each(['wallWarning', 'wallFlash'] as const)('the %s wall stands out from the void', (name) => {
     expect(contrastRatio(C.COLORS[name], C.COLORS.void)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
@@ -225,15 +220,20 @@ describe('graphics contrast', () => {
     expect(contrastRatio(C.COLORS.shiftArrow, C.COLORS.textOutline)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
-  // The panels' faces are close to the void, so their edges set them apart.
-  it('sets the UI panels off from the void by their edge and accent', () => {
+  // M10b review: the panels are solid charcoal, the console thinly edged and
+  // the HUD accented in lime.
+  it('sets the UI panels off by their edge and accent', () => {
     expect(contrastRatio(C.COLORS.panelEdge, C.COLORS.void)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(contrastRatio(C.COLORS.panelEdge, C.COLORS.panel)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
     expect(contrastRatio(C.COLORS.panelAccent, C.COLORS.panel)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
-  it.each(['chipHeld', 'chipCurrent', 'chipSlipped', 'chipFocus'] as const)('%s stands out from the console', (name) => {
-    expect(contrastRatio(C.COLORS[name], C.COLORS.panel)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
-  });
+  it.each(['chipHeld', 'chipHeldEdge', 'chipCurrent', 'chipSlipped', 'chipFocus'] as const)(
+    '%s stands out from the console',
+    (name) => {
+      expect(contrastRatio(C.COLORS[name], C.COLORS.panel)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    },
+  );
 
   it.each(['chipHeld', 'chipCurrent', 'chipSlipped'] as const)('the Shift mark reads on %s chips', (name) => {
     expect(contrastRatio(C.COLORS.chipShiftMark, C.COLORS[name])).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
@@ -254,7 +254,7 @@ const TEXT_ON = {
   textOutline: ['light', 'good', 'alert', 'shift'],
   debugPanel: ['ink'],
   // The HUD's numbers and captions sit on its panels.
-  panel: ['light', 'label'],
+  panel: ['light'],
   chipNext: ['light'],
   chipHeld: ['ink'],
   chipCurrent: ['ink'],

@@ -9,12 +9,11 @@ import {
   GAME_HEIGHT,
   GAME_WIDTH,
   LOCK_RUSH_DURATION,
-  RUSH_END_SCALE,
   SCREEN_LAYOUT,
   SHIFT_JOLT,
+  WALL_COMPLETE,
 } from '@/config';
 import { NEUTRAL_POSE } from '@/data/poses';
-import { WALL_IMAGES } from '@/data/wall-images';
 import { KeyboardInput } from '@/input/KeyboardInput';
 import { advanceT, jumpT, wallScale } from '@/logic/approach';
 import { Countdown } from '@/logic/countdown';
@@ -27,13 +26,13 @@ import { LetterSequence, type SequenceEffect } from '@/logic/sequence';
 import { ShiftWall, type ShiftWallEvent } from '@/logic/shift-wall';
 import { ShuffleBag } from '@/logic/shuffle-bag';
 import { generateWall, holeGrid, type WallSpec } from '@/logic/wall-gen';
+import { Completion } from '@/objects/Completion';
 import { DebugOverlay, type DebugRow } from '@/objects/DebugOverlay';
 import { Figure } from '@/objects/Figure';
 import { Floor } from '@/objects/Floor';
 import { GridVoid } from '@/objects/GridVoid';
 import { Hud } from '@/objects/Hud';
 import { LaneTiles } from '@/objects/LaneTiles';
-import { PassPulse } from '@/objects/PassPulse';
 import { PauseOverlay } from '@/objects/PauseOverlay';
 import { PromptTray } from '@/objects/PromptTray';
 import { ShiftCallout } from '@/objects/ShiftCallout';
@@ -42,29 +41,30 @@ import { Wall } from '@/objects/Wall';
 import { SceneKeys, type RunResult } from '@/scenes/scene-keys';
 import { outlinedStyle } from '@/scenes/text-styles';
 import { prefersReducedMotion } from '@/scenes/ui';
+import { wallImageKeys } from '@/scenes/wall-images';
 
-// Draw order. The wall moves from behind the figure to in front of it once it
-// rushes past the figure's plane.
+// Draw order. The wall stays behind the figure; a cleared wall's completion
+// is drawn over the figure, where the hole and the pose line up.
 const LAYER = {
   background: 0,
   floor: 1,
   laneTiles: 2,
   wall: 3,
   figure: 4,
-  wallPassed: 5,
-  pulse: 6,
-  label: 7,
-  tray: 8,
-  hud: 9,
-  pause: 10,
-  debug: 11,
+  completion: 5,
+  label: 6,
+  tray: 7,
+  hud: 8,
+  pause: 9,
+  debug: 10,
 } as const;
 
 // Kept in the game registry so the overlay stays on across walls and restarts.
 const DEBUG_VISIBLE = 'debugOverlayVisible';
 
-// approach: the wall is coming and the player can act. rush: the pose locked
-// and the wall is passing. failing: the wall reached the figure first.
+// approach: the wall is coming and the player can act. rush: the pose locked,
+// and the wall comes to the figure, completes its image and leaves. failing:
+// the wall reached the figure first.
 type Phase = 'approach' | 'rush' | 'failing';
 
 export class PlayScene extends Phaser.Scene {
@@ -81,11 +81,12 @@ export class PlayScene extends Phaser.Scene {
   private scoreKeeper!: ScoreKeeper;
   private keyboard!: KeyboardInput;
   private wall!: Wall;
-  // Deals the wall images that loaded, so each comes round before any repeats.
-  private wallImages!: ShuffleBag<string>;
-  // The cleared wall has passed the figure's plane during this rush.
-  private passed = false;
-  private pulse!: PassPulse;
+  // Deals the wall images, so each comes round before any repeats. They load
+  // in the background, so the bag is remade when more have arrived.
+  private wallImages = new ShuffleBag<string>([]);
+  private wallImagesDealt = 0;
+  private wallImage: string | null = null;
+  private completion!: Completion;
   private figure!: Figure;
   private laneTiles!: LaneTiles;
   private tray!: PromptTray;
@@ -120,9 +121,8 @@ export class PlayScene extends Phaser.Scene {
     new Floor(this).setDepth(LAYER.floor);
     this.laneTiles = new LaneTiles(this).setDepth(LAYER.laneTiles);
     this.wall = new Wall(this).setDepth(LAYER.wall);
-    this.wallImages = new ShuffleBag(WALL_IMAGES.map(({ key }) => key).filter((key) => this.textures.exists(key)));
     this.figure = new Figure(this, this.figureLane).setDepth(LAYER.figure);
-    this.pulse = new PassPulse(this).setDepth(LAYER.pulse);
+    this.completion = new Completion(this).setDepth(LAYER.completion);
     this.label = new TimingLabel(this).setDepth(LAYER.label);
     this.callout = new ShiftCallout(this).setDepth(LAYER.label);
     this.tray = new PromptTray(this).setDepth(LAYER.tray);
@@ -218,9 +218,10 @@ export class PlayScene extends Phaser.Scene {
     this.holeLane = this.spec.holeLane;
     this.shiftWall = new ShiftWall(this.plan.shiftWall, this.holeLane);
     this.countdown = new Countdown();
-    this.wall.setHole(this.holeLane, holeGrid(this.spec.targets), this.wallImages.next() ?? null);
-    this.wall.setDepth(LAYER.wall).appear();
-    this.passed = false;
+    this.wallImage = this.nextWallImage();
+    this.wall.setHole(this.holeLane, holeGrid(this.spec.targets), this.wallImage);
+    this.wall.appear();
+    this.completion.reset();
     this.figure.resetPose();
     this.laneTiles.setTarget(null);
     this.sequence.startWall(letters);
@@ -278,20 +279,48 @@ export class PlayScene extends Phaser.Scene {
 
     this.phase = 'rush';
     this.sequence.lock();
-    this.wall.complete();
     const score = this.scoreKeeper.clearWall(this.t);
     this.hud.setScore(this.scoreKeeper.score);
     this.label.show(score, laneCenterX(this.figureLane));
     if (score.grade === 'closeCall') this.slowMotion();
     if (score.grade === 'perfect') this.synth?.fanfare();
+    // The wall comes the rest of the way to the figure, where its hole and
+    // the pose line up exactly, completes its image there, and leaves (M10b
+    // review). All of it runs on tweens, so a CLOSE CALL slows it too.
     this.tweens.addCounter({
       from: wallScale(this.t),
-      to: RUSH_END_SCALE,
+      to: 1,
       duration: LOCK_RUSH_DURATION,
       ease: 'Quad.easeIn',
-      onUpdate: (tween) => this.rushWall(tween.getValue() ?? RUSH_END_SCALE),
+      onUpdate: (tween) => this.wall.setScale(tween.getValue() ?? 1),
+      onComplete: () => this.completion.play(this.wallImage, this.spec.targets, this.holeLane, () => this.clearWall()),
+    });
+  }
+
+  // The completed wall fades, growing a little toward the camera unless the
+  // player prefers reduced motion, taking the completion with it, and the
+  // figure is itself again.
+  private clearWall(): void {
+    const { exitGrow, exitMs } = WALL_COMPLETE;
+    this.tweens.add({
+      targets: [this.wall, this.completion],
+      alpha: 0,
+      scale: prefersReducedMotion() ? 1 : exitGrow,
+      duration: exitMs,
+      ease: 'Quad.easeIn',
       onComplete: () => this.startWall(),
     });
+  }
+
+  // The next wall image, from those loaded so far; null for a plain panel
+  // when none has arrived yet.
+  private nextWallImage(): string | null {
+    const loaded = wallImageKeys(this.textures);
+    if (loaded.length !== this.wallImagesDealt) {
+      this.wallImages = new ShuffleBag(loaded);
+      this.wallImagesDealt = loaded.length;
+    }
+    return this.wallImages.next() ?? null;
   }
 
   // CLOSE CALL (M8): the rush and the label pop play in slow motion for a
@@ -301,19 +330,6 @@ export class PlayScene extends Phaser.Scene {
     this.time.delayedCall(CLOSE_CALL_SLOWMO.ms, () => {
       this.tweens.timeScale = 1;
     });
-  }
-
-  private rushWall(scale: number): void {
-    this.wall.setScale(scale);
-    if (scale < 1) return;
-    // Past the figure's plane the wall is in front of it, fading toward the
-    // camera, with its hole open again and the figure showing through, as a
-    // lime pulse marks the pass (M10b).
-    this.wall.setDepth(LAYER.wallPassed).setAlpha(1 - (scale - 1) / (RUSH_END_SCALE - 1));
-    if (this.passed) return;
-    this.passed = true;
-    this.wall.reopen();
-    this.pulse.play(this.figureLane);
   }
 
   private fail(): void {
