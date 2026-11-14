@@ -187,17 +187,26 @@ describe('color system', () => {
 });
 
 describe('graphics contrast', () => {
-  // M10b: the wall stands in the dark void, with a glow behind it. Its image
-  // can be any color, so its cream frame is what sets it apart.
+  // The wall stands in the dark void, with a glow behind it, and its panel is
+  // dark too, so its lime frame is what sets it apart.
   it.each(['void', 'voidGlow'] as const)('frames the wall clearly against the %s', (name) => {
     expect(contrastRatio(C.COLORS.wallFrame, C.COLORS[name])).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
-  // While the wall is far off, the hole shows the void; its cream edge reads
-  // there whatever the image. Nearer, it shows the cream runway, which the
-  // images' own darks set off.
-  it.each(['void', 'voidGlow', 'wall'] as const)('edges the hole clearly against the %s', (name) => {
+  // While the wall is far off, the hole shows the void, as dark as the
+  // panel; its lime edge reads there. Nearer, it shows the cream runway,
+  // which the panel's darks set off.
+  it.each(['void', 'voidGlow', 'wall', 'panelTop', 'panelFoot'] as const)('edges the hole clearly against the %s', (name) => {
     expect(contrastRatio(C.COLORS.holeEdge, C.COLORS[name])).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  });
+
+  it.each(['panelTop', 'panelFoot', 'wall'] as const)('the %s sets the hole off from the runway it shows', (name) => {
+    expect(contrastRatio(C.COLORS[name], C.COLORS.floor)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  });
+
+  // A completion's lit cells part by dark seams, like the panel's pixels.
+  it('parts the completion cells clearly by their seams', () => {
+    expect(contrastRatio(C.COLORS.completionCell, C.COLORS.completionSeam)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
   // The lined-up marker and the Shift Wall's target outline sit on the runway.
@@ -216,15 +225,32 @@ describe('graphics contrast', () => {
     expect(contrastRatio(C.COLORS[name], C.COLORS.void)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
-  it('keeps the Shift Wall arrows readable: on the wall, and in the callout outline', () => {
+  it('keeps the Shift Wall arrows readable: on the wall, and on the callout card', () => {
     expect(contrastRatio(C.COLORS.shiftArrow, C.COLORS.wallWarning)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
-    expect(contrastRatio(C.COLORS.shiftArrow, C.COLORS.textOutline)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(contrastRatio(C.COLORS.calloutInk, C.COLORS.calloutCard)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
-  // The HUD's cream cards stand on the void; the bar's line, slashes and its
-  // letter squares, lit and unlit, all read on the bar.
-  it('sets the HUD cards off from the void', () => {
-    expect(contrastRatio(C.COLORS.hudCard, C.COLORS.void)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  // M10b review 4: the badges pop up over the dark panel, and over the cream
+  // runway, where their ink edge sets them off.
+  it.each(['gradePerfect', 'gradeGreat', 'gradeCloseCall', 'calloutCard', 'promptCard'] as const)(
+    'the %s badge stands out from the wall panel',
+    (name) => {
+      for (const panel of [C.COLORS.panelTop, C.COLORS.panelFoot]) {
+        expect(contrastRatio(C.COLORS[name], panel)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+      }
+    },
+  );
+
+  it('edges the badges clearly against the runway', () => {
+    expect(contrastRatio(C.COLORS.badgeEdge, C.COLORS.floor)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  });
+
+  // The cream cards stand on the void, and the score card's rule reads on
+  // them; the bar's line, slashes and its letter squares, lit and unlit, all
+  // read on the bar.
+  it('sets the cards off from the void, and their rule on them', () => {
+    expect(contrastRatio(C.COLORS.card, C.COLORS.void)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(contrastRatio(C.COLORS.cardRule, C.COLORS.card)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
   it.each(['trayLine', 'trayAccent', 'trayDim'] as const)('%s reads on the bar', (name) => {
@@ -253,11 +279,20 @@ const css = (color: string) => parseInt(color.slice(1), 16);
 // Every place each text color is drawn. Outlined text is measured against its
 // outline, which is all that touches it.
 const TEXT_ON = {
-  stage: ['ink', 'muted', 'accent', 'danger'],
-  textOutline: ['light', 'good', 'alert', 'shift'],
+  textOutline: ['light', 'good', 'alert'],
+  // The badges (M10b review 4), the timing label's points tab and NEW BEST.
+  gradePerfect: ['ink'],
+  gradeGreat: ['ink'],
+  gradeCloseCall: ['ink'],
+  calloutCard: ['ink'],
+  promptCard: ['ink'],
+  badgeTab: ['light', 'good'],
   debugPanel: ['ink'],
-  // The HUD's numbers and captions sit on its cream cards.
-  hudCard: ['ink'],
+  // The HUD's, the logo's, the pause card's and the game-over cards' text.
+  card: ['ink'],
+  // The title's controls (M11) on the bar, and the game-over hint on the void.
+  tray: ['light'],
+  void: ['light'],
   chipNext: ['light'],
   chipHeld: ['ink'],
   chipCurrent: ['ink'],
@@ -265,6 +300,40 @@ const TEXT_ON = {
 } as const satisfies Partial<Record<keyof typeof C.COLORS, readonly (keyof typeof C.TEXT_COLORS)[]>>;
 
 const TEXT_PAIRS = Object.entries(TEXT_ON).flatMap(([bg, texts]) => texts.map((text) => [text, bg] as const));
+
+// The screens (M11) keep their parts clear of each other.
+describe('screen layouts', () => {
+  const k = (height: number) => height / C.CARD.height;
+  const slashReach = (height: number) => (C.CARD.slashGap + C.SLASH.width + C.SLASH.gap + C.SLASH.width / 3) * k(height);
+
+  // The wall's top stands just below the horizon at any depth.
+  it('sets the title logo above the wall, and the prompt between the figure and the bar', () => {
+    const wallTop = C.HORIZON_Y + C.TITLE.wallScale * (C.FIGURE_FLOOR_Y - C.HORIZON_Y - C.WALL_HEIGHT);
+    expect(C.TITLE.logo.y + C.TITLE.logo.height).toBeLessThan(wallTop);
+    const feet = C.HORIZON_Y + C.TITLE.figureScale * (C.FIGURE_FLOOR_Y - C.HORIZON_Y);
+    expect(C.TITLE.promptY - C.PROMPT_BADGE.height / 2).toBeGreaterThan(feet);
+    expect(C.TITLE.promptY + C.PROMPT_BADGE.height / 2).toBeLessThan(C.STAGE_BOTTOM_Y);
+    expect(C.TITLE.wallScale).toBeLessThan(C.TITLE.figureScale);
+    expect(Math.floor(C.LANE_COUNT / 2) + C.TITLE.holeLanes).toBeLessThan(C.LANE_COUNT);
+  });
+
+  it('fits the title controls in the bar', () => {
+    expect(C.TRAY.rowY + C.CONTROLS.capHeight / 2).toBeLessThan(C.TRAY.lowY);
+    expect(C.TRAY.rowY - C.CONTROLS.capHeight / 2).toBeGreaterThan(0);
+  });
+
+  it('keeps the game-over cards apart, with Play again below them', () => {
+    const { top, cardHeight, middleGap, promptY, hintY } = C.GAME_OVER;
+    expect(2 * slashReach(cardHeight)).toBeLessThan(middleGap);
+    expect(top + cardHeight).toBeLessThan(promptY - C.PROMPT_BADGE.height / 2);
+    expect(promptY + C.PROMPT_BADGE.height / 2).toBeLessThan(hintY);
+    expect(hintY).toBeLessThan(C.GAME_HEIGHT);
+  });
+
+  it('sets the pause card above its prompt', () => {
+    expect(C.PAUSE.cardY + C.PAUSE.cardHeight / 2).toBeLessThan(C.PAUSE.promptY - C.PROMPT_BADGE.height / 2);
+  });
+});
 
 describe('text contrast', () => {
   it('keeps every font size at WCAG large-text size', () => {

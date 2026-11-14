@@ -3,31 +3,25 @@ import {
   COLORS,
   FIGURE_EDGE_WIDTH,
   FIGURE_GRID,
-  FIGURE_SEAM_WIDTH,
   FIGURE_SHADOW,
   FIGURE_WIDTH,
   WALL_COMPLETE,
 } from '@/config';
 import { BLOCK_IDS } from '@/data/poses';
-import { blockAverages } from '@/logic/mosaic';
 import { VANISHING_POINT } from '@/logic/perspective';
 import { holeGrid, type Pose } from '@/logic/wall-gen';
-import { WALL_PANEL, coverFit, cropOf, holeEdges, holeRects, wallLayout, type Rect, type WallLayout } from '@/logic/wall-shape';
+import { holeEdges, holeRects, wallLayout, type Rect, type WallLayout } from '@/logic/wall-shape';
 import { ImagePieces } from '@/objects/ImagePieces';
 import { fillSegments } from '@/objects/vectors';
 
-// Each cell's color averages SAMPLE × SAMPLE points of the pattern under it.
-const SAMPLE = 6;
-let sampler: HTMLCanvasElement | null = null;
-
 // The completion, the signature moment (M10b review). Once a cleared
 // wall reaches the figure, at scale 1, its hole and the figure's pose line up
-// cell for cell. Then the figure's pixels take the colors of the pattern's
-// missing piece, row by row from the feet up, keeping the figure's cream
-// seams; the pattern's own detail fills in over them, so the picture looks
-// whole; and a lime trace of the silhouette fades. It is drawn over the
-// figure, in the wall's space at full size, and leaves with the wall, so the
-// figure itself never changes.
+// cell for cell. Then the figure's cells light up lime, row by row from the
+// feet up, with dark seams between them like the panel's pixels (M10b review
+// 4); the panel fills back in over them, so the wall looks whole; and a lime
+// trace of the silhouette fades. It is drawn over the figure, in the wall's
+// space at full size, and leaves with the wall, so the figure itself never
+// changes.
 export class Completion extends Phaser.GameObjects.Container {
   private readonly pixels: Phaser.GameObjects.Graphics;
   private readonly detail: ImagePieces;
@@ -43,13 +37,12 @@ export class Completion extends Phaser.GameObjects.Container {
     this.reset();
   }
 
-  // The wall's texture (null for a plain panel), the pose that cleared it and
-  // the hole's lane. onWhole runs once the restored picture has held.
+  // The wall's texture (null for a plain wall), the pose that cleared it and
+  // the hole's lane. onWhole runs once the restored panel has held.
   play(textureKey: string | null, pose: Pose, holeLane: number, onWhole: () => void): void {
     this.reset();
     const layout = wallLayout(holeLane);
     const grid = holeGrid(pose);
-    const colors = this.cellColors(textureKey, layout);
     // Grown past the hole's edge, so the detail also covers the figure's
     // edge and the hole's, plus the strip of wall the figure's shadow
     // reaches up over; it is the same texture as the wall's there.
@@ -73,7 +66,7 @@ export class Completion extends Phaser.GameObjects.Container {
           targets: sweep,
           rows: FIGURE_GRID.rows,
           duration: WALL_COMPLETE.pixelMs,
-          onUpdate: () => this.drawPixels(pose, layout, colors, sweep.rows),
+          onUpdate: () => this.drawPixels(pose, layout, sweep.rows),
         },
         {
           targets: this.detail,
@@ -98,55 +91,29 @@ export class Completion extends Phaser.GameObjects.Container {
     this.setVisible(false).setAlpha(1).setScale(1);
   }
 
-  // Each cell the pose covers, in the pattern's color under it, the rows from
-  // the feet up to `rows` showing (the topmost one fading in), with the
-  // figure's own cream seams and edges over them.
-  private drawPixels(pose: Pose, layout: WallLayout, colors: readonly number[], rows: number): void {
+  // Each cell the pose covers, lit, the rows from the feet up to `rows`
+  // showing (the topmost one fading in). A cell is a dark square with a lime
+  // one inside it, so neighbors part by a dark seam as thick as the figure's
+  // edge, and it covers the figure's own cream seams.
+  private drawPixels(pose: Pose, layout: WallLayout, rows: number): void {
     const g = this.pixels;
-    const { cols, rows: gridRows } = FIGURE_GRID;
     const cell = layout.cell;
+    const inset = FIGURE_EDGE_WIDTH / 2;
     g.clear();
     for (const id of BLOCK_IDS) {
       const r = pose[id];
       for (let row = r.row; row < r.row + r.rows; row++) {
-        const shown = Phaser.Math.Clamp(rows - (gridRows - 1 - row), 0, 1);
+        const shown = Phaser.Math.Clamp(rows - (FIGURE_GRID.rows - 1 - row), 0, 1);
         if (shown === 0) continue;
         for (let col = r.col; col < r.col + r.cols; col++) {
-          g.fillStyle(colors[row * cols + col] ?? COLORS.wall, shown);
-          g.fillRect(layout.gridLeft + col * cell, layout.gridTop + row * cell, cell, cell);
+          const [x, y] = [layout.gridLeft + col * cell, layout.gridTop + row * cell];
+          g.fillStyle(COLORS.completionSeam, shown);
+          g.fillRect(x, y, cell, cell);
+          g.fillStyle(COLORS.completionCell, shown);
+          g.fillRect(x + inset, y + inset, cell - 2 * inset, cell - 2 * inset);
         }
       }
     }
-    for (const id of BLOCK_IDS) {
-      const r = pose[id];
-      const [x, y, w, h] = [layout.gridLeft + r.col * cell, layout.gridTop + r.row * cell, r.cols * cell, r.rows * cell];
-      g.lineStyle(FIGURE_SEAM_WIDTH, COLORS.figureEdge);
-      for (let c = 1; c < r.cols; c++) g.lineBetween(x + c * cell, y, x + c * cell, y + h);
-      for (let k = 1; k < r.rows; k++) g.lineBetween(x, y + k * cell, x + w, y + k * cell);
-      g.lineStyle(FIGURE_EDGE_WIDTH, COLORS.figureEdge);
-      g.strokeRect(x, y, w, h);
-    }
-  }
-
-  // The average color of the pattern under each cell of the pose grid, row
-  // by row; all plain panel color when there's no texture to read.
-  private cellColors(textureKey: string | null, layout: WallLayout): number[] {
-    const { cols, rows } = FIGURE_GRID;
-    const plain = Array<number>(cols * rows).fill(COLORS.wall);
-    if (textureKey === null) return plain;
-    const frame = this.scene.textures.getFrame(textureKey);
-    const source = this.scene.textures.get(textureKey).getSourceImage();
-    if (!(source instanceof HTMLImageElement || source instanceof HTMLCanvasElement)) return plain;
-
-    sampler ??= document.createElement('canvas');
-    sampler.width = cols * SAMPLE;
-    sampler.height = rows * SAMPLE;
-    const context = sampler.getContext('2d', { willReadFrequently: true });
-    if (context === null) return plain;
-    const grid = { x: layout.gridLeft, y: layout.gridTop, width: cols * layout.cell, height: rows * layout.cell };
-    const crop = cropOf(grid, coverFit(frame.width, frame.height, WALL_PANEL));
-    context.drawImage(source, crop.x, crop.y, crop.width, crop.height, 0, 0, sampler.width, sampler.height);
-    return blockAverages(context.getImageData(0, 0, sampler.width, sampler.height).data, cols, rows, SAMPLE);
   }
 }
 

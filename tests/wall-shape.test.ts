@@ -7,6 +7,7 @@ import {
   coverFit,
   cropOf,
   frameEdges,
+  gridLines,
   holeEdges,
   holeRects,
   solidRects,
@@ -110,6 +111,37 @@ describe('frameEdges', () => {
     const edges = frameEdges(LAYOUT);
     expect(edges).toHaveLength(3);
     expect(edges.some((s) => s.y1 === LAYOUT.floor && s.y2 === LAYOUT.floor)).toBe(false);
+  });
+});
+
+describe('gridLines', () => {
+  it('lines the whole wall every cell, through the pose grid and up from the floor', () => {
+    expect(gridLines(LAYOUT)).toEqual({ xs: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100], ys: [60, 50, 40, 30, 20, 10, 0] });
+  });
+
+  it('runs along every edge of the hole', () => {
+    const { xs, ys } = gridLines(LAYOUT);
+    for (const s of holeEdges(T, LAYOUT, true)) {
+      if (s.x1 === s.x2) expect(xs).toContain(s.x1);
+      else expect(ys).toContain(s.y1);
+    }
+  });
+
+  it('moves with the hole as it slides, staying inside the wall', () => {
+    const { xs } = gridLines({ ...LAYOUT, gridLeft: 43.5 });
+    expect(xs[0]).toBeCloseTo(3.5);
+    expect(xs.at(-1)).toBeCloseTo(93.5);
+    for (const [a, b] of xs.slice(1).map((x, i) => [xs[i]!, x] as const)) expect(b - a).toBeCloseTo(10);
+  });
+
+  it('lines the real wall on the figure cells in every lane', () => {
+    for (let lane = 0; lane < LANE_COUNT; lane++) {
+      const layout = wallLayout(lane);
+      const { xs, ys } = gridLines(layout);
+      expect(xs).toContain(layout.gridLeft);
+      expect(ys).toContain(layout.gridTop);
+      expect(xs.every((x) => x >= layout.left && x <= layout.right)).toBe(true);
+    }
   });
 });
 

@@ -19,29 +19,31 @@ keyboard.
 
 Current state: **Week 2**, built one milestone at a time (PLAN.md §10). The
 Week 1 prototype (M0–M7), the M8 feel pass, the M9 synthesized audio, the
-M10 art for the play screen and the M10b grid void restyle are done. The
-palette and fonts come from design mocks kept outside the repo
-(`../design-mocks/`). Everything is drawn in code, the walls' geometric
-patterns included (M10b review 3; supplied photos were tried and dropped). The title
-and game-over screens get their layouts from the mocks in M11.
+M10 art for the play screen, the M10b grid void restyle and the M11 title,
+pause and game-over screens are done. The palette and fonts come from design
+mocks kept outside the repo (`../design-mocks/`). Everything is drawn in
+code, the wall's display panel included (M10b review 4, picked from the wall
+directions in `../design-mocks/wall-options*/`; supplied photos and
+geometric patterns were tried and dropped).
 
 Scenes, one per screen:
 
 | Scene | Status | Contents |
 |---|---|---|
 | `BootScene` | Final (M10b) | Waits for the bundled fonts (`loadFonts()`, giving up after `FONT_LOAD_TIMEOUT`), then hands off to Title. |
-| `TitleScene` | Interim | Game name, one-line how-to, "Click to play". The click gives the page keyboard focus inside the itch.io iframe. It already uses the M10 palette and fonts; its layout from the mocks comes in M11. |
-| `PlayScene` | Interim (M10b) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). Space lines the figure up, one lane toward the hole per press (during a Shift Wall's warning, toward the lane it is about to slide to); the arrow keys don't move it; the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 4+), the wall stops behind a SHIFT callout, turns orange with an arrow, and the hole slides 1 lane with a sideways jolt while the new lane's tile is marked on the floor; then the wall carries on; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: a PERFECT / GREAT / CLOSE CALL label pops over the figure, the wall comes the rest of the way to the figure, the figure's pixels take the colors of the pattern's missing piece and the pattern fills back in (the completion), and the wall fades away as the next one fades in. Held blocks land with a squash, slipped ones slump back limp, a wrong key rattles the wall, and a CLOSE CALL plays the rush in slow motion. If the wall arrives first, it knocks the figure over: it topples toward the camera with its arms flailing, and its blocks come apart and bounce to a stop on the floor before the run ends. Synthesized sounds (M9) play over all of it: the countdown tick in CLOSE CALL range, clicks, slips, the PERFECT fanfare, the Shift Wall alert and whoosh, and the fail's hit and "whomp whomp whooom". Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses behind a "Click to resume" veil. F2 toggles the debug overlay. Everything is drawn in the M10b art, a dark grid stage after the user's mockup: a glossy floor grid running back to a gridded back wall at the runway's far end, meeting it at a glowing lime seam, with lit cells that breathe, squares that fall slowly and fade, and streaks running down the floor; a cream runway with thin seams and glowing lime edges, where the figure stands centered on its lane's tile and the lined-up tile is marked; walls that are random geometric patterns in a thin cream frame with a see-through cutout in a thin cream edge; black blocks with cream seams between their cells and a cream edge; a dark line-art bar of cream key caps with lime slashes and a square per letter; SCORE and WALL on cream cards with lime slashes in the top corners; and every label over the scene in bright letters inside a thick dark outline. No texture anywhere. |
-| `GameOverScene` | Interim | Walls cleared, score, best (saved in `localStorage`) and the wall reached. Restart follows PLAN.md §7: input is ignored for `RESTART_LOCKOUT`, then every key must be up ("Let go of every key" shows meanwhile) before a key or click restarts. |
+| `TitleScene` | Final (M11) | The play stage itself: the grid stage and the runway, a wall down the runway with its hole (`TITLE_POSE`, arms raised) two lanes right of the figure, which stands part way along the runway. Over it, SHAPE SHIFT on a cream card hanging from the top of the screen, slanting both ways with lime slashes; a lime CLICK TO PLAY badge on the runway in front of the figure; and the controls in the bar as key caps (`ControlsBar`: SPACE move to the hole, a s hold the letters, SHIFT for capitals). The click gives the page keyboard focus inside the itch.io iframe. |
+| `PlayScene` | Interim (M10b) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). Space lines the figure up, one lane toward the hole per press (during a Shift Wall's warning, toward the lane it is about to slide to); the arrow keys don't move it; the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 4+), the wall stops behind a SHIFT callout, turns orange with an arrow, and the hole slides 1 lane with a sideways jolt while the new lane's tile is marked on the floor; then the wall carries on; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: a PERFECT / GREAT / CLOSE CALL label pops over the figure, the wall comes the rest of the way to the figure, the figure's cells light up lime like the panel's pixels and the panel fills back in (the completion), and the wall fades away as the next one fades in. Held blocks land with a squash, slipped ones slump back limp, a wrong key rattles the wall, and a CLOSE CALL plays the rush in slow motion. If the wall arrives first, it knocks the figure over: it topples toward the camera with its arms flailing, and its blocks come apart and bounce to a stop on the floor before the run ends. Synthesized sounds (M9) play over all of it: the countdown tick in CLOSE CALL range, clicks, slips, the PERFECT fanfare, the Shift Wall alert and whoosh, and the fail's hit and "whomp whomp whooom". Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses the game behind a veil, with PAUSED on a cream card and a lime CLICK TO RESUME badge (`PauseOverlay`, M11). F2 toggles the debug overlay. Everything is drawn in the M10b art, a dark grid stage after the user's mockup: a glossy floor grid running back to a gridded back wall at the runway's far end, meeting it at a glowing lime seam, with lit cells that breathe, squares that fall slowly and fade, and streaks running down the floor; a cream runway with thin seams and glowing lime edges, where the figure stands centered on its lane's tile and the lined-up tile is marked; walls that are dark glass display panels lined on the figure's cells, with dots at the crossings, scanlines and the glow of a neon lime frame, with a see-through cutout in an equally thick lime edge; black blocks with cream seams between their cells and a cream edge; a dark line-art bar of cream key caps with lime slashes and a square per letter; SCORE and WALL on cream cards with lime slashes in the top corners; the timing label and the SHIFT callout on solid badges in a thick ink edge; and the Caps Lock warning in bright letters inside a thick dark outline. No texture anywhere. |
+| `GameOverScene` | Final (M11) | After the mock's layout, on the grid stage: GAME OVER on a cream card on the left (with the wall the run ended on), and on the right a cream card with the final score, a rule, the best (saved in `localStorage`; NEW BEST on an ink tab when this run set it) and the walls cleared, the two cards' slanted sides and slashes facing across the gap. Restart follows PLAN.md §7: input is ignored for `RESTART_LOCKOUT`, then every key must be up ("LET GO OF EVERY KEY TO PLAY AGAIN" shows meanwhile) before a key or click restarts, when a lime PLAY AGAIN badge shows over "CLICK OR PRESS ANY KEY". |
 
 Shared scene helpers live in `src/scenes/` (`ui.ts`, `text-styles.ts`,
 `scene-keys.ts`). Game objects live in `src/objects/`:
 `GridVoid`, `Floor`, `LaneTiles`, `Wall`, `Figure`, `Completion`,
-`PromptTray`, `Hud`, `TimingLabel`, `ShiftCallout`, `PauseOverlay` and
-`DebugOverlay`, plus `WallPattern` (paints each wall's pattern into a
-texture), `ImagePieces` (that texture cropped to rects, shared by the wall
-and the completion) and the `fillSlash()` helper for the lime "//" slashes
-of the HUD and the bar. The best score lives in `src/storage/`. Keyboard input lives in `src/input/`:
+`PromptTray`, `Hud`, `TimingLabel`, `ShiftCallout`, `PromptBadge`,
+`ControlsBar`, `PauseOverlay` and `DebugOverlay`, plus `WallPanel` (paints
+the wall's display panel into a texture), `ImagePieces` (that texture
+cropped to rects, shared by the wall and the completion), and the drawing
+helpers `drawCard()` (the cream cards), `drawBadge()` (the badges) and
+`fillSlash()` (the lime "//" slashes). The best score lives in `src/storage/`. Keyboard input lives in `src/input/`:
 `KeyboardInput` (native listeners, one per Play scene) and
 `preventPageScroll()` (game-wide, from `main.ts`).
 
@@ -99,10 +101,12 @@ the doc is **part of that change, not a follow-up**.
   never scroll the host page, and like other non-letters never count as a
   wrong key.
 - **Art:** drawn in code, with Phaser shapes and Graphics and one canvas
-  texture for the wall's pattern. M10b is a sci-fi grid stage with an
+  texture for the wall's panel. M10b is a sci-fi grid stage with an
   editorial edge (PLAN.md §1, §3): a dark perspective grid, a cream runway,
-  walls that are random geometric patterns with their hole cut out, cream HUD cards and a line-art bar with
-  lime slashes. Since M10b review 2 the stage follows the user's mockup: lit
+  walls that are neon-framed display panels with their hole cut out, cream
+  cards and a line-art bar with lime slashes, and solid badges for the
+  popups and the screens' prompts. M11 sets the title, pause and game-over
+  screens in the same language. Since M10b review 2 the stage follows the user's mockup: lit
   and layered, never flat (a glowing seam, a back wall, a glossy floor, lit
   squares). Clean edges and no texture. The figure stays the same five blocks
   and pose data, styled as in M10, and is never restyled without the user
@@ -110,12 +114,14 @@ the doc is **part of that change, not a follow-up**.
   background stays atmospheric and must never compete with the wall, the
   figure or the prompts. (M10 was an editorial collage with torn paper at
   the background's edges and a paper-grain filter, both dropped in M10b.)
-- **Wall patterns** (M10b review 3) replace the supplied photos of the M10b
-  review, at the user's request. Every wall is a fresh random geometric
-  pattern (`makePattern()` in `src/logic/wall-pattern.ts`: a quilt of square
-  tiles, each a motif on a ground), painted into one canvas texture
-  (`WallPattern`) in one of the color schemes of `WALL_PATTERN`, dealt from a
-  `ShuffleBag` so none comes back to back. No image files.
+- **The wall panel** (M10b review 4) is the direction the user picked from
+  the wall options rendered in `../design-mocks/wall-options*/` (supplied
+  photos, then random geometric patterns, came before it). Every wall is the
+  same dark glass display panel (`WallPanel`, `WALL_DISPLAY`), lined on the
+  figure's own cells (`gridLines()` in `src/logic/wall-shape.ts`), so its
+  grid runs along the hole's edges and is repainted as a Shift Wall's hole
+  slides. Its neon lime frame and hole edge are drawn over it by `Wall`. No
+  image files.
 - **Fonts:** Anton and IBM Plex Mono, bundled from `@fontsource` (latin
   subsets, imported in `src/main.ts`). Never load fonts from the network.
 
@@ -138,7 +144,7 @@ src/
     Synth.ts               # Web Audio sounds, no files: tick, click, slip, fanfare, Shift alert, hit, whomp
   data/                    # PURE: static game data
     keyboard.ts            # QWERTY row/x (with stagger), hand, finger per letter
-    poses.ts               # block ids, neutral pose and alt poses on the grid
+    poses.ts               # block ids, neutral pose and alt poses on the grid, the title wall's pose
     void-art.ts            # the grid stage's fixed composition: lit back wall cells, falling squares, floor streaks
   input/
     KeyboardInput.ts       # native key/blur events -> Space, letters, pause, Caps Lock
@@ -150,13 +156,10 @@ src/
     difficulty.ts          # wall # -> tier, wall time, Shift Wall roll, WallPlan
     letters.ts             # stretchScore, combo generator, ordering, capitals
     random.ts              # injectable random helpers (shuffle, pick, int)
-    shuffle-bag.ts         # deals items shuffled, each once before repeats, never twice in a row (pattern schemes)
-    wall-pattern.ts        # a random wall pattern: a quilt of square tiles, a motif on a ground each
     fall.ts                # the falling squares' cycles: where each is, and its fade in and out
     convex.ts              # chamfered rects: the key caps' angular shape
     perspective.ts         # vanishing point, project(), floor edges, tile seams + the figure's tile
-    wall-shape.ts          # the wall's layout per lane, solid and hole rects, hole and frame edges, a texture's cover fit and crops
-    mosaic.ts              # average colors of pixel blocks (the completion's per-cell pattern colors)
+    wall-shape.ts          # the wall's layout per lane, solid and hole rects, hole and frame edges, the panel's cell grid, a texture's cover fit and crops
     restart.ts             # game-over lockout + "release every key" gate
     scoring.ts             # grades, wall points, PERFECT streak multiplier
     sequence.ts            # prompt / held / slip queue state machine + lock
@@ -170,27 +173,31 @@ src/
     Floor.ts               # the cream runway: rows shading into the distance, thin seams, glowing lime edges
     Hud.ts                 # SCORE and WALL on cream cards with lime slashes in the top corners; count-up + pop
     LaneTiles.ts           # the figure's row of floor tiles: lined-up marker (flash, then outline), Shift Wall's target lane
+    card.ts                # drawCard(): a cream card slanting on one side or both, with a sage fold and lime slashes
+    badge.ts               # drawBadge(): a solid parallelogram in a thick ink edge, plus its slashes
     slash.ts               # fillSlash(): one slanted stroke of the "//" motif, fading top to foot
     vectors.ts             # points -> Phaser Vector2s; square-capped segment edges
-    WallPattern.ts         # paints a wall pattern into the canvas texture the wall and the completion show
+    WallPanel.ts           # paints the wall's dark glass display panel into the canvas texture the wall and the completion show
     ImagePieces.ts         # that texture covering the wall, cropped to rects (the wall's solid part, the completion's piece)
-    Wall.ts                # pattern panel with a see-through cutout in a thin cream edge; flash + rattle, Shift warning + slide
+    Wall.ts                # the panel with a see-through cutout, in a lime frame and hole edge; flash + rattle, Shift warning + slide
     Figure.ts              # five black blocks with cell seams + shadow; squash on snap, limp slump on slip, topple on a fail
-    Completion.ts          # the completion over the figure: its cells take the pattern's colors, the pattern fills in
+    Completion.ts          # the completion over the figure: its cells light up lime, the panel fills back in
     PromptTray.ts          # the bar: held / current (in its socket) / next preview / slipped key caps; a square per letter
-    PauseOverlay.ts        # veil + outlined "Click to resume", shown on blur
-    ShiftCallout.ts        # outlined SHIFT + arrow while a Shift Wall holds
-    TimingLabel.ts         # outlined PERFECT / GREAT / CLOSE CALL + points
+    ControlsBar.ts         # the title's controls as key caps and captions in the bar
+    PromptBadge.ts         # a screen's call to action: a pulsing lime badge (Click to play, Click to resume, Play again)
+    PauseOverlay.ts        # veil, PAUSED on a card, Click to resume badge; shown on blur
+    ShiftCallout.ts        # SHIFT + arrow on a yellow badge while a Shift Wall holds
+    TimingLabel.ts         # PERFECT / GREAT / CLOSE CALL on a badge in the grade's color, points on an ink tab
     DebugOverlay.ts        # F2 panel: state, t, lanes, prompt, queue, held, stretch
   scenes/
     BootScene.ts           # waits for fonts, hands off to Title
     fonts.ts               # loads the bundled font faces before any text is drawn
-    TitleScene.ts          # "Click to play" (gets keyboard focus)
+    TitleScene.ts          # the stage, a wall and the figure under the logo; controls; "Click to play" (gets keyboard focus)
     PlayScene.ts           # the game: draws state, passes input in
-    GameOverScene.ts       # run stats, best score, gated restart
+    GameOverScene.ts       # GAME OVER and score cards, best score (NEW BEST), gated restart
     scene-keys.ts          # scene keys + RunResult handed to GameOver
     text-styles.ts         # Phaser text styles built from config tokens, plain and outlined
-    ui.ts                  # pulsing prompt, reduced motion, window key events
+    ui.ts                  # reduced motion, number formatting, window key events
   storage/
     best-score.ts          # best score in localStorage, every access guarded
 tests/
@@ -204,7 +211,6 @@ tests/
   keyboard.test.ts         # all 26 letters, hand split, stagger, fingers
   lanes.test.ts            # Space steps toward the hole, hole lane, lane geometry, fall direction
   letters.test.ts          # stretchScore; per tier: range, no repeats, capitals, caps, fingers
-  mosaic.test.ts           # block averages: flat blocks keep their color, mixed blocks average
   perspective.test.ts      # projection, floor geometry, tile seams centered on the figure
   poses.test.ts            # neutral pose fits the grid, no overlaps
   purity.test.ts           # pure modules never import Phaser
@@ -213,13 +219,11 @@ tests/
   seeded.ts                # deterministic random for repeatable tests
   sequence.test.ts         # PLAN.md §2 input rules, incl. the M3 cases + lock
   shift-wall.test.ts       # trigger, warning, hold, slide range, M6 line-up case
-  shuffle-bag.test.ts      # each item once per round, no back-to-back repeats, empty and lone bags
   countdown.test.ts        # silent before CLOSE CALL range, speeds up, no catch-up bursts
   sound-levels.test.ts     # click steps, fanfare rises an octave, whomp steps down
   tumble.test.ts           # the fall lands after the hit, bounces low, never sinks, settles flat in time
-  wall-gen.test.ts         # valid poses for every block set, one-piece holes, hole grid
-  wall-pattern.test.ts     # patterns cover the wall, ink differs from ground, few motifs, sparing accent, seeded
-  wall-shape.test.ts       # layout matches the figure per lane, rects tile the wall, edges (open or closed), cover fit and crops
+  wall-gen.test.ts         # valid poses for every block set, one-piece holes, hole grid, the title's pose
+  wall-shape.test.ts       # layout matches the figure per lane, rects tile the wall, edges (open or closed), the panel grid, cover fit and crops
 ```
 
 Everything in PLAN.md §9's layout now exists, plus the F2 debug overlay. Add
@@ -356,40 +360,50 @@ playtest covers.
   coral of the mock's logo, and darker steps of each for use on cream.
   Components use only the roles in `COLORS` and `TEXT_COLORS`, never a
   palette entry or a raw hex directly; `tests/config.test.ts` fails if a role
-  isn't a palette color. Green is the signature: the stage is greens and
-  near-blacks, the HUD cards and key caps cream, and lime is the accent: the
-  seam, the runway's edges, the "//" slashes, lit squares, held and current
-  key caps, PERFECT, the trace round a completed wall. The alerts are two families: yellow/ochre means the
+  isn't a palette color. Green is the signature: the stage and the wall
+  panel are greens and near-blacks, the cards and key caps cream, and lime
+  is the accent: the seam, the runway's edges, the wall's neon frame and
+  hole edge, the "//" slashes, lit squares, held and current key caps,
+  PERFECT, a completion's cells and trace, and the screens' prompts. The
+  alerts are two families: yellow/ochre means the
   hole is moving (Shift Walls), coral/red means a mistake (wrong key, slip,
   CLOSE CALL, Caps Lock). Add a new color to `PALETTE` first, then give it a
   role.
-- **Visual hierarchy (M10b).** In order: the wall's pattern and its cutout,
+- **Visual hierarchy (M10b).** In order: the wall's cutout and its panel,
   the figure, the letter bar, the HUD, then the background. The stage should
   feel lit and deep, never flat (M10b review 2: "boring and flat"), but stay
   behind the play: its squares and streaks are a fixed composition kept off
   the wall's path (`src/data/void-art.ts`), never random spawns, and all its
   motion is slow and even (the floor's drift and wave, the squares breathing
   in one sweep). No architecture or large shapes. Nothing that plays
-  or reads is decorated over: text over the scene is outlined instead
-  (below).
+  or reads is decorated over: text over the scene sits on a solid badge or
+  card, or is outlined (below).
 - **Clean lines.** Every edge is a thin, plain straight line in its own
-  role color: the wall's cream frame and the thinner cream edge of its hole,
-  the bar's stepped sage line, the lined-up marker and the target tile. The
-  runway's lime edges and the seam glow on purpose. Nothing else is drawn over a wall's pattern.
+  role color: the wall's lime frame and the equally thick lime edge of its
+  hole, the bar's stepped sage line, the lined-up marker and the target
+  tile. The runway's lime edges, the seam and the wall's neon glow on
+  purpose. Nothing else is drawn over a wall's panel.
 - **No texture (M10b).** The paper-grain filter and the torn paper are
   gone; depth comes from light (gradients, glows, the seam's bloom), not
   texture. The figure, text, the bar and the chips stay clean, and the cutout is open, showing what is
   behind the wall.
-- **UI after the mockup (M10b review 2).** The HUD is cream cards with dark
-  text, small cut outer corners, an inner edge slanting toward the middle, a
-  sage fold in that corner and lime "//" slashes beside it (`fillSlash()`).
-  The bar is a dark band with a thin stepped line along its foot, lime
-  slashes at its left end and a square per letter at its right. Key caps
-  have 45-degree cut corners (`chamferedRect()`): cream with dark letters,
-  lime-edged when held, framed in lime when current.
+- **UI after the mockup (M10b review 2).** Cards (`drawCard()`, `CARD`) are
+  cream with dark text, small cut corners on the straight side, a side
+  slanting inward toward the foot (either side, or both), a sage fold in
+  that corner and lime "//" slashes beside it (`fillSlash()`). A card of any
+  height keeps one slant angle. The HUD's cards face the middle; the title's
+  logo slants both ways; the game-over cards face each other. Badges
+  (`drawBadge()`, `BADGE`) are solid parallelograms in a thick ink edge:
+  the timing label, the SHIFT callout, and the screens' lime prompts
+  (`PromptBadge`), which pulse in size. The bar is a dark band with a thin
+  stepped line along its foot, lime slashes at its left end and a square
+  per letter at its right. Key caps have 45-degree cut corners
+  (`chamferedRect()`): cream with dark letters, lime-edged when held, framed
+  in lime when current. The screens (M11) are built only from these parts on
+  the grid stage, with no layout of their own.
 - **Typography:** each size in `FONT_SIZES` has a role (`FONT_ROLES`): display
-  sizes (title, heading, the HUD's numbers) set in Anton, which has one weight and
-  is never bolded; the rest (the HUD's captions, the prompt letters and other
+  sizes (poster, title, heading, the HUD's numbers) set in Anton, which has one weight and
+  is never bolded; the rest (the cards' captions, the prompt letters and other
   technical detail) set in IBM Plex Mono, normal or bold. Prompt
   letters use `CHIP_FONT_FAMILY` (IBM Plex Mono), whose capital I has
   crossbars and can't be mistaken for a lowercase l; any future prompt font
@@ -399,12 +413,13 @@ playtest covers.
   AAA may ship, but no text goes below **AA — 4.5:1 normal, 3:1 large**.
   Meaningful non-text graphics (the wall and its hole, the runway's lines,
   the lit tile and the target tile on the runway; held, current and slipped
-  chips and the current chip's frame) need 3:1. The wall's pattern can be any
-  of its scheme's colors, so its cream frame (against the void and the glow behind it) and
-  its hole's cream edge carry its contrast while the hole shows the void;
-  nearer, the hole shows the cream runway, which the patterns' darks set
-  off. The HUD's cream cards stand out from the void, and the bar's line,
-  slashes and letter squares (lit and unlit) read on the bar.
+  chips and the current chip's frame) need 3:1. The wall's panel is as dark
+  as the void, so its lime frame (against the void and the glow behind it)
+  and its hole's lime edge carry its contrast while the hole shows the void;
+  nearer, the hole shows the cream runway, which the panel's darks set off.
+  The badges stand out from the panel by their fill and from the runway by
+  their ink edge. The cream cards stand out from the void, and the bar's
+  line, slashes and letter squares (lit and unlit) read on the bar.
   Lime is too light to read on cream, so a deeper green marks the lined-up
   lane's tile; the black figure is only 1.5:1 on a dark wall and less on the
   void, so its cream edge outlines it there.
@@ -412,11 +427,13 @@ playtest covers.
   meaningful graphic color against what it sits on, measures each text color
   against every background it is drawn on (`TEXT_ON` in that test; add new
   pairs there), and keeps every font size at 24px or more. Text that fades or
-  flashes must still meet AA at its faintest frame. Text drawn over the moving
-  scene (the timing label, the SHIFT callout, the Caps Lock warning, the pause
-  text) is bright inside a thick `COLORS.textOutline` stroke
+  flashes must still meet AA at its faintest frame. Text over the moving
+  scene sits on a solid badge or card (the timing label, the SHIFT callout,
+  the screens' prompts and cards), so it never depends on what is behind;
+  the Caps Lock warning is bright inside a thick `COLORS.textOutline` stroke
   (`outlinedStyle()`, `TEXT_OUTLINE`), and is measured against that outline;
-  the rest sits on a chip or a HUD card (its numbers and captions).
+  the rest sits on a chip, the bar (the title's controls) or the void (the
+  game-over hint).
   Record every pair below AAA, with its measured ratio, in the list below.
   - Pairs below AAA: none.
 - **Keyboard first.** The game is played entirely on the keyboard, except the
@@ -546,26 +563,29 @@ Work through **PLAN.md §10** one milestone at a time.
   once the wall has passed it. Its edge is a thin cream line (M10b review),
   except along the floor, where it opens. (From the first M10 review to the
   fourth it was filled with cream while the wall was behind the figure.)
-- **Wall pattern** — the picture a wall shows (M10b review 3): a fresh
-  random quilt of square tiles (2, 3 or 4 rows high), each a motif (a quarter
-  or half disc, a disc, a ring, a diagonal or straight half, stripes, a
-  diamond, four dots) in one color on a ground in another, a few motifs per
-  wall, in one of the `WALL_PATTERN` color schemes (two grounds, inks, a
-  sparing accent). `WallPattern` paints it into a canvas texture the size of
-  the wall, and the wall shows it as cropped pieces of its solid part
-  (`ImagePieces`, `src/logic/wall-shape.ts`), so the hole is truly cut out of
-  it. (The M10b review used supplied photos instead.)
+- **Wall panel** — what a wall shows (M10b review 4): dark glass shading
+  from near-black to dark green, lined on the figure's own 26 px cells
+  (`gridLines()`), with lime dots at the crossings, scanlines and a lime glow
+  inside its edges from the neon frame (`WALL_DISPLAY`). The grid lies on the
+  hole's cells, so the hole's edges run along it. `WallPanel` paints it into
+  a canvas texture the size of the wall, repainted when the hole moves, and
+  the wall shows it as cropped pieces of its solid part (`ImagePieces`,
+  `src/logic/wall-shape.ts`), so the hole is truly cut out of it. The user
+  picked it from wall directions rendered in the game
+  (`../design-mocks/wall-options*/`). (The M10b review used supplied photos,
+  and its third and fourth reviews random geometric patterns.)
 - **Completion** — the signature moment (M10b review, `Completion`).
   On a pose lock the wall comes the rest of the way to the figure
   (`LOCK_RUSH_DURATION`), where its hole and the pose line up cell for cell.
-  The figure's pixels take the average colors of the pattern under them,
-  row by row from the feet up, keeping the figure's cream seams; then the
-  pattern's own detail fills in over them, so the wall looks whole, while a
-  lime trace of the silhouette fades. The whole picture holds, then fades,
-  growing slightly toward the camera, and the next wall fades in
-  (`WALL_COMPLETE`). It is drawn over the figure and leaves with the wall,
-  so the figure itself never changes. (M10b first had the hole fill in
-  behind the figure, then a lime frame pulse as the wall rushed past.)
+  The figure's cells light up lime, row by row from the feet up, parted by
+  dark seams like the panel's pixels; then the panel fills back in over
+  them, so the wall looks whole, while a lime trace of the silhouette fades.
+  The whole panel holds, then fades, growing slightly toward the camera, and
+  the next wall fades in (`WALL_COMPLETE`). It is drawn over the figure and
+  leaves with the wall, so the figure itself never changes. (M10b first had
+  the hole fill in behind the figure, then a lime frame pulse as the wall
+  rushed past; with images and patterns, the cells took the average colors
+  of the picture under them.)
 - **Lane** — one of `LANE_COUNT` (7) columns across the stage. The figure and
   the hole each sit in one lane. The figure starts a run in the center lane and
   keeps its lane between walls (`src/logic/lanes.ts`). Space is the only way
@@ -751,7 +771,7 @@ Work through **PLAN.md §10** one milestone at a time.
   the first click and suspends while the window is blurred. Sounds are
   skipped while the context isn't running, so none queue up.
 - **HUD** (M10b) — SCORE top-left and the WALL number top-right (`Hud`), each
-  on a cream card after the mockup (slanted inner edge, sage fold, lime
+  on a card after the mockup (slanted inner edge, sage fold, lime
   slashes), above the play area: a dark caption in IBM Plex Mono over the
   dark number in Anton. The card grows with its number; a new score counts up, and each
   number pops when it changes. The mocks show a run timer top-right; the game
@@ -776,10 +796,21 @@ Work through **PLAN.md §10** one milestone at a time.
   rows shading toward the deeper cream into the distance, with thin
   cream-gray seams and glowing lime lines down its sides. (M10 had filled
   green verges beside it and a paper-grain filter on it.)
+- **Badge** — a solid parallelogram in a thick ink edge, leaning like the
+  "//" slashes (`drawBadge()`, M10b review 4, when outlined text was lost
+  against busy walls), with dark text: the timing label on its grade's
+  color (PERFECT lime, GREAT cream, CLOSE CALL coral) with its points on an
+  ink tab, the SHIFT callout and its arrow on yellow, and the screens'
+  prompts on lime (`PromptBadge`: CLICK TO PLAY, CLICK TO RESUME, PLAY
+  AGAIN), which pulse in size.
+- **Card** — the cream panel of the HUD, the title's logo, the pause screen
+  and the game-over screen (`drawCard()`, `CARD`): cut corners on its
+  straight side, a side (or both) slanting inward toward its foot with a
+  sage fold and lime slashes beside it. Every card keeps one slant angle.
 - **Outlined text** — bright letters inside a thick dark stroke
-  (`outlinedStyle()`, `TEXT_OUTLINE`), for text over the moving scene: the
-  timing label (PERFECT lime, GREAT cream, CLOSE CALL coral), the SHIFT
-  callout and its arrow (yellow), the Caps Lock warning and the pause text.
+  (`outlinedStyle()`, `TEXT_OUTLINE`), for the Caps Lock warning over the
+  moving scene. (The timing label, the SHIFT callout and the pause text were
+  outlined until M10b review 4 and M11 put them on badges and cards.)
 - **Key ghosting** — keyboards failing to register many keys held at once. It
   is why a wall asks for at most 5 letters, and 4 on Shift Walls.
 - **Sticky Keys** — the Windows pop-up after 5 quick Shift presses. It is why

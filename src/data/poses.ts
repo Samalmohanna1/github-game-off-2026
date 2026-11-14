@@ -19,6 +19,15 @@ export const NEUTRAL_POSE: Readonly<Record<BlockId, CellRect>> = {
   legs: { col: 2, row: 5, cols: 2, rows: 3 },
 };
 
+// The hole on the title screen's wall (M11): both arms raised, a pose the
+// walls ask for, so the figure standing in front of it shows the game at a
+// glance.
+export const TITLE_POSE: Readonly<Record<BlockId, CellRect>> = {
+  ...NEUTRAL_POSE,
+  armL: { col: 1, row: 0, cols: 1, rows: 3 },
+  armR: { col: 4, row: 0, cols: 1, rows: 3 },
+};
+
 // Some alts clash (a head shifted left overlaps a raised left arm), so
 // wall-gen only uses combinations with no overlap, and prefers ones whose
 // silhouette is a single piece.

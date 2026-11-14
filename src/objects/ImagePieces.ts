@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { WALL_PANEL, coverFit, cropOf, type Rect } from '@/logic/wall-shape';
 
-// Pieces of one texture (the wall's pattern), each cropped to a rect of the
+// Pieces of one texture (the wall panel), each cropped to a rect of the
 // wall, so together they show it only inside those rects. Every piece is the
 // whole texture, scaled to cover the wall panel (WALL_PANEL) and cropped, so
 // neighboring pieces, and pieces in another ImagePieces at the same place,

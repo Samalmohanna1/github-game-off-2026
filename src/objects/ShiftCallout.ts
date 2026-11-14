@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import {
+  BADGE,
   COLORS,
   GAME_HEIGHT,
   GAME_WIDTH,
@@ -7,25 +8,26 @@ import {
   LABEL_POP_MS,
   SCREEN_LAYOUT,
   SHIFT_CALLOUT_ARROW,
-  TEXT_OUTLINE,
 } from '@/config';
-import { outlinedStyle } from '@/scenes/text-styles';
+import { drawBadge } from '@/objects/badge';
+import { textStyle } from '@/scenes/text-styles';
 import { prefersReducedMotion } from '@/scenes/ui';
 
 // A Shift Wall's "SHIFT" callout (PLAN.md §5) with an arrow on the side the
-// hole is going. Both are yellow inside the same thick dark outline (M10), so
-// they read over anything. The scene shows it while the wall holds, then
-// hides it at once, so it never fades below its contrast.
+// hole is going. Since M10b review 4 both are dark on a yellow card in a thick
+// ink edge, the popups' look, so they read over anything. The scene shows it
+// while the wall holds, then hides it at once, so it never fades below its
+// contrast.
 export class ShiftCallout extends Phaser.GameObjects.Container {
+  private readonly card: Phaser.GameObjects.Graphics;
   private readonly text: Phaser.GameObjects.Text;
-  private readonly arrow: Phaser.GameObjects.Graphics;
 
   constructor(scene: Phaser.Scene) {
     super(scene, GAME_WIDTH / 2, GAME_HEIGHT * SCREEN_LAYOUT.shiftCalloutY);
     scene.add.existing(this);
-    this.text = new Phaser.GameObjects.Text(scene, 0, 0, 'SHIFT', outlinedStyle('heading', 'shift')).setOrigin(0.5);
-    this.arrow = new Phaser.GameObjects.Graphics(scene);
-    this.add([this.text, this.arrow]);
+    this.card = new Phaser.GameObjects.Graphics(scene);
+    this.text = new Phaser.GameObjects.Text(scene, 0, BADGE.textNudge, 'SHIFT', textStyle('heading', 'ink')).setOrigin(0.5);
+    this.add([this.card, this.text]);
     this.setVisible(false);
   }
 
@@ -37,28 +39,35 @@ export class ShiftCallout extends Phaser.GameObjects.Container {
     this.scene.tweens.add({ targets: this, scale: 1, duration: LABEL_POP_MS, ease: 'Back.easeOut' });
   }
 
-  // The text and the arrow sit side by side, centered together.
+  // The card, then the text and the arrow side by side on it, centered
+  // together, the arrow on the side the hole is going.
   private layOut(dir: -1 | 1): void {
     const { gap, length, shaftThickness, headLength, headWidth } = SHIFT_CALLOUT_ARROW;
     const contentWidth = this.text.width + gap + length;
+    this.card.clear();
+    drawBadge(this.card, {
+      x: 0,
+      y: 0,
+      width: contentWidth + 2 * BADGE.padX + BADGE.slant,
+      height: BADGE.height,
+      fill: COLORS.calloutCard,
+    });
     this.text.setX(-dir * (contentWidth / 2 - this.text.width / 2));
     const base = this.text.x + dir * (this.text.width / 2 + gap);
     const at = (along: number, across: number) => new Phaser.Math.Vector2(base + dir * along, across);
     const shaftEnd = length - headLength;
-    const points = [
-      at(0, -shaftThickness / 2),
-      at(shaftEnd, -shaftThickness / 2),
-      at(shaftEnd, -headWidth / 2),
-      at(length, 0),
-      at(shaftEnd, headWidth / 2),
-      at(shaftEnd, shaftThickness / 2),
-      at(0, shaftThickness / 2),
-    ];
-    // Stroke, then fill over its inner half, as the text's outline is drawn.
-    this.arrow.clear();
-    this.arrow.lineStyle(TEXT_OUTLINE.heading, COLORS.textOutline);
-    this.arrow.strokePoints(points, true);
-    this.arrow.fillStyle(COLORS.shiftArrow);
-    this.arrow.fillPoints(points, true);
+    this.card.fillStyle(COLORS.calloutInk);
+    this.card.fillPoints(
+      [
+        at(0, -shaftThickness / 2),
+        at(shaftEnd, -shaftThickness / 2),
+        at(shaftEnd, -headWidth / 2),
+        at(length, 0),
+        at(shaftEnd, headWidth / 2),
+        at(shaftEnd, shaftThickness / 2),
+        at(0, shaftThickness / 2),
+      ],
+      true,
+    );
   }
 }

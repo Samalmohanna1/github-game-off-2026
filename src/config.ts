@@ -10,41 +10,36 @@ export const GAME_HEIGHT = 720;
 // The other entries are darker steps of those, so each can be used on cream,
 // where the logo accents are too light to read.
 export const PALETTE = {
-  cream: 0xefdfca, // mock swatch: the runway, the HUD cards, the wall's frame
+  cream: 0xefdfca, // mock swatch: the runway, the cards, the key caps
   creamDeep: 0xd3c5ae, // cream, darkened for the runway's seams
-  sage: 0x86a064, // the secondary environment color: the HUD's fold, the bar's line
-  forest: 0x4a6e43, // the void's grid, and the wall patterns
-  graphite: 0x4a433b, // quiet text on cream
+  sage: 0x86a064, // the secondary environment color: the cards' fold, the bar's line
+  forest: 0x4a6e43, // the void's grid, and the wall panel's
   ink: 0x20201f, // mock swatch: the figure and dark text
-  greenDark: 0x17472d, // mock swatch: the void's light toward the seam
-  voidInk: 0x0b1510, // greenDark, taken almost to black: the void and the bar
+  greenDark: 0x17472d, // mock swatch: the void's light toward the seam, the wall panel's foot
+  voidInk: 0x0b1510, // greenDark, taken almost to black: the void, the bar, the wall panel
   greenDeep: 0x2f7f3a, // deepened to hold 3:1 on cream: the lit lane tile, lit squares
-  lime: 0xb4ec4a, // the acid accent: the seam, edges, slashes, held keys
+  lime: 0xb4ec4a, // the acid accent: the seam, edges, slashes, held keys, the wall's neon
   yellow: 0xffff7f, // mock logo
   ochre: 0x8f6a00, // yellow, darkened to hold 3:1 on cream
   coral: 0xff7f7f, // mock logo
   red: 0xd8453c, // coral, darkened to hold 3:1 on cream
-  redDark: 0xa32a22, // coral, darkened for text
 } as const;
 
-// What each color means. The play screen (M10b) is a cream runway in a dark
-// grid stage: a glossy floor grid meeting a gridded back wall at a glowing
-// lime seam, where the walls are born. Graphics that carry meaning must hold
-// 3:1 against what they sit on (tests/config.test.ts): the wall's cream frame
-// and the hole's cream edge against the void and its glow, the runway's tiles
-// against the runway, and the key caps against the bar. The wall's pattern can
-// be any color, so its frame and hole edge carry its contrast where the void
-// shows through; where the runway does, the pattern's own darks set the hole
-// off. The figure's cream edge outlines it against the void and the wall,
-// where its black can't. Lime is the accent: the seam, the runway's edges,
-// the HUD's and the bar's slashes, the lit squares, held keys, PERFECT, and
-// the trace round a completed wall. The two alert families stay: yellow
+// What each color means. Every screen (M10b, M11) is set in a dark grid stage:
+// a glossy floor grid meeting a gridded back wall at a glowing lime seam,
+// where the walls are born. In play a cream runway runs down it. Graphics that
+// carry meaning must hold 3:1 against what they sit on (tests/config.test.ts):
+// the wall's lime frame and the hole's lime edge against the void and its
+// glow, the wall panel against the runway it hides, the runway's tiles
+// against the runway, and the key caps against the bar. The figure's cream
+// edge outlines it against the void and the wall, where its black can't.
+// Lime is the accent: the seam, the runway's edges, the wall's neon, the
+// cards' and the bar's slashes, the lit squares, held keys, PERFECT, a
+// completion, and the prompt badges. The two alert families stay: yellow
 // means the hole is moving (Shift Walls), and coral means a mistake (a wrong
 // key, a slip, a close call, Caps Lock).
 export const COLORS = {
-  // The title and game-over screens, until M11 restyles them.
-  stage: PALETTE.cream,
-  // The grid stage behind the play screen (GridVoid). All decoration.
+  // The grid stage behind every screen (GridVoid). All decoration.
   void: PALETTE.voidInk,
   voidGlow: PALETTE.greenDark, // the light rising toward the seam
   voidGrid: PALETTE.forest,
@@ -57,19 +52,23 @@ export const COLORS = {
   floorEdge: PALETTE.lime, // the glowing lines down its sides
   floorSeam: PALETTE.creamDeep, // decorative tile seams
   laneLit: PALETTE.greenDeep,
-  // The wall: a random geometric pattern (WALL_PATTERN) in a cream frame.
-  wall: PALETTE.forest, // the panel's face if its pattern can't be drawn
-  patternDeep: PALETTE.greenDark,
-  patternForest: PALETTE.forest,
-  patternGreen: PALETTE.greenDeep,
-  patternSage: PALETTE.sage,
-  patternCream: PALETTE.cream,
-  patternSand: PALETTE.creamDeep,
-  patternLime: PALETTE.lime,
-  patternInk: PALETTE.ink,
-  wallFrame: PALETTE.cream,
-  holeEdge: PALETTE.cream,
-  completionTrace: PALETTE.lime, // round the silhouette as the pattern completes
+  // The wall (M10b review 4): a dark glass display panel (WALL_DISPLAY),
+  // shading from near-black to dark green, with a cell grid, lime dots at its
+  // crossings and scanlines, in a neon lime frame that glows inward, with the
+  // hole edged in the same lime. A completion lights the figure's cells lime,
+  // with dark seams between them like a display's pixels.
+  wall: PALETTE.greenDark, // the panel's face if its texture can't be made
+  panelTop: PALETTE.voidInk,
+  panelFoot: PALETTE.greenDark,
+  panelGrid: PALETTE.forest,
+  panelDot: PALETTE.lime,
+  panelScan: PALETTE.voidInk,
+  panelGlow: PALETTE.lime,
+  wallFrame: PALETTE.lime,
+  holeEdge: PALETTE.lime,
+  completionCell: PALETTE.lime,
+  completionSeam: PALETTE.voidInk,
+  completionTrace: PALETTE.lime, // round the silhouette as the panel fills back in
   figure: PALETTE.ink,
   figureEdge: PALETTE.cream,
   figureShadow: PALETTE.ink,
@@ -78,12 +77,15 @@ export const COLORS = {
   wallWarning: PALETTE.ochre,
   shiftArrow: PALETTE.yellow,
   wallFlash: PALETTE.red,
-  // The HUD: cream cards with a slanted inner edge, a sage fold in its
-  // corner and a lime slash beside it that fades to deep green.
-  hudCard: PALETTE.cream,
-  hudFold: PALETTE.sage,
-  hudSlash: PALETTE.lime,
-  hudSlashEnd: PALETTE.greenDeep,
+  // Cards (CARD), after the mockup's HUD: cream with a slanted edge, a sage
+  // fold in its corner and a lime slash beside it that fades to deep green.
+  // The HUD, the title's logo, the pause card and the game-over cards. A rule
+  // between a card's readouts holds 3:1 on it.
+  card: PALETTE.cream,
+  cardFold: PALETTE.sage,
+  cardSlash: PALETTE.lime,
+  cardSlashEnd: PALETTE.greenDeep,
+  cardRule: PALETTE.greenDeep,
   // The bar along the bottom: a dark band with a thin stepped line, lime
   // slashes, and a square per letter of the wall, lit once held.
   tray: PALETTE.voidInk,
@@ -106,28 +108,37 @@ export const COLORS = {
   // its arrow, the Caps Lock warning, the pause text) is bright, inside a thick
   // outline of this, so it reads over anything.
   textOutline: PALETTE.ink,
+  // Badges (BADGE), each in a thick ink edge that sets it off the runway and
+  // the wall alike: the timing label in its grade's color with the points on
+  // an ink tab, the SHIFT callout in yellow, and the screens' prompts (Click
+  // to play, Play again, Click to resume) in lime, all with dark text. An ink
+  // tab can also carry a lime note (NEW BEST).
+  badgeEdge: PALETTE.voidInk,
+  badgeTab: PALETTE.ink,
+  gradePerfect: PALETTE.lime,
+  gradeGreat: PALETTE.cream,
+  gradeCloseCall: PALETTE.coral,
+  calloutCard: PALETTE.yellow,
+  calloutInk: PALETTE.ink,
+  promptCard: PALETTE.lime,
   debugPanel: PALETTE.cream,
   veil: PALETTE.voidInk, // over the paused game
 } as const;
 
 const css = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
 
-// CSS strings because Phaser text styles take CSS colors. ink, muted, accent
-// and danger sit on the stage (the title and game-over screens); ink also sits
-// on the chips and the debug panel. light sits on the UI panels (the HUD's
-// numbers and captions) and on the hollow preview chip.
-// light, good, alert and shift are the outlined text over the scene, measured
+// CSS strings because Phaser text styles take CSS colors. ink sits on the
+// chips, the debug panel, the cards and the badges; light on the hollow
+// preview chip, the badges' ink tabs, the bar (the title's controls) and the
+// void (the game-over hints); good on an ink tab. light, good and alert are
+// also the outlined text over the scene (the Caps Lock warning), measured
 // against their outline (COLORS.textOutline). Every pair must reach 4.5:1
 // (tests/config.test.ts).
 export const TEXT_COLORS = {
   ink: css(PALETTE.ink),
-  muted: css(PALETTE.graphite),
-  accent: css(PALETTE.greenDark),
-  danger: css(PALETTE.redDark),
   light: css(PALETTE.cream),
   good: css(PALETTE.lime),
   alert: css(PALETTE.coral),
-  shift: css(PALETTE.yellow),
 } as const;
 
 // Anton for display text (titles, grades, big numbers) and IBM Plex Mono for
@@ -144,6 +155,7 @@ export const FONT_LOAD_TIMEOUT = 3000; // ms; past this, start with the fallback
 
 // px. Nothing goes below 24 so all text counts as "large" for WCAG contrast.
 export const FONT_SIZES = {
+  poster: 140,
   title: 112,
   heading: 80,
   hud: 60,
@@ -156,6 +168,7 @@ export const FONT_SIZES = {
 // Which family each size uses. Anton has one weight, so it is never bolded.
 // The HUD's captions are technical detail, so they set in IBM Plex Mono (M10b).
 export const FONT_ROLES: Readonly<Record<keyof typeof FONT_SIZES, 'display' | 'mono'>> = {
+  poster: 'display',
   title: 'display',
   heading: 'display',
   hud: 'display',
@@ -168,6 +181,7 @@ export const FONT_ROLES: Readonly<Record<keyof typeof FONT_SIZES, 'display' | 'm
 // Outlined text (outlinedStyle() in src/scenes/text-styles.ts): the stroke
 // width per size, px. Half of it lies outside the letters.
 export const TEXT_OUTLINE: Readonly<Record<keyof typeof FONT_SIZES, number>> = {
+  poster: 20,
   title: 16,
   heading: 14,
   hud: 10,
@@ -179,23 +193,58 @@ export const TEXT_OUTLINE: Readonly<Record<keyof typeof FONT_SIZES, number>> = {
 
 // Fractions of GAME_HEIGHT.
 export const SCREEN_LAYOUT = {
-  titleY: 0.36,
-  subtitleY: 0.5,
-  promptY: 0.7,
-  gameOverHeadingY: 0.2,
-  gameOverStatsTopY: 0.38,
-  gameOverStatsLineGap: 0.08,
-  gameOverPromptY: 0.85,
   capsWarningY: 0.07,
   shiftCalloutY: 0.12, // above the wall while it is far enough away to shift
-  pauseHeadingY: 0.42,
-  pausePromptY: 0.58,
 } as const;
 
 // Debug overlay (PLAN.md §8), toggled with F2: top-left corner, px.
 export const DEBUG_OVERLAY = { x: 12, y: 12, padding: 10 } as const;
 
-export const PAUSE_DIM_ALPHA = 0.7; // void-colored veil over the paused game
+// The screens (M11), in the play screen's language: cards, prompt badges and
+// the bar on the grid stage. px; scales are depths on the stage.
+// Title: the play stage, with the wall down the runway, its hole in
+// TITLE_POSE holeLanes to the right of the figure, which stands part way
+// along it in the center lane, leaving the runway in front free for the
+// prompt. The logo on a banner hanging from the top of the screen (its card
+// runs on past the top), slanting both ways (logo.textNudge sets Anton's
+// capitals in its middle), and the controls as key caps in the bar.
+export const TITLE = {
+  logo: { y: -14, height: 150, padX: 40, textNudge: 6 },
+  wallScale: 0.5,
+  holeLanes: 2,
+  figureScale: 0.78,
+  promptY: 540,
+} as const;
+// The title's controls in the bar: key caps capHeight px tall, padX each side
+// of their label, capGap apart, each group's caption captionGap after its
+// last cap and groupGap before the next group.
+export const CONTROLS = { capHeight: 50, padX: 14, capGap: 8, captionGap: 14, groupGap: 44 } as const;
+// Pause: a veil over the game, the PAUSED card (slanting both ways) centered
+// on cardY, and the Click to resume badge on promptY.
+export const PAUSE = { veilAlpha: 0.8, cardY: 260, cardHeight: 140, padX: 44, promptY: 410 } as const;
+// Game over: the GAME OVER card on the left and the score card on the right,
+// both cardHeight tall from `top`, marginX from the screen's sides and
+// middleGap apart at their tops, their slanted edges facing, so the gap
+// widens toward their feet. The GAME OVER card is leftWidth wide. Each card's
+// text sits padX in from its straight side, every row centered on its y from
+// the card's top: a caption at captionY, then GAME and OVER (posterY), or the
+// final score, a rule ruleWidth thick, the best (NEW BEST on an ink tab
+// newBest.gap left of it when this run set it) and the walls cleared. The
+// Play again badge sits on promptY, with the hint under it on hintY.
+export const GAME_OVER = {
+  top: 56,
+  cardHeight: 360,
+  marginX: 48,
+  middleGap: 190,
+  leftWidth: 500,
+  padX: 34,
+  captionY: 34,
+  posterY: [116, 258],
+  score: { valueY: 112, ruleY: 180, ruleWidth: 3, bestCaptionY: 208, bestY: 254, statsY: 322 },
+  newBest: { gap: 14, height: 40, padX: 14 },
+  promptY: 520,
+  hintY: 596,
+} as const;
 
 // Key caps in the bar, px. The current prompt sits in the center; held
 // letters line up to its left, the most recent nearest the center, and to its
@@ -255,7 +304,7 @@ export const SLASH = { width: 9, gap: 7, lean: 14, height: 26 } as const;
 // inset are fractions of the chip, sized to clear even wide capitals (W, M).
 export const SHIFT_MARK = { size: 0.25, inset: 0.07, lineWidth: 2 } as const;
 
-// Prompts pulse in size, not alpha, so their contrast never drops.
+// Prompt badges pulse in size, not alpha, so their contrast never drops.
 export const PROMPT_PULSE_SCALE = 1.06;
 export const PROMPT_PULSE_MS = 700;
 
@@ -272,8 +321,8 @@ export const HORIZON_Y = 140;
 export const FIGURE_FLOOR_Y = 560;
 
 // Art (PLAN.md §10, M10b): a cream runway on a dark grid stage, a wall that is
-// a random geometric pattern with a cutout, cream HUD cards and a line-art
-// bar with lime accents. Everything is drawn in code.
+// a dark glass display panel in neon lime with a cutout, cream HUD cards and
+// a line-art bar with lime accents. Everything is drawn in code.
 // The grid stage (GridVoid), after the mockup: the floor's grid runs in the
 // stage's perspective, continuing the runway's lanes and tile rows back to a
 // back wall at the runway's far end, where the walls appear, and the back
@@ -325,20 +374,15 @@ export const VOID = {
   reflectAlpha: 0.22,
   streakAlpha: 0.3,
 } as const;
-// HUD: SCORE top-left and WALL top-right on cream cards, after the mockup: the
-// outer corners cut by `cut`, the inner edge slanting `slant` px across the
-// card's height, a sage fold (foldAlpha) foldWidth px wide inside that edge
-// from foldFrom of the height down, and SLASH-shaped lime slashes beside it,
-// slashGap px out, the first full height and fading to deep green toward its
-// foot. The card grows with its number from minWidth. A changed number counts
-// up over countMs and pops from popScale. px and ms; label and value y are
-// from the card's top.
-export const HUD = {
-  marginX: 24,
-  top: 18,
+// Cards (drawCard() in src/objects/card.ts), after the mockup's HUD: cream,
+// the straight side's corners cut by `cut`, the slanted side running `slant`
+// px inward over the card's height, a sage fold (foldAlpha) foldWidth px wide
+// inside that edge from foldFrom of the height down, and SLASH-shaped lime
+// slashes beside it, slashGap px out, the first full height and fading to deep
+// green toward its foot. These are for a card `height` px tall (the HUD's); a
+// taller or shorter card scales them all, so every slant keeps one angle.
+export const CARD = {
   height: 108,
-  minWidth: 236,
-  padX: 26,
   cut: 9,
   slant: 52,
   foldWidth: 46,
@@ -346,6 +390,17 @@ export const HUD = {
   foldAlpha: 0.5,
   slashGap: 9,
   slashSlices: 12,
+} as const;
+// HUD: SCORE top-left and WALL top-right on cards (CARD), their slanted sides
+// facing the middle. The card grows with its number from minWidth. A changed
+// number counts up over countMs and pops from popScale. px and ms; label and
+// value y are from the card's top.
+export const HUD = {
+  marginX: 24,
+  top: 18,
+  height: CARD.height,
+  minWidth: 236,
+  padX: 26,
   labelY: 8,
   valueY: 28,
   countMs: 380,
@@ -399,42 +454,38 @@ export const LANE_TARGET = { edgeWidth: 5, chevronWidth: 12, chevronHeight: 22, 
 export const WALL_START_SCALE = 0.32;
 export const WALL_HEIGHT = 410; // px at full scale
 export const WALL_EASE_POWER = 2; // scale follows t^n, so higher n rushes harder at the end
-// Wall patterns (M10b review 3): each wall is a fresh random geometric
-// pattern (src/logic/wall-pattern.ts): a quilt of square tiles, one of `rows`
-// high, each a motif in one color on a ground in another. Each wall uses
-// motifsPerWall motifs, leaves plainShare of its tiles bare, and takes one of
-// the color schemes, dealt so none comes back to back: the first two colors
-// are grounds, the last is the accent, which a tile may ink with
-// accentShare odds.
-export const WALL_PATTERN = {
-  rows: [2, 3, 4],
-  motifsPerWall: 3,
-  plainShare: 0.15,
-  accentShare: 0.3,
-  schemes: [
-    [COLORS.patternDeep, COLORS.patternForest, COLORS.patternCream, COLORS.patternSage, COLORS.patternLime],
-    [COLORS.patternCream, COLORS.patternSand, COLORS.patternForest, COLORS.patternDeep, COLORS.patternGreen],
-    [COLORS.patternForest, COLORS.patternDeep, COLORS.patternSage, COLORS.patternCream, COLORS.patternLime],
-    [COLORS.patternInk, COLORS.patternDeep, COLORS.patternGreen, COLORS.patternCream, COLORS.patternLime],
-    [COLORS.patternSage, COLORS.patternCream, COLORS.patternDeep, COLORS.patternForest, COLORS.patternInk],
-    [COLORS.patternGreen, COLORS.patternForest, COLORS.patternCream, COLORS.patternDeep, COLORS.patternLime],
-  ],
+// The wall's face (M10b review 4, the display panel picked from the wall
+// directions in design-mocks/): dark glass shading from panelTop to panelFoot,
+// lined on the figure's own cells (CELL_SIZE), so its grid runs along the
+// hole's edges and follows the hole when a Shift Wall slides it. Grid lines
+// gridWidth px at gridAlpha, lime dots dotSize px square at their crossings
+// at dotAlpha, a scanline every scanEvery px at scanAlpha, and a lime glow
+// glowDepth px deep inside every edge, at most glowAlpha. px at full scale.
+export const WALL_DISPLAY = {
+  gridWidth: 1,
+  gridAlpha: 0.55,
+  dotSize: 3,
+  dotAlpha: 0.45,
+  scanEvery: 3,
+  scanAlpha: 0.3,
+  glowDepth: 22,
+  glowAlpha: 0.45,
 } as const;
-// The wall's look (M10b), px at full scale: a thin cream frame round the
-// panel and a thinner cream edge round the hole, each centered on the edge it
-// follows. Nothing else is drawn over the pattern.
+// The wall's neon (M10b review 4), px at full scale: a lime frame round the
+// panel and an equally thick lime edge round the hole, each centered on the
+// edge it follows. Nothing else is drawn over the panel.
 export const WALL_FRAME_WIDTH = 3;
-export const HOLE_EDGE_WIDTH = 2;
+export const HOLE_EDGE_WIDTH = 3;
 // A new wall fades in at the runway's far end over this, ms.
 export const WALL_APPEAR_MS = 200;
 // The completion, the signature moment (M10b review). On a pose lock the
 // wall rushes to the figure over LOCK_RUSH_DURATION, where its hole and the
-// figure's pose line up exactly. Then the figure's pixels take the colors of
-// the pattern's missing piece, row by row from the feet up, over pixelMs; the
-// pattern's own detail fills in over them over restoreMs while a lime trace of
-// the silhouette fades over traceMs; the whole picture holds for holdMs; and
-// the wall leaves, growing to exitGrow and fading over exitMs. The figure
-// itself never changes: the pixels are drawn over it, and go with the wall.
+// figure's pose line up exactly. Then the figure's cells light up lime, row
+// by row from the feet up, over pixelMs, like the panel's own pixels; the
+// panel fills back in over them over restoreMs while a lime trace of the
+// silhouette fades over traceMs; the whole panel holds for holdMs; and the
+// wall leaves, growing to exitGrow and fading over exitMs. The figure itself
+// never changes: the pixels are drawn over it, and go with the wall.
 export const WALL_COMPLETE = {
   pixelMs: 150,
   restoreMs: 200,
@@ -540,7 +591,28 @@ export const AUDIO = {
 } as const;
 
 // The timing label over the figure, px and ms.
-export const LABEL_Y = 284; // keeps its place over the figure's head
+export const LABEL_Y = 270; // keeps its place over the figure's head
+// Badges (M10b review 4, when outlined text was lost against busy walls):
+// the timing label and the SHIFT callout sit on parallelograms `height` px
+// tall leaning `slant` px across it, padX each side of their text, in an ink
+// edge edgeWidth px thick. The timing label's points sit on an ink tab
+// tabHeight px tall (tabPadX each side), tucked tabOverlap px under its card,
+// and its grade's two slashes stand slashGap px off its right edge.
+// textNudge sets Anton's capitals in the card's middle. px.
+export const BADGE = {
+  height: 92,
+  slant: 24,
+  padX: 24,
+  edgeWidth: 5,
+  tabHeight: 46,
+  tabPadX: 16,
+  tabOverlap: 4,
+  slashGap: 10,
+  textNudge: 4,
+} as const;
+// Prompt badges (M11): the screens' calls to action, lime badges `height` px
+// tall, padX each side of their Anton text, pulsing in size (PROMPT_PULSE_*).
+export const PROMPT_BADGE = { height: 78, padX: 26, textNudge: 3 } as const;
 export const LABEL_POP_FROM = 0.5; // starting scale of the pop
 export const LABEL_POP_MS = 180;
 export const LABEL_HOLD_MS = 700;

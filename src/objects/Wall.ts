@@ -14,6 +14,7 @@ import { VANISHING_POINT } from '@/logic/perspective';
 import type { HoleGrid } from '@/logic/wall-gen';
 import { frameEdges, holeEdges, solidRects, wallLayout, type Rect, type WallLayout } from '@/logic/wall-shape';
 import { ImagePieces } from '@/objects/ImagePieces';
+import { WallPanel } from '@/objects/WallPanel';
 import { fillSegments } from '@/objects/vectors';
 
 // Drawn at full size, in coordinates relative to the vanishing point, so
@@ -21,16 +22,18 @@ import { fillSegments } from '@/objects/vectors';
 // from the same pose grid the figure uses (PLAN.md §3), at the hole's lane;
 // during a Shift Wall slide that lane is fractional. It is redrawn only when
 // something changes, never every frame.
-// M10b: the wall's face is a fresh geometric pattern (WallPattern, M10b
-// review 3), shown through ImagePieces with the hole
-// really cut out of it, so the runway and the void show through. A thin cream
-// frame and a thinner cream edge round the hole are all that is drawn over
-// it. If the pattern couldn't be drawn, it is a plain forest panel.
+// The wall's face is a dark glass display panel (WallPanel, M10b review 4),
+// shown through ImagePieces with the hole really cut out of it, so the runway
+// and the void show through. Its grid lies on the hole's cells, so the panel
+// is repainted when the hole moves. A lime frame and an equally thick lime
+// edge round the hole are all that is drawn over it. If the panel couldn't be
+// made, the wall is plain dark green.
 export class Wall extends Phaser.GameObjects.Container {
+  private readonly panel: WallPanel;
   private readonly image: ImagePieces;
   private readonly face: Phaser.GameObjects.Graphics;
   private readonly lines: Phaser.GameObjects.Graphics;
-  private textureKey: string | null = null;
+  private paintedGridLeft: number | null = null;
   private holeLane = 0;
   private grid: HoleGrid = [];
   private warningDir: -1 | 1 | null = null;
@@ -42,19 +45,25 @@ export class Wall extends Phaser.GameObjects.Container {
   constructor(scene: Phaser.Scene) {
     super(scene, VANISHING_POINT.x, VANISHING_POINT.y);
     scene.add.existing(this);
+    this.panel = new WallPanel(scene);
     this.image = new ImagePieces(scene);
     this.face = new Phaser.GameObjects.Graphics(scene);
     this.lines = new Phaser.GameObjects.Graphics(scene);
     this.add([this.image, this.face, this.lines]);
   }
 
-  // A new wall: its hole, and the texture it shows (null for a plain panel).
-  setHole(lane: number, grid: HoleGrid, textureKey: string | null): void {
+  // The panel's texture, for the completion to fill the hole back in with
+  // (null for a plain wall).
+  get textureKey(): string | null {
+    return this.panel.key;
+  }
+
+  // A new wall, with its hole at a lane.
+  setHole(lane: number, grid: HoleGrid): void {
     this.slide?.stop();
     this.rattling?.stop();
     this.holeLane = lane;
     this.grid = grid;
-    this.textureKey = textureKey;
     this.warningDir = null;
     this.redraw();
   }
@@ -118,12 +127,16 @@ export class Wall extends Phaser.GameObjects.Container {
 
   private redraw(): void {
     const layout = wallLayout(this.holeLane);
+    if (layout.gridLeft !== this.paintedGridLeft) {
+      this.panel.paint(layout);
+      this.paintedGridLeft = layout.gridLeft;
+    }
     const solid = solidRects(this.grid, layout);
-    this.image.show(this.textureKey, solid);
+    this.image.show(this.panel.key, solid);
 
-    // An alert covers the pattern; with no texture, the panel is plain.
+    // An alert covers the panel; with no texture, the wall is plain.
     const alert = this.flashing ? COLORS.wallFlash : this.warningDir !== null ? COLORS.wallWarning : null;
-    const face = alert ?? (this.textureKey === null ? COLORS.wall : null);
+    const face = alert ?? (this.panel.key === null ? COLORS.wall : null);
     this.face.clear();
     if (face !== null) fillRects(this.face, solid, face);
 

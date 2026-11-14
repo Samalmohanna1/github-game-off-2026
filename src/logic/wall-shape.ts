@@ -147,6 +147,23 @@ export function frameEdges({ left, right, top, floor }: WallLayout): Segment[] {
 }
 
 // An image scaled to cover a box, centered: x and y are its top-left corner.
+export interface GridLines {
+  readonly xs: readonly number[];
+  readonly ys: readonly number[];
+}
+
+// The panel's cell grid (M10b review 4): the lines the hole's pose grid lies
+// on, carried on across the whole wall, so they run along the hole's edges
+// and move with it. Columns every cell from the grid's left edge, rows every
+// cell up from the floor, all inside the wall.
+export function gridLines({ left, right, top, floor, gridLeft, cell }: WallLayout): GridLines {
+  const xs: number[] = [];
+  for (let k = Math.ceil((left - gridLeft) / cell); gridLeft + k * cell <= right; k++) xs.push(gridLeft + k * cell);
+  const ys: number[] = [];
+  for (let k = 0; floor - k * cell >= top; k++) ys.push(floor - k * cell);
+  return { xs, ys };
+}
+
 export interface Fit {
   readonly x: number;
   readonly y: number;

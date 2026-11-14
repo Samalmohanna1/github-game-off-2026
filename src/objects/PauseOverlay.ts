@@ -1,33 +1,27 @@
 import Phaser from 'phaser';
-import { COLORS, GAME_HEIGHT, GAME_WIDTH, PAUSE_DIM_ALPHA, SCREEN_LAYOUT } from '@/config';
-import { outlinedStyle } from '@/scenes/text-styles';
-import { addPulsingPrompt } from '@/scenes/ui';
+import { COLORS, GAME_HEIGHT, GAME_WIDTH, PAUSE } from '@/config';
+import { cardSlant, drawCard } from '@/objects/card';
+import { PromptBadge } from '@/objects/PromptBadge';
+import { textStyle } from '@/scenes/text-styles';
 
-// A void-colored veil over the paused game, with outlined text (M10) so its
-// contrast never depends on what the veil is covering.
+// The pause screen (M11): a void-colored veil over the paused game, PAUSED on
+// a card slanting both ways, and the Click to resume badge, all of them solid,
+// so their contrast never depends on what the veil is covering.
 export class PauseOverlay extends Phaser.GameObjects.Container {
   constructor(scene: Phaser.Scene) {
     super(scene);
     scene.add.existing(this);
 
-    const veil = new Phaser.GameObjects.Rectangle(scene, 0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.veil, PAUSE_DIM_ALPHA);
+    const veil = new Phaser.GameObjects.Rectangle(scene, 0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.veil, PAUSE.veilAlpha);
     veil.setOrigin(0, 0);
-    const heading = new Phaser.GameObjects.Text(
-      scene,
-      GAME_WIDTH / 2,
-      GAME_HEIGHT * SCREEN_LAYOUT.pauseHeadingY,
-      'PAUSED',
-      outlinedStyle('heading', 'light'),
-    );
-    heading.setOrigin(0.5);
-    const prompt = addPulsingPrompt(
-      scene,
-      GAME_HEIGHT * SCREEN_LAYOUT.pausePromptY,
-      'Click to resume',
-      outlinedStyle('body', 'good', true),
-    );
+    const heading = new Phaser.GameObjects.Text(scene, GAME_WIDTH / 2, PAUSE.cardY, 'PAUSED', textStyle('heading', 'ink')).setOrigin(0.5);
+    const height = PAUSE.cardHeight;
+    const width = heading.width + 2 * PAUSE.padX + 2 * cardSlant(height);
+    const card = new Phaser.GameObjects.Graphics(scene);
+    drawCard(card, { x: (GAME_WIDTH - width) / 2, y: PAUSE.cardY - height / 2, width, height, slant: 'both' });
+    const prompt = new PromptBadge(scene, GAME_WIDTH / 2, PAUSE.promptY, 'CLICK TO RESUME');
 
-    this.add([veil, heading, prompt]);
+    this.add([veil, card, heading, prompt]);
     this.setVisible(false);
   }
 }
