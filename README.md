@@ -11,9 +11,18 @@ slides mid-approach, scoring and a fail to the game-over screen and back, with
 an F2 debug overlay for tuning. M8 added feel (squash and stretch, limp slips,
 a rattling wall, slow motion on CLOSE CALL, a fail where the figure flails,
 topples and its blocks bounce to a stop), M9 synthesized
-sound with no audio files, and M10 the art of the design mocks, drawn in
-code, in Anton and IBM Plex Mono. See [PLAN.md](./PLAN.md) for the
-design and milestones, and [AGENTS.md](./AGENTS.md) for the working rules.
+sound with no audio files, M10 the art of the design mocks, in Anton and IBM
+Plex Mono, and M10b restyled the play screen as a minimal sci-fi grid void,
+drawn in code, with walls made of supplied images. See [PLAN.md](./PLAN.md)
+for the design and milestones, and [AGENTS.md](./AGENTS.md) for the working
+rules.
+
+## Wall images
+
+Every PNG, JPEG or WebP in `src/assets/walls/` becomes a wall: drop the file
+in and restart the dev server. Sizes and how the hole is cut are in
+[src/assets/walls/README.md](./src/assets/walls/README.md). With no images
+there, walls are plain green panels.
 
 ## Setup
 

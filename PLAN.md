@@ -18,7 +18,7 @@ A wall with a hole cut in it comes toward the player. They slide their block fig
 | Tests | Vitest | For game logic only (see the "pure logic" rule below). |
 | Resolution | 1280×720, `Phaser.Scale.FIT`, centered | |
 | Art (Week 1) | Phaser shapes (rectangles/Graphics) only | No SVG yet. |
-| Art (M10+) | An editorial collage after the design mocks, drawn in code | Cream, sage, forest and deep greens, stone, charcoal and near-black. Torn paper only at the background's edges; clean shapes with thin outlines for everything that plays. Paper texture is a filter added to single elements, so there are no image files. The figure stays five blocks, styled as in the mocks. (Planned as one SVG per body part until the mocks arrived.) |
+| Art (M10b+) | A minimal sci-fi grid void with an editorial edge, drawn in code, with walls made of supplied images | Deep forest green and near-black, warm cream, muted sage, and an acid lime accent used sparingly. A cream runway suspended in a dark perspective grid; each wall is an image panel (`src/assets/walls/`) with its hole cut out; angular near-black UI panels. Clean edges, no texture. The figure stays five blocks, styled as in the mocks. (M10 was an editorial collage with torn paper and a paper-grain filter; planned as one SVG per body part until the mocks arrived.) |
 | Fonts | Anton (display) and IBM Plex Mono (everything else) | Bundled from `@fontsource` (SIL OFL), never fetched at runtime. BootScene waits for them, because Phaser draws text once with whatever font is ready. |
 
 ### Rule: keep game logic separate from Phaser
@@ -69,15 +69,15 @@ SPAWN → ALIGN → POSE → (SHIFT WALL?) → RESOLVE → next wall | GAME OVER
 ## 3. Stage, lanes, wall and figure
 
 ### Layout (matches the concept sketch)
-- A cream background with layers of torn sage, forest, stone and charcoal paper at its outer edges, clear of play. The cream floor, its tiles faintly varied, is drawn in perspective from the bottom corners toward the wall, with thin pale seams and green verges beyond its edge lines. (Week 1 was a pale pink background with two floor lines. M10's first pass had paper cards and pencil lines, dropped at its second review; a pale disc behind the stage, dropped at its third; and the fourth brought torn paper back, but only at the background's edges.)
-- The wall comes in from the far end. It starts small (scale ≈ 0.35) and grows to full size at the figure's position. Drive everything from a single `progress` value, `t ∈ [0, 1]`, with an ease-in so the wall seems to speed up as it gets closer.
-- A black **prompt tray** across the bottom. Its chips are key caps with black letters:
-  - **Held** letters as green chips, lined up from the left.
-  - The **current** prompt as a cream chip in the center.
+- A dark **grid void** (M10b): near-black, lit faintly along a clear horizon line, with a ground grid in the stage's perspective that continues the runway's lanes and tile rows out to the horizon and drifts slowly toward the camera. A few of its squares fade in and out, and a few lime pixels glow at its crossings. The cream **runway**, its tiles faintly varied, is drawn in perspective from the bottom corners toward the wall, with thin pale seams, a thin charcoal outline, and a lime line beyond its far edge where walls appear. (Week 1 was a pale pink background with two floor lines. M10 was an editorial collage: a cream background with torn paper at its edges, and green verges beside the floor.)
+- The wall comes in from the runway's far end, fading in there. It starts small (scale ≈ 0.35) and grows to full size at the figure's position. Drive everything from a single `progress` value, `t ∈ [0, 1]`, with an ease-in so the wall seems to speed up as it gets closer. Each wall shows one of the supplied images (`src/assets/walls/`, shuffled, each once before any repeats), scaled to cover it, in a thin cream frame; with no images, it is a plain forest-green panel. The hole is cut out of the image, so the runway and the void show through it, and its edge is a lime line on a wider ink one. The wall is an image-completion puzzle: when the pose locks, the hole flashes lime and the image's missing piece fills it, until the wall reaches the figure and the hole opens again for it to pass, with a lime pulse round the figure.
+- A **console** of key caps centered along the bottom, below the runway (M10b): an angular near-black panel with a socket in its center for the current prompt. Its chips are angular key caps with black letters, and letters flow right to left:
+  - **Held** letters as lime chips, lined up left of the center, the latest nearest it. A newly held chip pops into place.
+  - The **current** prompt as a cream chip in the center socket, in a lime frame.
   - The **next** letter as a hollow, cream-outlined preview chip just right of center (only while lined up). It slides to the center when it becomes current.
-  - **Slipped/queued** letters as coral chips on the right.
+  - **Slipped/queued** letters as coral chips on the right. A newly slipped chip wobbles.
   - **Capital** letters also carry a Shift mark (⇧) on their chip, because case alone is hard to read for letters like o/O, s/S and x/X.
-- **SCORE** and the **WALL** number sit in the top corners, in Anton, on pale paper (M10). Text over the moving scene (the timing label, the SHIFT callout, the Caps Lock warning, the pause text) is bright inside a thick dark outline.
+- **SCORE** and the **WALL** number sit in the top corners, above the horizon, on angular near-black panels with a lime accent and a fine inner grid: a caption in IBM Plex Mono over the number in Anton (M10b). A new score counts up, and each number pops when it changes. Text over the moving scene (the timing label, the SHIFT callout, the Caps Lock warning, the pause text) is bright inside a thick dark outline.
 
 ### Lanes
 - `LANE_COUNT = 7` lanes across the stage.
@@ -312,8 +312,15 @@ Built in this order (chosen after M7): feel and audio go on the grey box first, 
 - (After the sixth M10 review: "further back" had meant toward the camera, into the empty floor behind the figure. The figure now stands one tile nearer than at first, on the front-most whole row of floor tiles (`FIGURE_FLOOR_Y` 495 to 560), and everything sized at its plane grew with it. On a fail it is knocked only a little further forward, since the floor ends there.)
 - ✅ Every pose still fits its hole, and every hole is one piece. The fonts are bundled and loaded before any text is drawn, and the contrast and color-system tests pass.
 
+**M10b: Grid void restyle** (done)
+- A new visual direction for the play screen, from the user's brief: away from the distressed paper collage, toward a clean, minimal sci-fi look with an editorial identity, keeping the mocks' palette, bold geometry and the figure exactly as it is. Visual and UI only: the rules, timing, input and the figure don't change.
+- The collage, the green verges and the paper-grain filter are gone. The background is the grid void, the floor is a clean cream runway, the HUD and the prompt tray are angular near-black panels with lime accents, and the tray became a centered console whose letters flow right to left (§3).
+- Walls are image panels, from image files dropped into `src/assets/walls/` (no code change needed to add one). The hole is cut out of the image and edged in lime on ink, and a cleared wall completes its image, then a lime pulse marks the figure passing through. No images ship yet; until they do, walls are plain forest-green panels.
+- Lime is the accent: the hole's edge, the spawn line, the HUD and console accents, held chips, PERFECT, and the success flashes. The bright mock green it replaces is no longer used.
+- ✅ Every gameplay rule and test is unchanged, the contrast tests cover the new pairs (the wall's frame and the hole's edge against the void and the runway, the chips against the console), and the HUD, the console and the figure never overlap.
+
 **M11: Title and game-over screens**
-- The title and game-over screens laid out from the mocks, in the M10 style: *SHAPE SHIFT* with a short how-to (Space to line up, hold letters, Shift for CAPS), and GAME OVER with the final and best scores. The title keeps "Click to play" where the mock says "Press any key", because the itch.io frame only gets keyboard focus from a click (§2).
+- The title and game-over screens laid out from the mocks, in the M10b style (they're still cream until then): *SHAPE SHIFT* with a short how-to (Space to line up, hold letters, Shift for CAPS), and GAME OVER with the final and best scores. The title keeps "Click to play" where the mock says "Press any key", because the itch.io frame only gets keyboard focus from a click (§2).
 - ✅ A new player can start a run knowing the controls from the title screen alone.
 
 **M12: Ship**
