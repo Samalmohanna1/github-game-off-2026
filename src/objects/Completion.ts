@@ -16,15 +16,15 @@ import { WALL_PANEL, coverFit, cropOf, holeEdges, holeRects, wallLayout, type Re
 import { ImagePieces } from '@/objects/ImagePieces';
 import { fillSegments } from '@/objects/vectors';
 
-// Each cell's color averages SAMPLE × SAMPLE points of the image under it.
+// Each cell's color averages SAMPLE × SAMPLE points of the pattern under it.
 const SAMPLE = 6;
 let sampler: HTMLCanvasElement | null = null;
 
-// The image completion, the signature moment (M10b review). Once a cleared
+// The completion, the signature moment (M10b review). Once a cleared
 // wall reaches the figure, at scale 1, its hole and the figure's pose line up
-// cell for cell. Then the figure's pixels take the colors of the image's
+// cell for cell. Then the figure's pixels take the colors of the pattern's
 // missing piece, row by row from the feet up, keeping the figure's cream
-// seams; the image's own detail fills in over them, so the picture looks
+// seams; the pattern's own detail fills in over them, so the picture looks
 // whole; and a lime trace of the silhouette fades. It is drawn over the
 // figure, in the wall's space at full size, and leaves with the wall, so the
 // figure itself never changes.
@@ -43,23 +43,23 @@ export class Completion extends Phaser.GameObjects.Container {
     this.reset();
   }
 
-  // The wall's image (null for a plain panel), the pose that cleared it and
+  // The wall's texture (null for a plain panel), the pose that cleared it and
   // the hole's lane. onWhole runs once the restored picture has held.
-  play(imageKey: string | null, pose: Pose, holeLane: number, onWhole: () => void): void {
+  play(textureKey: string | null, pose: Pose, holeLane: number, onWhole: () => void): void {
     this.reset();
     const layout = wallLayout(holeLane);
     const grid = holeGrid(pose);
-    const colors = this.cellColors(imageKey, layout);
+    const colors = this.cellColors(textureKey, layout);
     // Grown past the hole's edge, so the detail also covers the figure's
     // edge and the hole's, plus the strip of wall the figure's shadow
-    // reaches up over; it is the same image as the wall's there.
+    // reaches up over; it is the same texture as the wall's there.
     const shadow = {
       x: layout.gridLeft + FIGURE_WIDTH / 2 - FIGURE_SHADOW.width / 2,
       y: layout.floor - FIGURE_SHADOW.height / 2,
       width: FIGURE_SHADOW.width,
       height: FIGURE_SHADOW.height / 2,
     };
-    this.detail.show(imageKey, [...grown(holeRects(grid, layout), FIGURE_EDGE_WIDTH, layout.floor), shadow]);
+    this.detail.show(textureKey, [...grown(holeRects(grid, layout), FIGURE_EDGE_WIDTH, layout.floor), shadow]);
     this.detail.setAlpha(0);
     fillSegments(this.trace, holeEdges(grid, layout, true), WALL_COMPLETE.traceWidth, COLORS.completionTrace);
     this.trace.setAlpha(0);
@@ -98,7 +98,7 @@ export class Completion extends Phaser.GameObjects.Container {
     this.setVisible(false).setAlpha(1).setScale(1);
   }
 
-  // Each cell the pose covers, in the image's color under it, the rows from
+  // Each cell the pose covers, in the pattern's color under it, the rows from
   // the feet up to `rows` showing (the topmost one fading in), with the
   // figure's own cream seams and edges over them.
   private drawPixels(pose: Pose, layout: WallLayout, colors: readonly number[], rows: number): void {
@@ -128,14 +128,14 @@ export class Completion extends Phaser.GameObjects.Container {
     }
   }
 
-  // The average color of the image under each cell of the pose grid, row by
-  // row; all plain panel color when there's no image to read.
-  private cellColors(imageKey: string | null, layout: WallLayout): number[] {
+  // The average color of the pattern under each cell of the pose grid, row
+  // by row; all plain panel color when there's no texture to read.
+  private cellColors(textureKey: string | null, layout: WallLayout): number[] {
     const { cols, rows } = FIGURE_GRID;
     const plain = Array<number>(cols * rows).fill(COLORS.wall);
-    if (imageKey === null) return plain;
-    const frame = this.scene.textures.getFrame(imageKey);
-    const source = this.scene.textures.get(imageKey).getSourceImage();
+    if (textureKey === null) return plain;
+    const frame = this.scene.textures.getFrame(textureKey);
+    const source = this.scene.textures.get(textureKey).getSourceImage();
     if (!(source instanceof HTMLImageElement || source instanceof HTMLCanvasElement)) return plain;
 
     sampler ??= document.createElement('canvas');

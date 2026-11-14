@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { COLORS, FIGURE_FLOOR_Y, FLOOR, GAME_HEIGHT, GAME_WIDTH, HORIZON_Y, VOID, WALL_START_SCALE } from '@/config';
-import { FLOATING_SQUARES, PILLARS, WALL_CELLS, type SquareTone } from '@/data/void-art';
+import { FALLING_SQUARES, FLOOR_STREAKS, WALL_CELLS, type SquareTone } from '@/data/void-art';
+import { cycleProgress, fadeEnvelope } from '@/logic/fall';
 import { LANE_WIDTH } from '@/logic/lanes';
 import { VANISHING_POINT, project, type Point } from '@/logic/perspective';
 import { prefersReducedMotion } from '@/scenes/ui';
@@ -40,11 +41,12 @@ const TONE_COLOR: Readonly<Record<SquareTone, number>> = {
 // The background (M10b, after the mockup): a dark grid stage. A glossy floor
 // grid in the stage's perspective runs back to a gridded back wall at the
 // runway's far end, where the walls appear, and the two meet at a glowing
-// lime seam, with light rising toward it. A fixed composition of lit cells,
-// floating squares and light pillars (src/data/void-art.ts) frames the play.
-// The motion is slow and even: the floor drifts toward the camera with a
-// wave of light through its rows, and the squares and pillars breathe and
-// bob together in a wave across the screen. All still for reduced motion.
+// lime seam, with light rising toward it. A fixed composition
+// (src/data/void-art.ts) frames the play: lit cells on the back wall that
+// breathe in a wave across it, squares that fall slowly to the seam and fade
+// (M10b review 3), and streaks of light running down the floor. The floor
+// drifts toward the camera with a wave of light through its rows. Every cycle
+// is steady and set by hand, never random. All still for reduced motion.
 export class GridVoid extends Phaser.GameObjects.Container {
   private readonly moving: Phaser.GameObjects.Graphics;
   private readonly still = prefersReducedMotion();
@@ -75,34 +77,52 @@ export class GridVoid extends Phaser.GameObjects.Container {
     const g = this.moving;
     g.clear();
     this.drawRows(time);
-    // Every square and pillar breathes in one wave sweeping across the screen.
-    const phase = (x: number) => 2 * Math.PI * (time / VOID.breatheMs - x / VOID.sweepPx);
-    const breath = (x: number) => (this.still ? 1 - VOID.breathe / 2 : 1 - VOID.breathe * (0.5 + 0.5 * Math.sin(phase(x))));
-    const bob = (x: number) => (this.still ? 0 : VOID.bobPx * Math.sin(phase(x) * 0.7));
+    const { fromY, fadeIn, fadeOut, trail, trailAlpha } = VOID.fall;
+    // Where each thing is in its cycle; for reduced motion, held still at a
+    // point where it is fully visible.
+    const progress = (ms: number, phase: number) =>
+      this.still ? fadeIn + (1 - fadeIn - fadeOut) * phase : cycleProgress(time, ms, phase);
+    const vertical = (color: number, x: number, y: number, w: number, h: number, top: number, foot: number) => {
+      g.fillGradientStyle(color, color, color, color, top, top, foot, foot);
+      g.fillRect(x, y, w, h);
+    };
 
-    for (const { x, below, width, height } of PILLARS) {
-      const foot = SEAM_Y + below;
-      const a = VOID.pillarAlpha * breath(x);
-      g.fillGradientStyle(COLORS.seam, COLORS.seam, COLORS.seam, COLORS.seam, 0, 0, a, a);
-      g.fillRect(x - width / 2, foot - height, width, height);
-      g.fillStyle(COLORS.seam, a * 1.6);
+    // Streaks of light running down the floor from the seam.
+    for (const { x, width, height, travel, ms, phase } of FLOOR_STREAKS) {
+      const p = progress(ms, phase);
+      const a = VOID.streakAlpha * fadeEnvelope(p, fadeIn, fadeOut);
+      const foot = SEAM_Y + 4 + p * travel;
+      const top = Math.max(SEAM_Y + 1, foot - height);
+      vertical(COLORS.seam, x - width / 2, top, width, foot - top, 0, a);
+      g.fillStyle(COLORS.seam, Math.min(1, a * 1.6));
       g.fillRect(x - width / 2, foot - 1, width, 2);
     }
+
+    // The back wall's lit cells breathe in one wave sweeping across it.
     for (const { column, row, tone } of WALL_CELLS) {
       const x = VANISHING_POINT.x + (column - 0.5) * CELL;
       const y = SEAM_Y - (row + 1) * CELL;
-      g.fillStyle(TONE_COLOR[tone], VOID.tones[tone] * 0.5 * breath(x));
+      const sweep = 2 * Math.PI * (time / VOID.breatheMs - x / VOID.sweepPx);
+      const breath = this.still ? 1 - VOID.breathe / 2 : 1 - VOID.breathe * (0.5 + 0.5 * Math.sin(sweep));
+      g.fillStyle(TONE_COLOR[tone], VOID.tones[tone] * 0.5 * breath);
       g.fillRect(x + 1, y + 1, CELL - 2, CELL - 2);
     }
-    for (const { x, y, size, tone, reflect } of FLOATING_SQUARES) {
-      const a = VOID.tones[tone] * breath(x);
+
+    // Squares falling down their columns to the seam, each with a faint trail,
+    // and some mirrored in the glossy floor, meeting their reflection there.
+    for (const { x, size, tone, ms, phase, reflect } of FALLING_SQUARES) {
+      const p = progress(ms, phase);
+      const a = VOID.tones[tone] * fadeEnvelope(p, fadeIn, fadeOut);
+      const color = TONE_COLOR[tone];
+      const y = fromY + p * (SEAM_Y - size / 2 - fromY);
+      const left = x - size / 2;
+      vertical(color, left, y - size / 2 - trail * size, size, trail * size, 0, a * trailAlpha);
+      g.fillStyle(color, a);
+      g.fillRect(left, y - size / 2, size, size);
       if (reflect === true) {
-        const r = VOID.reflectAlpha * a;
-        g.fillGradientStyle(TONE_COLOR[tone], TONE_COLOR[tone], TONE_COLOR[tone], TONE_COLOR[tone], r, r, 0, 0);
-        g.fillRect(x - size / 2, SEAM_Y + 2, size, VOID.reflectLength);
+        const mirror = 2 * SEAM_Y - y;
+        vertical(color, left, mirror - size / 2, size, VOID.reflectLength, a * VOID.reflectAlpha * p, 0);
       }
-      g.fillStyle(TONE_COLOR[tone], a);
-      g.fillRect(x - size / 2, y - size / 2 + bob(x), size, size);
     }
   }
 

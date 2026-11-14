@@ -21,15 +21,16 @@ import { fillSegments } from '@/objects/vectors';
 // from the same pose grid the figure uses (PLAN.md §3), at the hole's lane;
 // during a Shift Wall slide that lane is fractional. It is redrawn only when
 // something changes, never every frame.
-// M10b: the wall is one of the wall images (src/assets/walls/), with the hole
+// M10b: the wall's face is a fresh geometric pattern (WallPattern, M10b
+// review 3), shown through ImagePieces with the hole
 // really cut out of it, so the runway and the void show through. A thin cream
 // frame and a thinner cream edge round the hole are all that is drawn over
-// it. With no image loaded, it is a plain forest panel.
+// it. If the pattern couldn't be drawn, it is a plain forest panel.
 export class Wall extends Phaser.GameObjects.Container {
   private readonly image: ImagePieces;
   private readonly face: Phaser.GameObjects.Graphics;
   private readonly lines: Phaser.GameObjects.Graphics;
-  private imageKey: string | null = null;
+  private textureKey: string | null = null;
   private holeLane = 0;
   private grid: HoleGrid = [];
   private warningDir: -1 | 1 | null = null;
@@ -47,13 +48,13 @@ export class Wall extends Phaser.GameObjects.Container {
     this.add([this.image, this.face, this.lines]);
   }
 
-  // A new wall: its hole, and the image it shows (null for a plain panel).
-  setHole(lane: number, grid: HoleGrid, imageKey: string | null): void {
+  // A new wall: its hole, and the texture it shows (null for a plain panel).
+  setHole(lane: number, grid: HoleGrid, textureKey: string | null): void {
     this.slide?.stop();
     this.rattling?.stop();
     this.holeLane = lane;
     this.grid = grid;
-    this.imageKey = imageKey;
+    this.textureKey = textureKey;
     this.warningDir = null;
     this.redraw();
   }
@@ -118,11 +119,11 @@ export class Wall extends Phaser.GameObjects.Container {
   private redraw(): void {
     const layout = wallLayout(this.holeLane);
     const solid = solidRects(this.grid, layout);
-    this.image.show(this.imageKey, solid);
+    this.image.show(this.textureKey, solid);
 
-    // An alert covers the image; with no image, the panel is plain.
+    // An alert covers the pattern; with no texture, the panel is plain.
     const alert = this.flashing ? COLORS.wallFlash : this.warningDir !== null ? COLORS.wallWarning : null;
-    const face = alert ?? (this.imageKey === null ? COLORS.wall : null);
+    const face = alert ?? (this.textureKey === null ? COLORS.wall : null);
     this.face.clear();
     if (face !== null) fillRects(this.face, solid, face);
 

@@ -13,7 +13,7 @@ export const PALETTE = {
   cream: 0xefdfca, // mock swatch: the runway, the HUD cards, the wall's frame
   creamDeep: 0xd3c5ae, // cream, darkened for the runway's seams
   sage: 0x86a064, // the secondary environment color: the HUD's fold, the bar's line
-  forest: 0x4a6e43, // the void's grid, and a wall with no image
+  forest: 0x4a6e43, // the void's grid, and the wall patterns
   graphite: 0x4a433b, // quiet text on cream
   ink: 0x20201f, // mock swatch: the figure and dark text
   greenDark: 0x17472d, // mock swatch: the void's light toward the seam
@@ -32,13 +32,13 @@ export const PALETTE = {
 // lime seam, where the walls are born. Graphics that carry meaning must hold
 // 3:1 against what they sit on (tests/config.test.ts): the wall's cream frame
 // and the hole's cream edge against the void and its glow, the runway's tiles
-// against the runway, and the key caps against the bar. The wall's image can
+// against the runway, and the key caps against the bar. The wall's pattern can
 // be any color, so its frame and hole edge carry its contrast where the void
-// shows through; where the runway does, the image's own darks set the hole
+// shows through; where the runway does, the pattern's own darks set the hole
 // off. The figure's cream edge outlines it against the void and the wall,
 // where its black can't. Lime is the accent: the seam, the runway's edges,
 // the HUD's and the bar's slashes, the lit squares, held keys, PERFECT, and
-// the trace round a completed image. The two alert families stay: yellow
+// the trace round a completed wall. The two alert families stay: yellow
 // means the hole is moving (Shift Walls), and coral means a mistake (a wrong
 // key, a slip, a close call, Caps Lock).
 export const COLORS = {
@@ -57,11 +57,19 @@ export const COLORS = {
   floorEdge: PALETTE.lime, // the glowing lines down its sides
   floorSeam: PALETTE.creamDeep, // decorative tile seams
   laneLit: PALETTE.greenDeep,
-  // The wall: an image panel (src/assets/walls/) in a cream frame.
-  wall: PALETTE.forest, // the panel's face when no image has loaded
+  // The wall: a random geometric pattern (WALL_PATTERN) in a cream frame.
+  wall: PALETTE.forest, // the panel's face if its pattern can't be drawn
+  patternDeep: PALETTE.greenDark,
+  patternForest: PALETTE.forest,
+  patternGreen: PALETTE.greenDeep,
+  patternSage: PALETTE.sage,
+  patternCream: PALETTE.cream,
+  patternSand: PALETTE.creamDeep,
+  patternLime: PALETTE.lime,
+  patternInk: PALETTE.ink,
   wallFrame: PALETTE.cream,
   holeEdge: PALETTE.cream,
-  completionTrace: PALETTE.lime, // round the silhouette as the image completes
+  completionTrace: PALETTE.lime, // round the silhouette as the pattern completes
   figure: PALETTE.ink,
   figureEdge: PALETTE.cream,
   figureShadow: PALETTE.ink,
@@ -264,8 +272,8 @@ export const HORIZON_Y = 140;
 export const FIGURE_FLOOR_Y = 560;
 
 // Art (PLAN.md §10, M10b): a cream runway on a dark grid stage, a wall that is
-// an image panel with a cutout, cream HUD cards and a line-art bar with lime
-// accents. Everything is drawn in code except the wall images.
+// a random geometric pattern with a cutout, cream HUD cards and a line-art
+// bar with lime accents. Everything is drawn in code.
 // The grid stage (GridVoid), after the mockup: the floor's grid runs in the
 // stage's perspective, continuing the runway's lanes and tile rows back to a
 // back wall at the runway's far end, where the walls appear, and the back
@@ -281,12 +289,17 @@ export const FIGURE_FLOOR_Y = 560;
 // - The floor drifts toward the camera one tile row every driftMs, with a slow
 //   wave of light through its rows: a crest every wave.rows rows, passing a
 //   row every wave.ms, dimming the rows between by up to wave.dip.
-// - The squares and light pillars (src/data/void-art.ts) are a fixed
-//   composition. They breathe together, their alpha swinging by `breathe` of
-//   itself over breatheMs in a wave that sweeps across the screen (one cycle
-//   per sweepPx); floating squares bob bobPx. Each tone has its alpha; a
-//   reflecting square shows on the floor below the seam, reflectLength px
-//   long at reflectAlpha. Pillars are lime at most pillarAlpha.
+// - The composition (src/data/void-art.ts) is fixed. The back wall's lit
+//   cells breathe, their alpha swinging by `breathe` of itself over
+//   breatheMs in a wave that sweeps across the screen (one cycle per
+//   sweepPx). The squares fall (M10b review 3): each runs down its column
+//   from fall.fromY to the seam over its own cycle, fading in over the first
+//   fall.fadeIn of it and out over the last fall.fadeOut, with a trail
+//   fall.trail times its size above it at most fall.trailAlpha. Each tone
+//   has its alpha; a reflecting square shows on the floor, mirrored in the
+//   seam, reflectLength px long at reflectAlpha, so square and reflection
+//   meet there as both fade. The floor's streaks run down from the seam and
+//   fade the same way, lime at most streakAlpha.
 // Still for reduced motion.
 export const VOID = {
   floorAlpha: [0.16, 0.55] as readonly [number, number],
@@ -306,11 +319,11 @@ export const VOID = {
   breathe: 0.35,
   breatheMs: 5200,
   sweepPx: 520,
-  bobPx: 4,
+  fall: { fromY: 26, fadeIn: 0.18, fadeOut: 0.32, trail: 3, trailAlpha: 0.3 },
   tones: { dim: 0.32, mid: 0.7, bright: 0.95 },
   reflectLength: 70,
   reflectAlpha: 0.22,
-  pillarAlpha: 0.3,
+  streakAlpha: 0.3,
 } as const;
 // HUD: SCORE top-left and WALL top-right on cream cards, after the mockup: the
 // outer corners cut by `cut`, the inner edge slanting `slant` px across the
@@ -386,18 +399,39 @@ export const LANE_TARGET = { edgeWidth: 5, chevronWidth: 12, chevronHeight: 22, 
 export const WALL_START_SCALE = 0.32;
 export const WALL_HEIGHT = 410; // px at full scale
 export const WALL_EASE_POWER = 2; // scale follows t^n, so higher n rushes harder at the end
+// Wall patterns (M10b review 3): each wall is a fresh random geometric
+// pattern (src/logic/wall-pattern.ts): a quilt of square tiles, one of `rows`
+// high, each a motif in one color on a ground in another. Each wall uses
+// motifsPerWall motifs, leaves plainShare of its tiles bare, and takes one of
+// the color schemes, dealt so none comes back to back: the first two colors
+// are grounds, the last is the accent, which a tile may ink with
+// accentShare odds.
+export const WALL_PATTERN = {
+  rows: [2, 3, 4],
+  motifsPerWall: 3,
+  plainShare: 0.15,
+  accentShare: 0.3,
+  schemes: [
+    [COLORS.patternDeep, COLORS.patternForest, COLORS.patternCream, COLORS.patternSage, COLORS.patternLime],
+    [COLORS.patternCream, COLORS.patternSand, COLORS.patternForest, COLORS.patternDeep, COLORS.patternGreen],
+    [COLORS.patternForest, COLORS.patternDeep, COLORS.patternSage, COLORS.patternCream, COLORS.patternLime],
+    [COLORS.patternInk, COLORS.patternDeep, COLORS.patternGreen, COLORS.patternCream, COLORS.patternLime],
+    [COLORS.patternSage, COLORS.patternCream, COLORS.patternDeep, COLORS.patternForest, COLORS.patternInk],
+    [COLORS.patternGreen, COLORS.patternForest, COLORS.patternCream, COLORS.patternDeep, COLORS.patternLime],
+  ],
+} as const;
 // The wall's look (M10b), px at full scale: a thin cream frame round the
 // panel and a thinner cream edge round the hole, each centered on the edge it
-// follows. Nothing else is drawn over the image.
+// follows. Nothing else is drawn over the pattern.
 export const WALL_FRAME_WIDTH = 3;
 export const HOLE_EDGE_WIDTH = 2;
 // A new wall fades in at the runway's far end over this, ms.
 export const WALL_APPEAR_MS = 200;
-// Image completion, the signature moment (M10b review). On a pose lock the
+// The completion, the signature moment (M10b review). On a pose lock the
 // wall rushes to the figure over LOCK_RUSH_DURATION, where its hole and the
 // figure's pose line up exactly. Then the figure's pixels take the colors of
-// the image's missing piece, row by row from the feet up, over pixelMs; the
-// image's own detail fills in over them over restoreMs while a lime trace of
+// the pattern's missing piece, row by row from the feet up, over pixelMs; the
+// pattern's own detail fills in over them over restoreMs while a lime trace of
 // the silhouette fades over traceMs; the whole picture holds for holdMs; and
 // the wall leaves, growing to exitGrow and fading over exitMs. The figure
 // itself never changes: the pixels are drawn over it, and go with the wall.

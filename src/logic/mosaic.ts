@@ -1,7 +1,7 @@
 // The average color of each block of `block` × `block` pixels in RGBA data
 // (as from getImageData) that is cols × rows blocks in size, as 0xRRGGBB, row
-// by row. The image completion (M10b review) paints each of the figure's cells
-// in the average color of the image under it.
+// by row. The completion (M10b review) paints each of the figure's cells in
+// the average color of the wall's pattern under it.
 export function blockAverages(rgba: ArrayLike<number>, cols: number, rows: number, block: number): number[] {
   const width = cols * block;
   const colors: number[] = [];

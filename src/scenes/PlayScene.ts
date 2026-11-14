@@ -12,6 +12,7 @@ import {
   SCREEN_LAYOUT,
   SHIFT_JOLT,
   WALL_COMPLETE,
+  WALL_PATTERN,
 } from '@/config';
 import { NEUTRAL_POSE } from '@/data/poses';
 import { KeyboardInput } from '@/input/KeyboardInput';
@@ -26,6 +27,8 @@ import { LetterSequence, type SequenceEffect } from '@/logic/sequence';
 import { ShiftWall, type ShiftWallEvent } from '@/logic/shift-wall';
 import { ShuffleBag } from '@/logic/shuffle-bag';
 import { generateWall, holeGrid, type WallSpec } from '@/logic/wall-gen';
+import { makePattern } from '@/logic/wall-pattern';
+import { WALL_PANEL } from '@/logic/wall-shape';
 import { Completion } from '@/objects/Completion';
 import { DebugOverlay, type DebugRow } from '@/objects/DebugOverlay';
 import { Figure } from '@/objects/Figure';
@@ -38,10 +41,10 @@ import { PromptTray } from '@/objects/PromptTray';
 import { ShiftCallout } from '@/objects/ShiftCallout';
 import { TimingLabel } from '@/objects/TimingLabel';
 import { Wall } from '@/objects/Wall';
+import { WallPattern } from '@/objects/WallPattern';
 import { SceneKeys, type RunResult } from '@/scenes/scene-keys';
 import { outlinedStyle } from '@/scenes/text-styles';
 import { prefersReducedMotion } from '@/scenes/ui';
-import { wallImageKeys } from '@/scenes/wall-images';
 
 // Draw order. The wall stays behind the figure; a cleared wall's completion
 // is drawn over the figure, where the hole and the pose line up.
@@ -63,7 +66,7 @@ const LAYER = {
 const DEBUG_VISIBLE = 'debugOverlayVisible';
 
 // approach: the wall is coming and the player can act. rush: the pose locked,
-// and the wall comes to the figure, completes its image and leaves. failing:
+// and the wall comes to the figure, completes its pattern and leaves. failing:
 // the wall reached the figure first.
 type Phase = 'approach' | 'rush' | 'failing';
 
@@ -81,11 +84,10 @@ export class PlayScene extends Phaser.Scene {
   private scoreKeeper!: ScoreKeeper;
   private keyboard!: KeyboardInput;
   private wall!: Wall;
-  // Deals the wall images, so each comes round before any repeats. They load
-  // in the background, so the bag is remade when more have arrived.
-  private wallImages = new ShuffleBag<string>([]);
-  private wallImagesDealt = 0;
-  private wallImage: string | null = null;
+  // Each wall's face: a fresh pattern in one of the color schemes, dealt so
+  // none comes back to back.
+  private pattern!: WallPattern;
+  private readonly schemes = new ShuffleBag<readonly number[]>(WALL_PATTERN.schemes);
   private completion!: Completion;
   private figure!: Figure;
   private laneTiles!: LaneTiles;
@@ -121,6 +123,7 @@ export class PlayScene extends Phaser.Scene {
     new Floor(this).setDepth(LAYER.floor);
     this.laneTiles = new LaneTiles(this).setDepth(LAYER.laneTiles);
     this.wall = new Wall(this).setDepth(LAYER.wall);
+    this.pattern = new WallPattern(this);
     this.figure = new Figure(this, this.figureLane).setDepth(LAYER.figure);
     this.completion = new Completion(this).setDepth(LAYER.completion);
     this.label = new TimingLabel(this).setDepth(LAYER.label);
@@ -218,8 +221,8 @@ export class PlayScene extends Phaser.Scene {
     this.holeLane = this.spec.holeLane;
     this.shiftWall = new ShiftWall(this.plan.shiftWall, this.holeLane);
     this.countdown = new Countdown();
-    this.wallImage = this.nextWallImage();
-    this.wall.setHole(this.holeLane, holeGrid(this.spec.targets), this.wallImage);
+    this.paintPattern();
+    this.wall.setHole(this.holeLane, holeGrid(this.spec.targets), this.pattern.key);
     this.wall.appear();
     this.completion.reset();
     this.figure.resetPose();
@@ -286,7 +289,7 @@ export class PlayScene extends Phaser.Scene {
     if (score.grade === 'closeCall') this.slowMotion();
     if (score.grade === 'perfect') this.synth?.fanfare();
     // The wall comes the rest of the way to the figure, where its hole and
-    // the pose line up exactly, completes its image there, and leaves (M10b
+    // the pose line up exactly, completes its pattern there, and leaves (M10b
     // review). All of it runs on tweens, so a CLOSE CALL slows it too.
     this.tweens.addCounter({
       from: wallScale(this.t),
@@ -294,7 +297,7 @@ export class PlayScene extends Phaser.Scene {
       duration: LOCK_RUSH_DURATION,
       ease: 'Quad.easeIn',
       onUpdate: (tween) => this.wall.setScale(tween.getValue() ?? 1),
-      onComplete: () => this.completion.play(this.wallImage, this.spec.targets, this.holeLane, () => this.clearWall()),
+      onComplete: () => this.completion.play(this.pattern.key, this.spec.targets, this.holeLane, () => this.clearWall()),
     });
   }
 
@@ -313,15 +316,10 @@ export class PlayScene extends Phaser.Scene {
     });
   }
 
-  // The next wall image, from those loaded so far; null for a plain panel
-  // when none has arrived yet.
-  private nextWallImage(): string | null {
-    const loaded = wallImageKeys(this.textures);
-    if (loaded.length !== this.wallImagesDealt) {
-      this.wallImages = new ShuffleBag(loaded);
-      this.wallImagesDealt = loaded.length;
-    }
-    return this.wallImages.next() ?? null;
+  // A fresh geometric pattern for the new wall's face (M10b review 3).
+  private paintPattern(): void {
+    const scheme = this.schemes.next() ?? WALL_PATTERN.schemes[0];
+    this.pattern.paint(makePattern(WALL_PANEL.width, WALL_PANEL.height, scheme.length, WALL_PATTERN, Math.random), scheme);
   }
 
   // CLOSE CALL (M8): the rush and the label pop play in slow motion for a
