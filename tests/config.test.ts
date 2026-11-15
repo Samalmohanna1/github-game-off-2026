@@ -322,10 +322,13 @@ const TEXT_PAIRS = Object.entries(TEXT_ON).flatMap(([bg, texts]) => texts.map((t
 
 // The screens (M11) keep their parts clear of each other.
 describe('screen layouts', () => {
-  // Anton's capitals stand about 0.9 of its size, and are about 0.55 of it
-  // wide.
+  // Anton's capitals stand about 0.9 of its size. A stacked lockup grows
+  // its narrower lines to the widest one's width: SHIFT ends up about 1.17
+  // times SHAPE's size. A four-letter word of its capitals stands at least
+  // 0.4 of its width tall.
   const ANTON_CAPS = 0.9;
-  const ANTON_WIDTH = 0.55;
+  const LOCKUP_GROWTH = 1.25;
+  const FOUR_LETTER_RATIO = 0.4;
   const B = C.PROMPT_BUTTON;
   // A button's reach below what comes before it, and its hint's middle below
   // that same edge (the hint is small text, half its size tall).
@@ -338,8 +341,8 @@ describe('screen layouts', () => {
   });
 
   it('fits the title lockup and its button on screen', () => {
-    const { padY, lineGap } = C.TITLE.lockup;
-    const lockup = 2 * ANTON_CAPS * C.FONT_SIZES.lockup + lineGap + 2 * padY;
+    const { padY } = C.TITLE.lockup;
+    const lockup = (1 + LOCKUP_GROWTH) * ANTON_CAPS * C.FONT_SIZES.lockup + C.LOCKUP.lineGap + 2 * padY;
     expect(lockup + buttonReach).toBeLessThan(C.GAME_HEIGHT);
   });
 
@@ -355,8 +358,9 @@ describe('screen layouts', () => {
 
   it('fits GAME OVER beside the results card, and the button and hint below it', () => {
     const { top, cardHeight, middleGap, minCardWidth } = C.GAME_OVER;
-    expect(2 * ANTON_CAPS * C.FONT_SIZES.poster).toBeLessThanOrEqual(cardHeight);
-    expect(4 * ANTON_WIDTH * C.FONT_SIZES.poster + middleGap + minCardWidth).toBeLessThan(C.GAME_WIDTH);
+    // The lockup stands as tall as the card, so its width follows from that.
+    const lockupWidth = (cardHeight - C.LOCKUP.lineGap) / (2 * FOUR_LETTER_RATIO);
+    expect(lockupWidth + middleGap + minCardWidth).toBeLessThan(C.GAME_WIDTH);
     expect(top + cardHeight + hintFoot).toBeLessThan(C.GAME_HEIGHT);
   });
 

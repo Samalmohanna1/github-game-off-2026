@@ -87,3 +87,13 @@ export function glyphWidth(text: Phaser.GameObjects.Text): number {
   const { left, right } = glyphBox(text);
   return right - left;
 }
+
+// Sets one line of a stacked lockup (the title, GAME OVER; M11 review 3):
+// resized so its letters reach `width` px across, letters grow in
+// proportion to the size, so every line of the block is flush on both
+// sides. Its letters' left edge then sits on its x and their middle on its y.
+export function fitLockupLine(text: Phaser.GameObjects.Text, width: number): Phaser.GameObjects.Text {
+  const size = parseFloat(String(text.style.fontSize));
+  text.setFontSize((size * width) / glyphWidth(text));
+  return alignGlyphs(centerGlyphs(text), 'left');
+}

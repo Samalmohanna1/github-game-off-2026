@@ -228,13 +228,18 @@ export const HEADING_CARD = { height: 96, padX: 40 } as const;
 // Dark cards (drawDarkCard(): the how-to steps, the game-over results): cut
 // like the key caps by `cut`, in an edge edgeWidth px thick.
 export const DARK_CARD = { cut: 20, edgeWidth: 2 } as const;
+// Stacked lockups (the title, GAME OVER; M11 review 3): each word on its
+// own line at its own size, so every line's letters span one width, flush
+// on both sides, the lines lineGap px apart (about half Anton's stem at
+// these sizes).
+export const LOCKUP = { lineGap: 18 } as const;
 // Title (M11 review): the grid stage and the lockup after the mock (SHAPE
-// over SHIFT on a card slanting both ways), its two lines lineGap apart and
-// padY inside the card's top and foot, padX beside the wider line. The
-// lockup and the Click to play button below it are centered on the screen as
-// one block. Upright since M11 review 2.
+// over SHIFT on a card slanting both ways; SHAPE at FONT_SIZES.lockup sets
+// the width), padY inside the card's top and foot and padX beside the
+// lines. The lockup and the Click to play button below it are centered on
+// the screen as one block. Upright since M11 review 2.
 export const TITLE = {
-  lockup: { padX: 40, padY: 30, lineGap: 22 },
+  lockup: { padX: 40, padY: 30 },
 } as const;
 // How to play (M11 review), between the title and the first wall: the
 // heading centered on headingY, then one dark card per step, `cards.top`
@@ -258,10 +263,10 @@ export const KEY_CAP = { height: 50, padX: 14 } as const;
 // the Click to resume button below it.
 export const PAUSE = { veilAlpha: 0.8, headingY: 260 } as const;
 // Game over (M11 review 2), laid out after the user's reference: GAME over
-// OVER in big cream letters on the stage, their right edges lined up so E
-// and R stack, standing exactly as tall as the results card middleGap to
-// their right; the two centered across the screen as one block, from `top`
-// down. The card is a dark card cardHeight tall and at least minCardWidth
+// OVER in big cream letters on the stage, a stacked lockup (LOCKUP; sized
+// from FONT_SIZES.poster) standing exactly as tall as the results card
+// middleGap to its right; the two centered across the screen as one block,
+// from `top` down. The card is a dark card cardHeight tall and at least minCardWidth
 // wide (wider for a long score), its rows padX in from its left, each
 // centered on its y from the card's top: the SCORE caption and this run's
 // score, the bar's line on ruleY (the slashes, then a run of ruleRun px

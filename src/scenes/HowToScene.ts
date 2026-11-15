@@ -17,9 +17,9 @@ interface Step {
 }
 
 const STEPS: readonly Step[] = [
-  { name: 'LINE UP', keys: ['SPACE'], text: 'A wall is coming. Press Space to step one lane toward its hole.' },
-  { name: 'HOLD ON', keys: ['a', 's', 'd'], text: 'Hold each letter as it appears, and keep holding. Capitals need Shift.' },
-  { name: 'FIT THROUGH', badge: 'PERFECT', text: 'Every letter held while lined up gets you through. Sooner scores more.' },
+  { name: 'LINE UP', keys: ['SPACE'], text: 'Press Space to line up with the hole in the wall.' },
+  { name: 'HOLD ON', keys: ['a', 's', 'd'], text: 'Press and hold each letter that appears. Case matters, so use Shift for capitals.' },
+  { name: 'FIT THROUGH', badge: 'PERFECT', text: 'The faster you clear a wall, the higher you score.' },
 ];
 
 // How to play (M11 review), between the title and the first wall: the game
