@@ -31,7 +31,7 @@ Scenes, one per screen:
 | Scene | Status | Contents |
 |---|---|---|
 | `BootScene` | Final (M10b) | Waits for the bundled fonts (`loadFonts()`, giving up after `FONT_LOAD_TIMEOUT`), then hands off to Title. |
-| `TitleScene` | Final (M11 review 5) | The grid stage, the lockup (`TitleLockup`, Option 2 of the user's title concepts) and a lime CLICK TO PLAY button below it, the two centered as one block. The lockup is a dark card in a lime edge with SHAPE large over SHIFT in cream Anton, both leaning like the badges, SHIFT's right edge on the E's leaning edge, and the bar's line starting with its slashes under the S and stepping down into SHIFT's middle. (Until review 5 it was a cream card slanting both ways; review 3 made it a stacked lockup.) The click gives the page keyboard focus inside the itch.io iframe and leads to How to play. |
+| `TitleScene` | Final (M11 review 6) | The grid stage, the lockup (`TitleLockup`, Option 2 of the user's title concepts) and a lime CLICK TO PLAY button below it, the two centered as one block. The lockup is a dark card lit like a wall (a lime bloom outside its lime edge, the wall panel's glow inside) with SHAPE in cream, large, over SHIFT in lime, both in Anton leaning like the badges, SHIFT's right edge on the E's leaning edge, and the bar's line, half as big again, starting with its slashes under the S and stepping down to the top of SHIFT's S's lower tail. (Until review 5 it was a cream card slanting both ways; review 3 made it a stacked lockup.) The click gives the page keyboard focus inside the itch.io iframe and leads to How to play. |
 | `HowToScene` | Final (M11 review) | How to play, between the title and the first wall: HOW TO PLAY on a heading card, then three numbered steps on dark cards, each with its keys and one sentence (01 LINE UP, Space; 02 HOLD ON, the letters and Shift; 03 FIT THROUGH, a PERFECT badge), and a lime START button. Any key or a click starts the run, after `HOW_TO.inputDelayMs` so the title's click can't skip it. Restarts from game over skip it. |
 | `PlayScene` | Interim (M10b) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). Space lines the figure up, one lane toward the hole per press (during a Shift Wall's warning, toward the lane it is about to slide to); the arrow keys don't move it; the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 4+), the wall stops behind a SHIFT callout, turns orange with an arrow, and the hole slides 1 lane with a sideways jolt while the new lane's tile is marked on the floor; then the wall carries on; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: a PERFECT / GREAT / CLOSE CALL label pops over the figure, the wall comes the rest of the way to the figure, the figure's cells light up lime like the panel's pixels and the panel fills back in (the completion), and the wall fades away as the next one fades in. Held blocks land with a squash, slipped ones slump back limp, a wrong key rattles the wall, and a CLOSE CALL plays the rush in slow motion. If the wall arrives first, it knocks the figure over: it topples toward the camera with its arms flailing, and its blocks come apart and bounce to a stop on the floor before the run ends. Synthesized sounds (M9) play over all of it: the countdown tick in CLOSE CALL range, clicks, slips, the PERFECT fanfare, the Shift Wall alert and whoosh, and the fail's hit and "whomp whomp whooom". Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses the game behind a veil, with PAUSED on a heading card and a lime CLICK TO RESUME button (`PauseOverlay`, M11). F2 toggles the debug overlay. Everything is drawn in the M10b art, a dark grid stage after the user's mockup: a glossy floor grid running back to a gridded back wall at the runway's far end, meeting it at a glowing lime seam, with lit cells that breathe, squares that fall slowly and fade, and streaks running down the floor; a cream runway with thin seams and glowing lime edges, where the figure stands centered on its lane's tile and the lined-up tile is marked; walls that are dark glass display panels lined on the figure's cells, with dots at the crossings, scanlines and the glow of a neon lime frame, with a see-through cutout in an equally thick lime edge; black blocks with cream seams between their cells and a cream edge; a dark line-art bar of cream key caps with lime slashes and a square per letter; SCORE and WALL on cream cards with lime slashes in the top corners; the timing label and the SHIFT callout on solid badges in a thick ink edge; and the Caps Lock warning in bright letters inside a thick dark outline. No texture anywhere. |
 | `GameOverScene` | Final (M11 review 4) | After the user's mock, on the grid stage: one dark card in a lime edge, centered, with GAME OVER in cream Anton over a lime rule, then this run's SCORE and WALLS CLEARED (lime captions over cream numbers, the walls at the HUD's number size), parted by the bar's line; the card, Play again and its hint centered down the screen with room above and below. (Review 2 set GAME over OVER beside the card, and review 3 made it a stacked lockup.) No all-time best is kept or shown (M11 review), nor the wall the run ended on, which is always walls cleared + 1 (M11 review 2). Restart follows PLAN.md §7: input is ignored for `RESTART_LOCKOUT`, then every key must be up ("LET GO OF EVERY KEY TO PLAY AGAIN" shows meanwhile) before a key or click restarts, when a lime PLAY AGAIN button shows under the card over "PRESS ANY KEY OR CLICK". |
@@ -186,12 +186,12 @@ src/
     slash.ts               # fillSlash(): one slanted stroke of the "//" motif, fading top to foot
     bar-line.ts            # drawBarLine(): the bar's thin stepped line and its slashes (the bar, the game-over card)
     vectors.ts             # points -> Phaser Vector2s; square-capped segment edges
-    WallPanel.ts           # paints the wall's dark glass display panel into the canvas texture the wall and the completion show
+    WallPanel.ts           # paints the wall's dark glass display panel into the canvas texture the wall and the completion show; glowInside(), shared with the title card
     ImagePieces.ts         # that texture covering the wall, cropped to rects (the wall's solid part, the completion's piece)
     Wall.ts                # the panel with a see-through cutout, in a lime frame and hole edge; flash + rattle, Shift warning + slide
     Figure.ts              # five black blocks with cell seams + shadow; squash on snap, limp slump on slip, topple on a fail
     Completion.ts          # the completion over the figure: its cells light up lime, the panel fills back in
-    TitleLockup.ts         # the title: SHAPE over SHIFT leaning on a dark card (drawn into a canvas texture), with the bar's line
+    TitleLockup.ts         # the title: SHAPE over a lime SHIFT, leaning, on a dark card lit like a wall (drawn into a canvas texture), with the bar's line
     PromptTray.ts          # the bar: held / current (in its socket) / next preview / slipped key caps; a square per letter
     keycap.ts              # the key caps' chamfered shape; fillEdgedKeyCap(): it in a closed edge; addKeyCap(): a labeled cap (the how-to screen's keys)
     PromptButton.ts        # a screen's call to action: a pulsing lime key cap in a cream edge (Click to play, Start, Click to resume, Play again)
@@ -229,7 +229,7 @@ tests/
   shift-wall.test.ts       # trigger, warning, hold, slide range, M6 line-up case
   countdown.test.ts        # silent before CLOSE CALL range, speeds up, no catch-up bursts
   sound-levels.test.ts     # click steps, fanfare rises an octave, whomp steps down
-  title-lockup.test.ts     # SHIFT on the E's edge, the slashes under the S, the line's step into SHIFT, even padding
+  title-lockup.test.ts     # SHIFT on the E's edge, the slashes under the S and clear of it, the line's step into SHIFT, even padding
   tumble.test.ts           # the fall lands after the hit, bounces low, never sinks, settles flat in time
   wall-gen.test.ts         # valid poses for every block set, one-piece holes, hole grid, the title's pose
   wall-shape.test.ts       # layout matches the figure per lane, rects tile the wall, edges (open or closed), the panel grid, cover fit and crops
@@ -418,7 +418,8 @@ playtest covers.
   lime when current. Dark cards (`drawDarkCard()`, `DARK_CARD`) are as dark
   as the bar, cut like the key caps, in a lime edge (all of them since M11
   review 5): the title, the how-to steps and the game-over results, with a
-  lime rule under GAME OVER. The screens (M11) are
+  lime rule under GAME OVER. The title's card is lit like a wall: a lime
+  bloom outside its edge and the wall panel's glow inside (M11 review 6). The screens (M11) are
   built only from these parts on the grid stage.
 - **Typography:** each size in `FONT_SIZES` has a role (`FONT_ROLES`): display
   sizes (the title's two words, title, heading, the HUD's numbers) set in Anton, which has one weight and
@@ -844,7 +845,8 @@ Work through **PLAN.md §10** one milestone at a time.
   slanted side's foot until M11 review 2, and the title sat on one until
   review 5.)
 - **Dark card** — a panel as dark as the bar, cut like a key cap, in a
-  lime edge (`drawDarkCard()`): the title's lockup, the how-to steps, and
+  lime edge (`drawDarkCard()`; the title's is drawn lit, in `TitleLockup`):
+  the title's lockup, the how-to steps, and
   the game-over card, with GAME OVER over a lime rule and the results parted
   by the bar's line (M11 review 4). The how-to's edges were sage until M11
   review 5.
