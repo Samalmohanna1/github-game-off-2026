@@ -18,7 +18,7 @@ A wall with a hole cut in it comes toward the player. They slide their block fig
 | Tests | Vitest | For game logic only (see the "pure logic" rule below). |
 | Resolution | 1280×720, `Phaser.Scale.FIT`, centered | |
 | Art (Week 1) | Phaser shapes (rectangles/Graphics) only | No SVG yet. |
-| Art (M10b+) | A lit sci-fi grid stage with an editorial edge, after the user's mockup, all drawn in code | Deep forest green and near-black, warm cream, muted sage, and an acid lime accent. A cream runway with glowing lime edges on a glossy floor grid that meets a gridded back wall at a glowing lime seam, framed by lit cells, falling squares and floor streaks; each wall is a dark glass display panel in a neon lime frame with its hole cut out, which the figure completes when it clears the wall, its cells lighting up like the panel's pixels; cream cards (the HUD, and the title, pause and game-over screens) and a line-art bar, both with lime "//" slashes, and solid badges for the popups and prompts. Clean edges, no texture: depth comes from light. The figure stays five blocks, styled as in the mocks. (M10 was an editorial collage with torn paper and a paper-grain filter; planned as one SVG per body part until the mocks arrived.) |
+| Art (M10b+) | A lit sci-fi grid stage with an editorial edge, after the user's mockup, all drawn in code | Deep forest green and near-black, warm cream, muted sage, and an acid lime accent. A cream runway with glowing lime edges on a glossy floor grid that meets a gridded back wall at a glowing lime seam, framed by lit cells, falling squares and floor streaks; each wall is a dark glass display panel in a neon lime frame with its hole cut out, which the figure completes when it clears the wall, its cells lighting up like the panel's pixels; cream cards (the HUD, the title and the screens' headings) and a line-art bar, both with lime "//" slashes, solid badges for the popups, and on the screens, lime key cap buttons and dark cards. Clean edges, no texture: depth comes from light. The figure stays five blocks, styled as in the mocks. (M10 was an editorial collage with torn paper and a paper-grain filter; planned as one SVG per body part until the mocks arrived.) |
 | Fonts | Anton (display) and IBM Plex Mono (everything else) | Bundled from `@fontsource` (SIL OFL), never fetched at runtime. BootScene waits for them, because Phaser draws text once with whatever font is ready. |
 
 ### Rule: keep game logic separate from Phaser
@@ -77,7 +77,7 @@ SPAWN → ALIGN → POSE → (SHIFT WALL?) → RESOLVE → next wall | GAME OVER
   - The **next** letter as a hollow, cream-outlined preview chip just right of center (only while lined up). It slides to the center when it becomes current.
   - **Slipped/queued** letters as coral chips on the right. A newly slipped chip wobbles.
   - **Capital** letters also carry a Shift mark (⇧) on their chip, because case alone is hard to read for letters like o/O, s/S and x/X.
-- **SCORE** and the **WALL** number sit in the top corners, above the play area, on cream cards after the mockup: small cut outer corners, an inner edge slanting toward the middle with a sage fold in that corner, and lime "//" slashes beside it. A dark caption in IBM Plex Mono over the dark number in Anton (M10b). A new score counts up, and each number pops when it changes. Text over the moving scene (the timing label, the SHIFT callout, the Caps Lock warning, the pause text) is bright inside a thick dark outline.
+- **SCORE** and the **WALL** number sit in the top corners, above the play area, on cream cards after the mockup: small cut outer corners, an inner edge slanting toward the middle, and lime "//" slashes beside it (a sage fold sat in that corner until M11 review 2). A dark caption in IBM Plex Mono over the dark number in Anton (M10b). A new score counts up, and each number pops when it changes. Text over the moving scene (the timing label, the SHIFT callout, the Caps Lock warning, the pause text) is bright inside a thick dark outline.
 
 ### Lanes
 - `LANE_COUNT = 7` lanes across the stage.
@@ -174,7 +174,7 @@ The timing label pops up big over the figure as the wall rushes past. The game o
 ## 7. Fail and restart
 
 - When the player fails: the wall knocks the figure off its feet, toward the camera. It flails its arms as it topples toward the middle of the stage, and when it hits the floor its blocks come apart and bounce, low like wood rather than rubber, then tip flat and lie still. A screen shake goes with the landing. (Until the fifth M10 review, the figure fell into a pool with a splash of water particles and a ripple.)
-- Game-over screen: the run's **Score** and **Walls cleared**, and the wall number where it ended.
+- Game-over screen: the run's **Score** and **Walls cleared**. (It also showed the wall number where the run ended until M11 review 2; that is always walls cleared + 1.)
 - **Restart:** ignore input for 1s, wait until **every key is released**, then any key or a click restarts. This stops keys still held from the failed wall from restarting the game straight away.
 
 ---
@@ -332,6 +332,7 @@ Built in this order (chosen after M7): feel and audio go on the grey box first, 
   - **Game over:** GAME OVER on a card (with the wall the run ended on) facing a card with the run's score and walls cleared, then a lime PLAY AGAIN button once §7's restart rule allows it.
   - The mock's MAIN MENU button is left out, since a second choice would change §7's "any key or a click restarts".
 - (After the M11 review: the title dropped the stage scene and its controls bar for the stacked lockup, and the controls became the How to play screen. The buttons' ink edge is a filled shape, closed at every corner, and their text is centered on its letters rather than on Anton's line box, which had set it low. The game over shows only the run's results; the saved best score is gone.)
+- (After M11 review 2, from the user's marked-up screenshots: each shape now has one job. Slanted cream cards are headings and the HUD, key cap shapes are things to press or study, and badges are passing call-outs. The cards lost their sage folds, and the title's lockup stands upright. The buttons became lime key cap shapes in a cream edge, like the how-to's Space key, set one gap below what comes before them. HOW TO PLAY and PAUSED share one heading card size, and both hints read PRESS ANY KEY OR CLICK. The game over follows the layout of the user's reference: GAME over OVER in big cream letters on the left, right-aligned so the E and R stack, as tall as a dark card on the right with the score and walls cleared, parted by the bar's stepped line, and PLAY AGAIN under the card. The wall the run ended on was dropped. The lockup was exported as an SVG with live Anton text to `../design-mocks/logo/` for the user to edit in Figma.)
 - ✅ A new player can start a run knowing the controls from the title and How to play screens.
 
 **M12: Ship**

@@ -31,20 +31,23 @@ Scenes, one per screen:
 | Scene | Status | Contents |
 |---|---|---|
 | `BootScene` | Final (M10b) | Waits for the bundled fonts (`loadFonts()`, giving up after `FONT_LOAD_TIMEOUT`), then hands off to Title. |
-| `TitleScene` | Final (M11 review) | The grid stage, the lockup after the mock (SHAPE stacked over SHIFT in Anton on a big cream card slanting both ways, with lime slashes, tilted a little like the mock's paper), and a lime CLICK TO PLAY button. The click gives the page keyboard focus inside the itch.io iframe and leads to How to play. |
-| `HowToScene` | Final (M11 review) | How to play, between the title and the first wall: HOW TO PLAY on a card, then three numbered steps on dark cards, each with its keys and one sentence (01 LINE UP, Space; 02 HOLD ON, the letters and Shift; 03 FIT THROUGH, a PERFECT badge), and a lime START button. Any key or a click starts the run, after `HOW_TO.inputDelayMs` so the title's click can't skip it. Restarts from game over skip it. |
-| `PlayScene` | Interim (M10b) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). Space lines the figure up, one lane toward the hole per press (during a Shift Wall's warning, toward the lane it is about to slide to); the arrow keys don't move it; the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 4+), the wall stops behind a SHIFT callout, turns orange with an arrow, and the hole slides 1 lane with a sideways jolt while the new lane's tile is marked on the floor; then the wall carries on; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: a PERFECT / GREAT / CLOSE CALL label pops over the figure, the wall comes the rest of the way to the figure, the figure's cells light up lime like the panel's pixels and the panel fills back in (the completion), and the wall fades away as the next one fades in. Held blocks land with a squash, slipped ones slump back limp, a wrong key rattles the wall, and a CLOSE CALL plays the rush in slow motion. If the wall arrives first, it knocks the figure over: it topples toward the camera with its arms flailing, and its blocks come apart and bounce to a stop on the floor before the run ends. Synthesized sounds (M9) play over all of it: the countdown tick in CLOSE CALL range, clicks, slips, the PERFECT fanfare, the Shift Wall alert and whoosh, and the fail's hit and "whomp whomp whooom". Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses the game behind a veil, with PAUSED on a cream card and a lime CLICK TO RESUME badge (`PauseOverlay`, M11). F2 toggles the debug overlay. Everything is drawn in the M10b art, a dark grid stage after the user's mockup: a glossy floor grid running back to a gridded back wall at the runway's far end, meeting it at a glowing lime seam, with lit cells that breathe, squares that fall slowly and fade, and streaks running down the floor; a cream runway with thin seams and glowing lime edges, where the figure stands centered on its lane's tile and the lined-up tile is marked; walls that are dark glass display panels lined on the figure's cells, with dots at the crossings, scanlines and the glow of a neon lime frame, with a see-through cutout in an equally thick lime edge; black blocks with cream seams between their cells and a cream edge; a dark line-art bar of cream key caps with lime slashes and a square per letter; SCORE and WALL on cream cards with lime slashes in the top corners; the timing label and the SHIFT callout on solid badges in a thick ink edge; and the Caps Lock warning in bright letters inside a thick dark outline. No texture anywhere. |
-| `GameOverScene` | Final (M11 review) | After the mock's layout, on the grid stage: GAME OVER on a cream card on the left (with the wall the run ended on), and on the right a cream card with this run's SCORE, a rule and its WALLS CLEARED, the two cards' slanted sides and slashes facing across the gap. No all-time best is kept or shown (M11 review). Restart follows PLAN.md §7: input is ignored for `RESTART_LOCKOUT`, then every key must be up ("LET GO OF EVERY KEY TO PLAY AGAIN" shows meanwhile) before a key or click restarts, when a lime PLAY AGAIN badge shows over "CLICK OR PRESS ANY KEY". |
+| `TitleScene` | Final (M11 review 2) | The grid stage, the lockup after the mock (SHAPE stacked over SHIFT in Anton on a big cream card slanting both ways, with lime slashes; upright since M11 review 2), and a lime CLICK TO PLAY button below it, the two centered as one block. The click gives the page keyboard focus inside the itch.io iframe and leads to How to play. |
+| `HowToScene` | Final (M11 review) | How to play, between the title and the first wall: HOW TO PLAY on a heading card, then three numbered steps on dark cards, each with its keys and one sentence (01 LINE UP, Space; 02 HOLD ON, the letters and Shift; 03 FIT THROUGH, a PERFECT badge), and a lime START button. Any key or a click starts the run, after `HOW_TO.inputDelayMs` so the title's click can't skip it. Restarts from game over skip it. |
+| `PlayScene` | Interim (M10b) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). Space lines the figure up, one lane toward the hole per press (during a Shift Wall's warning, toward the lane it is about to slide to); the arrow keys don't move it; the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 4+), the wall stops behind a SHIFT callout, turns orange with an arrow, and the hole slides 1 lane with a sideways jolt while the new lane's tile is marked on the floor; then the wall carries on; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: a PERFECT / GREAT / CLOSE CALL label pops over the figure, the wall comes the rest of the way to the figure, the figure's cells light up lime like the panel's pixels and the panel fills back in (the completion), and the wall fades away as the next one fades in. Held blocks land with a squash, slipped ones slump back limp, a wrong key rattles the wall, and a CLOSE CALL plays the rush in slow motion. If the wall arrives first, it knocks the figure over: it topples toward the camera with its arms flailing, and its blocks come apart and bounce to a stop on the floor before the run ends. Synthesized sounds (M9) play over all of it: the countdown tick in CLOSE CALL range, clicks, slips, the PERFECT fanfare, the Shift Wall alert and whoosh, and the fail's hit and "whomp whomp whooom". Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses the game behind a veil, with PAUSED on a heading card and a lime CLICK TO RESUME button (`PauseOverlay`, M11). F2 toggles the debug overlay. Everything is drawn in the M10b art, a dark grid stage after the user's mockup: a glossy floor grid running back to a gridded back wall at the runway's far end, meeting it at a glowing lime seam, with lit cells that breathe, squares that fall slowly and fade, and streaks running down the floor; a cream runway with thin seams and glowing lime edges, where the figure stands centered on its lane's tile and the lined-up tile is marked; walls that are dark glass display panels lined on the figure's cells, with dots at the crossings, scanlines and the glow of a neon lime frame, with a see-through cutout in an equally thick lime edge; black blocks with cream seams between their cells and a cream edge; a dark line-art bar of cream key caps with lime slashes and a square per letter; SCORE and WALL on cream cards with lime slashes in the top corners; the timing label and the SHIFT callout on solid badges in a thick ink edge; and the Caps Lock warning in bright letters inside a thick dark outline. No texture anywhere. |
+| `GameOverScene` | Final (M11 review 2) | Laid out after the user's reference, on the grid stage: GAME over OVER in big cream Anton on the left, their right edges lined up so the E and the R stack, standing exactly as tall as a dark card on the right with this run's SCORE and WALLS CLEARED, parted by the bar's line; the two centered across the screen. No all-time best is kept or shown (M11 review), nor the wall the run ended on, which is always walls cleared + 1 (M11 review 2). Restart follows PLAN.md §7: input is ignored for `RESTART_LOCKOUT`, then every key must be up ("LET GO OF EVERY KEY TO PLAY AGAIN" shows meanwhile) before a key or click restarts, when a lime PLAY AGAIN button shows under the card over "PRESS ANY KEY OR CLICK". |
 
 Shared scene helpers live in `src/scenes/` (`ui.ts`, `text-styles.ts`,
 `scene-keys.ts`). Game objects live in `src/objects/`:
 `GridVoid`, `Floor`, `LaneTiles`, `Wall`, `Figure`, `Completion`,
-`PromptTray`, `Hud`, `TimingLabel`, `ShiftCallout`, `PromptBadge`,
+`PromptTray`, `Hud`, `TimingLabel`, `ShiftCallout`, `PromptButton`,
 `PauseOverlay` and `DebugOverlay`, plus `WallPanel` (paints
 the wall's display panel into a texture), `ImagePieces` (that texture
 cropped to rects, shared by the wall and the completion), and the drawing
-helpers `drawCard()` (the cream cards), `drawBadge()` (the badges),
-`fillSlash()` (the lime "//" slashes) and `addKeyCap()` (a labeled key cap).
+helpers `drawCard()` (the cream cards) and `makeHeadingCard()` (a screen's
+heading on one), `drawDarkCard()` (the dark cards), `drawBadge()` (the
+badges), `fillSlash()` (the lime "//" slashes), `drawBarLine()` (the bar's
+stepped line), `fillEdgedKeyCap()` (a key cap shape in a closed edge) and
+`addKeyCap()` (a labeled key cap).
 Keyboard input lives in `src/input/`:
 `KeyboardInput` (native listeners, one per Play scene) and
 `preventPageScroll()` (game-wide, from `main.ts`).
@@ -106,8 +109,8 @@ the doc is **part of that change, not a follow-up**.
   texture for the wall's panel. M10b is a sci-fi grid stage with an
   editorial edge (PLAN.md §1, §3): a dark perspective grid, a cream runway,
   walls that are neon-framed display panels with their hole cut out, cream
-  cards and a line-art bar with lime slashes, and solid badges for the
-  popups and the screens' prompts. M11 sets the title, pause and game-over
+  cards and a line-art bar with lime slashes, solid badges for the popups,
+  and key cap buttons for the screens' prompts (M11 review 2). M11 sets the title, pause and game-over
   screens in the same language. Since M10b review 2 the stage follows the user's mockup: lit
   and layered, never flat (a glowing seam, a back wall, a glossy floor, lit
   squares). Clean edges and no texture. The figure stays the same five blocks
@@ -159,7 +162,7 @@ src/
     letters.ts             # stretchScore, combo generator, ordering, capitals
     random.ts              # injectable random helpers (shuffle, pick, int)
     fall.ts                # the falling squares' cycles: where each is, and its fade in and out
-    convex.ts              # chamfered rects: the key caps' angular shape
+    convex.ts              # chamfered rects: the key caps' angular shape, grown evenly for an edge (keyCapRect)
     perspective.ts         # vanishing point, project(), floor edges, tile seams + the figure's tile
     wall-shape.ts          # the wall's layout per lane, solid and hole rects, hole and frame edges, the panel's cell grid, a texture's cover fit and crops
     restart.ts             # game-over lockout + "release every key" gate
@@ -175,9 +178,10 @@ src/
     Floor.ts               # the cream runway: rows shading into the distance, thin seams, glowing lime edges
     Hud.ts                 # SCORE and WALL on cream cards with lime slashes in the top corners; count-up + pop
     LaneTiles.ts           # the figure's row of floor tiles: lined-up marker (flash, then outline), Shift Wall's target lane
-    card.ts                # drawCard(): a cream card slanting on one side or both, with a sage fold and lime slashes
+    card.ts                # drawCard(): a cream card slanting on one side or both, with lime slashes; makeHeadingCard(); drawDarkCard()
     badge.ts               # drawBadge(): a solid parallelogram in a thick ink edge, plus its slashes
     slash.ts               # fillSlash(): one slanted stroke of the "//" motif, fading top to foot
+    bar-line.ts            # drawBarLine(): the bar's thin stepped line and its slashes (the bar, the game-over card)
     vectors.ts             # points -> Phaser Vector2s; square-capped segment edges
     WallPanel.ts           # paints the wall's dark glass display panel into the canvas texture the wall and the completion show
     ImagePieces.ts         # that texture covering the wall, cropped to rects (the wall's solid part, the completion's piece)
@@ -185,9 +189,9 @@ src/
     Figure.ts              # five black blocks with cell seams + shadow; squash on snap, limp slump on slip, topple on a fail
     Completion.ts          # the completion over the figure: its cells light up lime, the panel fills back in
     PromptTray.ts          # the bar: held / current (in its socket) / next preview / slipped key caps; a square per letter
-    keycap.ts              # the key caps' chamfered shape; addKeyCap(): a labeled cap (the how-to screen's keys)
-    PromptBadge.ts         # a screen's call to action: a pulsing lime badge (Click to play, Click to resume, Play again)
-    PauseOverlay.ts        # veil, PAUSED on a card, Click to resume badge; shown on blur
+    keycap.ts              # the key caps' chamfered shape; fillEdgedKeyCap(): it in a closed edge; addKeyCap(): a labeled cap (the how-to screen's keys)
+    PromptButton.ts        # a screen's call to action: a pulsing lime key cap in a cream edge (Click to play, Start, Click to resume, Play again)
+    PauseOverlay.ts        # veil, PAUSED on a heading card, Click to resume button; shown on blur
     ShiftCallout.ts        # SHIFT + arrow on a yellow badge while a Shift Wall holds
     TimingLabel.ts         # PERFECT / GREAT / CLOSE CALL on a badge in the grade's color, points on an ink tab
     DebugOverlay.ts        # F2 panel: state, t, lanes, prompt, queue, held, stretch
@@ -204,7 +208,7 @@ src/
 tests/
   approach.test.ts         # t advance, wrong-key jump, ease-in, wall scale
   config.test.ts           # config invariants + text and graphics contrast
-  convex.test.ts           # chamfered rects: plain, and cut only where asked
+  convex.test.ts           # chamfered rects: plain, and cut only where asked; key cap rects grown evenly
   fall.test.ts             # falling cycles wrap and start by phase; the fade is 0 at both ends, full between
   dev-options.test.ts      # ?wall / ?shiftwall parsing and fallbacks
   difficulty.test.ts       # tier table, wall time decay, Shift Wall chance, caps
@@ -387,21 +391,28 @@ playtest covers.
   gone; depth comes from light (gradients, glows, the seam's bloom), not
   texture. The figure, text, the bar and the chips stay clean, and the cutout is open, showing what is
   behind the wall.
-- **UI after the mockup (M10b review 2).** Cards (`drawCard()`, `CARD`) are
-  cream with dark text, small cut corners on the straight side, a side
-  slanting inward toward the foot (either side, or both), a sage fold in
-  that corner and lime "//" slashes beside it (`fillSlash()`). A card of any
-  height keeps one slant angle. The HUD's cards face the middle; the title's
-  lockup (tilted like the mock's paper), the how-to heading and the pause
-  card slant both ways; the game-over cards face each other. Badges
+- **UI after the mockup (M10b review 2).** Each shape has one job (M11
+  review 2): a slanted cream card is a heading or the HUD, read at a
+  glance; a key cap shape (two corners cut, two square) is something to
+  press or study: the keys, the buttons and the dark cards; a
+  parallelogram badge is a passing call-out. Cards (`drawCard()`, `CARD`)
+  are cream with dark text, small cut corners on the straight side, a side
+  slanting inward toward the foot (either side, or both) and lime "//"
+  slashes beside it (`fillSlash()`), with no fold (M11 review 2). A card of
+  any height keeps one slant angle. The HUD's cards face the middle; the
+  title's lockup (upright) and the headings (`makeHeadingCard()`,
+  `HEADING_CARD`, one size on every screen) slant both ways. Badges
   (`drawBadge()`, `BADGE`) are solid parallelograms in a thick ink edge:
-  the timing label, the SHIFT callout, and the screens' lime prompts
-  (`PromptBadge`), which pulse in size. The bar is a dark band with a thin
-  stepped line along its foot, lime slashes at its left end and a square
-  per letter at its right. Key caps have 45-degree cut corners
-  (`chamferedRect()`): cream with dark letters, lime-edged when held, framed
-  in lime when current. The screens (M11) are built only from these parts on
-  the grid stage, with no layout of their own.
+  the timing label and the SHIFT callout. Buttons (`PromptButton`,
+  `PROMPT_BUTTON`) are lime key cap shapes in a cream edge, which pulse in
+  size, set one gap below what comes before them, any hint under them. The
+  bar is a dark band with a thin stepped line along its foot
+  (`drawBarLine()`), lime slashes at its left end and a square per letter at
+  its right. Key caps have 45-degree cut corners (`chamferedRect()`,
+  `keyCapRect()`): cream with dark letters, lime-edged when held, framed in
+  lime when current. Dark cards (`drawDarkCard()`, `DARK_CARD`) are as dark
+  as the bar, cut like the key caps, in a sage edge. The screens (M11) are
+  built only from these parts on the grid stage.
 - **Typography:** each size in `FONT_SIZES` has a role (`FONT_ROLES`): display
   sizes (poster, title, heading, the HUD's numbers) set in Anton, which has one weight and
   is never bolded; the rest (the cards' captions, the prompt letters and other
@@ -429,12 +440,14 @@ playtest covers.
   against every background it is drawn on (`TEXT_ON` in that test; add new
   pairs there), and keeps every font size at 24px or more. Text that fades or
   flashes must still meet AA at its faintest frame. Text over the moving
-  scene sits on a solid badge or card (the timing label, the SHIFT callout,
-  the screens' prompts and cards), so it never depends on what is behind;
+  scene sits on a solid badge, button or card (the timing label, the SHIFT
+  callout, the screens' buttons and cards), so it never depends on what is
+  behind;
   the Caps Lock warning is bright inside a thick `COLORS.textOutline` stroke
   (`outlinedStyle()`, `TEXT_OUTLINE`), and is measured against that outline;
-  the rest sits on a chip, a how-to step card or the void (the screens'
-  hints).
+  the rest sits on a chip, a dark card or the void (GAME OVER, the screens'
+  hints). The buttons' cream edge sets them off the stage and the pause
+  veil.
   Record every pair below AAA, with its measured ratio, in the list below.
   - Pairs below AAA: none.
 - **Keyboard first.** The game is played entirely on the keyboard, except the
@@ -773,8 +786,7 @@ Work through **PLAN.md §10** one milestone at a time.
   the first click and suspends while the window is blurred. Sounds are
   skipped while the context isn't running, so none queue up.
 - **HUD** (M10b) — SCORE top-left and the WALL number top-right (`Hud`), each
-  on a card after the mockup (slanted inner edge, sage fold, lime
-  slashes), above the play area: a dark caption in IBM Plex Mono over the
+  on a card after the mockup (slanted inner edge, lime slashes), above the play area: a dark caption in IBM Plex Mono over the
   dark number in Anton. The card grows with its number; a new score counts up, and each
   number pops when it changes. The mocks show a run timer top-right; the game
   has none, so the wall number takes its place.
@@ -802,16 +814,24 @@ Work through **PLAN.md §10** one milestone at a time.
   "//" slashes (`drawBadge()`, M10b review 4, when outlined text was lost
   against busy walls), with dark text: the timing label on its grade's
   color (PERFECT lime, GREAT cream, CLOSE CALL coral) with its points on an
-  ink tab, the SHIFT callout and its arrow on yellow, and the screens'
-  buttons on lime (`PromptBadge`: CLICK TO PLAY, START, CLICK TO RESUME,
-  PLAY AGAIN), which pulse in size. The edge is a filled shape, closed at
-  every corner, and the text is centered on its letters (`centerGlyphs()`),
-  not on Anton's line box (M11 review).
-- **Card** — the cream panel of the HUD, the title's lockup, the how-to
-  heading, the pause screen and the game-over screen (`drawCard()`, `CARD`):
-  cut corners on its
-  straight side, a side (or both) slanting inward toward its foot with a
-  sage fold and lime slashes beside it. Every card keeps one slant angle.
+  ink tab, and the SHIFT callout and its arrow on yellow. The edge is a
+  filled shape, closed at every corner, and the text is centered on its
+  letters (`centerGlyphs()`), not on Anton's line box (M11 review). (The
+  screens' buttons were lime badges until M11 review 2.)
+- **Button** — a screen's call to action (`PromptButton`, M11 review 2):
+  dark Anton on a lime key cap shape, its top-left and bottom-right corners
+  cut like the how-to's Space key, in a closed cream edge, pulsing in size:
+  CLICK TO PLAY, START, CLICK TO RESUME, PLAY AGAIN. It sits one gap
+  (`PROMPT_BUTTON.gapAbove`) below what comes before it, with any hint
+  under it.
+- **Card** — the cream panel of the HUD, the title's lockup and the
+  screens' headings (`drawCard()`, `CARD`): cut corners on its straight
+  side, a side (or both) slanting inward toward its foot with lime slashes
+  beside it. Every card keeps one slant angle. (A sage fold lay in the
+  slanted side's foot until M11 review 2.)
+- **Dark card** — a panel as dark as the bar, cut like a key cap, in a
+  sage edge (`drawDarkCard()`): the how-to steps, and the game-over results,
+  parted by the bar's line (M11 review 2).
 - **Outlined text** — bright letters inside a thick dark stroke
   (`outlinedStyle()`, `TEXT_OUTLINE`), for the Caps Lock warning over the
   moving scene. (The timing label, the SHIFT callout and the pause text were
