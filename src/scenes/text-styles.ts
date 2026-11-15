@@ -44,15 +44,15 @@ interface GlyphBox {
 // Where a one-line text's letters start and end, in px from its top-left:
 // where Phaser draws it (its baseline, and its left edge inside the padding)
 // less and plus the letters' own measured reach, not the font's line box or
-// the letters' side bearings.
-function glyphBox(text: Phaser.GameObjects.Text): GlyphBox {
+// the letters' side bearings. `sample` measures other letters in its place.
+function glyphBox(text: Phaser.GameObjects.Text, sample = text.text): GlyphBox {
   probe ??= document.createElement('canvas').getContext('2d');
   if (probe === null) return { left: 0, right: text.width, top: 0, bottom: text.height };
   const inset = text.style.strokeThickness / 2;
   const baseline = (text.padding.top ?? 0) + inset + text.getTextMetrics().ascent;
   const start = (text.padding.left ?? 0) + inset;
   probe.font = `${text.style.fontStyle} ${text.style.fontSize} ${text.style.fontFamily}`.trim();
-  const letters = probe.measureText(text.text);
+  const letters = probe.measureText(sample);
   return {
     left: start - letters.actualBoundingBoxLeft,
     right: start + letters.actualBoundingBoxRight,
@@ -63,9 +63,10 @@ function glyphBox(text: Phaser.GameObjects.Text): GlyphBox {
 
 // Centers a one-line text's letters on its y. Anton's line box leaves more
 // room above its capitals than below, so centering the box set them low on
-// cards and buttons (M11 review).
+// cards and buttons (M11 review). A number's commas hang below its digits,
+// so it is centered on its digits alone, wherever its commas fall.
 export function centerGlyphs(text: Phaser.GameObjects.Text): Phaser.GameObjects.Text {
-  const { top, bottom } = glyphBox(text);
+  const { top, bottom } = glyphBox(text, text.text.replace(/(\d),(?=\d)/g, '$1'));
   return text.setOrigin(text.originX, (top + bottom) / 2 / text.height);
 }
 

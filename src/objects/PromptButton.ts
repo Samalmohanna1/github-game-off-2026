@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { COLORS, PROMPT_BUTTON, PROMPT_PULSE_MS, PROMPT_PULSE_SCALE } from '@/config';
+import { COLORS, FONT_SIZES, PROMPT_BUTTON, PROMPT_PULSE_MS, PROMPT_PULSE_SCALE } from '@/config';
 import { fillEdgedKeyCap } from '@/objects/keycap';
 import { centerGlyphs, textStyle } from '@/scenes/text-styles';
 import { prefersReducedMotion } from '@/scenes/ui';
@@ -11,6 +11,10 @@ export const BUTTON_REACH = PROMPT_BUTTON.gapAbove + 2 * PROMPT_BUTTON.edgeWidth
 export function buttonYBelow(bottom: number): number {
   return bottom + BUTTON_REACH - PROMPT_BUTTON.edgeWidth - PROMPT_BUTTON.height / 2;
 }
+
+// How far a button and the hint under it reach below what comes before
+// them (the hint's small text is at most its size tall).
+export const HINT_REACH = buttonYBelow(0) + PROMPT_BUTTON.hintBelow + FONT_SIZES.small / 2;
 
 // A screen's button (M11 review 2): dark Anton on a lime key cap shape, the
 // top-left and bottom-right corners cut like the how-to's Space key, in a

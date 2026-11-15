@@ -123,9 +123,12 @@ export const COLORS = {
   buttonEdge: PALETTE.cream,
   // Dark cards (M11 review): the how-to steps and the game-over results, as
   // dark as the bar, in a sage edge, with lime numbers or captions and cream
-  // words.
+  // words. The game-over card is edged in lime, with a lime rule under its
+  // heading, as in the user's mock (M11 review 4).
   darkCard: PALETTE.voidInk,
   darkCardEdge: PALETTE.sage,
+  gameOverEdge: PALETTE.lime,
+  gameOverRule: PALETTE.lime,
   debugPanel: PALETTE.cream,
   veil: PALETTE.voidInk, // over the paused game
 } as const;
@@ -162,7 +165,6 @@ export const FONT_LOAD_TIMEOUT = 3000; // ms; past this, start with the fallback
 // px. Nothing goes below 24 so all text counts as "large" for WCAG contrast.
 export const FONT_SIZES = {
   lockup: 180,
-  poster: 196,
   title: 112,
   heading: 80,
   subheading: 48,
@@ -177,7 +179,6 @@ export const FONT_SIZES = {
 // The HUD's captions are technical detail, so they set in IBM Plex Mono (M10b).
 export const FONT_ROLES: Readonly<Record<keyof typeof FONT_SIZES, 'display' | 'mono'>> = {
   lockup: 'display',
-  poster: 'display',
   title: 'display',
   heading: 'display',
   subheading: 'display',
@@ -192,7 +193,6 @@ export const FONT_ROLES: Readonly<Record<keyof typeof FONT_SIZES, 'display' | 'm
 // width per size, px. Half of it lies outside the letters.
 export const TEXT_OUTLINE: Readonly<Record<keyof typeof FONT_SIZES, number>> = {
   lockup: 24,
-  poster: 20,
   title: 16,
   heading: 14,
   subheading: 10,
@@ -228,10 +228,10 @@ export const HEADING_CARD = { height: 96, padX: 40 } as const;
 // Dark cards (drawDarkCard(): the how-to steps, the game-over results): cut
 // like the key caps by `cut`, in an edge edgeWidth px thick.
 export const DARK_CARD = { cut: 20, edgeWidth: 2 } as const;
-// Stacked lockups (the title, GAME OVER; M11 review 3): each word on its
-// own line at its own size, so every line's letters span one width, flush
-// on both sides, the lines lineGap px apart (about half Anton's stem at
-// these sizes).
+// Stacked lockups (the title; M11 review 3): each word on its own line at
+// its own size, so every line's letters span one width, flush on both
+// sides, the lines lineGap px apart (about half Anton's stem at these
+// sizes).
 export const LOCKUP = { lineGap: 18 } as const;
 // Title (M11 review): the grid stage and the lockup after the mock (SHAPE
 // over SHIFT on a card slanting both ways; SHAPE at FONT_SIZES.lockup sets
@@ -262,24 +262,22 @@ export const KEY_CAP = { height: 50, padX: 14 } as const;
 // Pause: a veil over the game, the PAUSED heading centered on headingY, and
 // the Click to resume button below it.
 export const PAUSE = { veilAlpha: 0.8, headingY: 260 } as const;
-// Game over (M11 review 2), laid out after the user's reference: GAME over
-// OVER in big cream letters on the stage, a stacked lockup (LOCKUP; sized
-// from FONT_SIZES.poster) standing exactly as tall as the results card
-// middleGap to its right; the two centered across the screen as one block,
-// from `top` down. The card is a dark card cardHeight tall and at least minCardWidth
-// wide (wider for a long score), its rows padX in from its left, each
-// centered on its y from the card's top: the SCORE caption and this run's
-// score, the bar's line on ruleY (the slashes, then a run of ruleRun px
-// before it steps down), then the WALLS CLEARED caption and the count. Play
-// again sits under the card, and its hint under that.
+// Game over (M11 review 4), after the user's mock: one dark card in a lime
+// edge, cardHeight tall and at least minCardWidth wide (wider for a long
+// score), centered on the screen with Play again and its hint below it, the
+// three centered down the screen as one block. Inside, every row sits padX
+// in from the card's left, centered on its y from the card's top: GAME OVER,
+// a lime rule ruleWidth thick across the card on ruleY, the SCORE caption
+// and this run's score, the bar's line on barY (the slashes, then a run of
+// barRun px before it steps down), and the WALLS CLEARED caption and the
+// count, set at the HUD's number size so the rows have room to breathe.
 export const GAME_OVER = {
-  top: 88,
-  middleGap: 64,
-  cardHeight: 364,
-  minCardWidth: 420,
-  padX: 36,
-  rows: { scoreCaptionY: 40, scoreY: 114, ruleY: 195, wallsCaptionY: 238, wallsY: 298 },
-  ruleRun: 56,
+  cardHeight: 464,
+  minCardWidth: 520,
+  padX: 44,
+  rows: { headingY: 67, ruleY: 122, scoreCaptionY: 156, scoreY: 227, barY: 311, wallsCaptionY: 358, wallsY: 407 },
+  ruleWidth: 2,
+  barRun: 56,
 } as const;
 
 // Key caps in the bar, px. The current prompt sits in the center; held

@@ -269,6 +269,13 @@ describe('graphics contrast', () => {
     }
   });
 
+  // M11 review 4: the game-over card's lime edge and the rule under its
+  // heading.
+  it('edges the game-over card clearly, with its rule reading on it', () => {
+    expect(contrastRatio(C.COLORS.gameOverEdge, C.COLORS.void)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(contrastRatio(C.COLORS.gameOverRule, C.COLORS.darkCard)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  });
+
   it.each(['trayLine', 'trayAccent', 'trayDim'] as const)('%s reads on the bar', (name) => {
     expect(contrastRatio(C.COLORS[name], C.COLORS.tray)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
@@ -324,11 +331,9 @@ const TEXT_PAIRS = Object.entries(TEXT_ON).flatMap(([bg, texts]) => texts.map((t
 describe('screen layouts', () => {
   // Anton's capitals stand about 0.9 of its size. A stacked lockup grows
   // its narrower lines to the widest one's width: SHIFT ends up about 1.17
-  // times SHAPE's size. A four-letter word of its capitals stands at least
-  // 0.4 of its width tall.
+  // times SHAPE's size.
   const ANTON_CAPS = 0.9;
   const LOCKUP_GROWTH = 1.25;
-  const FOUR_LETTER_RATIO = 0.4;
   const B = C.PROMPT_BUTTON;
   // A button's reach below what comes before it, and its hint's middle below
   // that same edge (the hint is small text, half its size tall).
@@ -356,26 +361,32 @@ describe('screen layouts', () => {
     expect(cards.keysY + Math.max(C.KEY_CAP.height, C.HOW_TO.badge.height) / 2).toBeLessThan(cards.textY);
   });
 
-  it('fits GAME OVER beside the results card, and the button and hint below it', () => {
-    const { top, cardHeight, middleGap, minCardWidth } = C.GAME_OVER;
-    // The lockup stands as tall as the card, so its width follows from that.
-    const lockupWidth = (cardHeight - C.LOCKUP.lineGap) / (2 * FOUR_LETTER_RATIO);
-    expect(lockupWidth + middleGap + minCardWidth).toBeLessThan(C.GAME_WIDTH);
-    expect(top + cardHeight + hintFoot).toBeLessThan(C.GAME_HEIGHT);
+  // M11 review 4 asked for room to breathe: the card, Play again and its
+  // hint keep a margin above and below them.
+  it('fits the game-over card, its button and hint on screen with room to spare', () => {
+    const { cardHeight, minCardWidth } = C.GAME_OVER;
+    const margin = (C.GAME_HEIGHT - cardHeight - hintFoot) / 2;
+    expect(margin).toBeGreaterThanOrEqual(32);
+    expect(minCardWidth).toBeLessThan(C.GAME_WIDTH);
   });
 
-  it('stacks the game-over results inside their card', () => {
-    const { cardHeight, rows } = C.GAME_OVER;
+  it('stacks the game-over rows inside their card, each clear of the next', () => {
+    const { cardHeight, rows, ruleWidth } = C.GAME_OVER;
+    const heading = (ANTON_CAPS * C.FONT_SIZES.heading) / 2;
     const caption = C.FONT_SIZES.hudLabel / 2;
     const score = (ANTON_CAPS * C.FONT_SIZES.title) / 2;
-    const walls = (ANTON_CAPS * C.FONT_SIZES.heading) / 2;
+    const walls = (ANTON_CAPS * C.FONT_SIZES.hud) / 2;
     const drop = C.TRAY.lowY - C.TRAY.highY;
-    expect(rows.scoreCaptionY - caption).toBeGreaterThan(0);
-    expect(rows.scoreCaptionY + caption).toBeLessThan(rows.scoreY - score);
-    expect(rows.scoreY + score).toBeLessThan(rows.ruleY - C.SLASH.height / 2);
-    expect(rows.ruleY + Math.max(drop, C.SLASH.height / 2)).toBeLessThan(rows.wallsCaptionY - caption);
-    expect(rows.wallsCaptionY + caption).toBeLessThan(rows.wallsY - walls);
-    expect(rows.wallsY + walls).toBeLessThan(cardHeight);
+    // On top of these generous letter heights, so the real gaps are wider.
+    const gap = 8;
+    expect(rows.headingY - heading).toBeGreaterThanOrEqual(gap);
+    expect(rows.headingY + heading + gap).toBeLessThanOrEqual(rows.ruleY - ruleWidth / 2);
+    expect(rows.ruleY + ruleWidth / 2 + gap).toBeLessThanOrEqual(rows.scoreCaptionY - caption);
+    expect(rows.scoreCaptionY + caption + gap).toBeLessThanOrEqual(rows.scoreY - score);
+    expect(rows.scoreY + score + gap).toBeLessThanOrEqual(rows.barY - C.SLASH.height / 2);
+    expect(rows.barY + Math.max(drop, C.SLASH.height / 2) + gap).toBeLessThanOrEqual(rows.wallsCaptionY - caption);
+    expect(rows.wallsCaptionY + caption + gap).toBeLessThanOrEqual(rows.wallsY - walls);
+    expect(rows.wallsY + walls + gap).toBeLessThanOrEqual(cardHeight);
   });
 
   it('fits the pause heading and its button on screen', () => {
