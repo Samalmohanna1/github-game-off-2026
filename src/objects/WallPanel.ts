@@ -60,23 +60,26 @@ export class WallPanel {
     c.fillStyle = toCss(COLORS.panelScan);
     for (let y = 0; y < height; y += d.scanEvery) c.fillRect(0, y, width, 1);
     c.globalAlpha = 1;
-    glowInside(c, width, height);
+    glowInside(c, 0, 0, width, height);
     c.restore();
     this.texture.refresh();
   }
 }
 
-// The neon frame's light on the glass: lime fading inward from every edge.
-function glowInside(c: CanvasRenderingContext2D, width: number, height: number): void {
+// The neon frame's light on the glass: lime fading inward from every edge
+// of the box at x, y. Also the title card's (M11 review 6), so the two glow
+// alike.
+export function glowInside(c: CanvasRenderingContext2D, x0: number, y0: number, width: number, height: number): void {
   const { glowDepth: depth, glowAlpha: alpha } = WALL_DISPLAY;
   const glow = Phaser.Display.Color.IntegerToColor(COLORS.panelGlow);
   const rgba = (a: number) => `rgba(${glow.red}, ${glow.green}, ${glow.blue}, ${a})`;
+  const [x1, y1] = [x0 + width, y0 + height];
   // Each edge: where the glow starts, where it has faded, and the band it fills.
   const edges: readonly (readonly [number, number, number, number, number, number, number, number])[] = [
-    [0, 0, 0, depth, 0, 0, width, depth],
-    [0, height, 0, height - depth, 0, height - depth, width, depth],
-    [0, 0, depth, 0, 0, 0, depth, height],
-    [width, 0, width - depth, 0, width - depth, 0, depth, height],
+    [x0, y0, x0, y0 + depth, x0, y0, width, depth],
+    [x0, y1, x0, y1 - depth, x0, y1 - depth, width, depth],
+    [x0, y0, x0 + depth, y0, x0, y0, depth, height],
+    [x1, y0, x1 - depth, y0, x1 - depth, y0, depth, height],
   ];
   for (const [x0, y0, x1, y1, x, y, w, h] of edges) {
     const fade = c.createLinearGradient(x0, y0, x1, y1);

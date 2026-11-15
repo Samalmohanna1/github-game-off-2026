@@ -232,22 +232,29 @@ export const HEADING_CARD = { height: 96, padX: 40 } as const;
 // results): cut like the key caps by `cut`, in an edge edgeWidth px thick.
 export const DARK_CARD = { cut: 20, edgeWidth: 2 } as const;
 // Title (M11 review 5, Option 2 of the user's title concepts, TitleLockup and
-// src/logic/title-lockup.ts): SHAPE large (FONT_SIZES.lockup) over SHIFT
-// (FONT_SIZES.lockupSub) in cream Anton, leaning `lean` px across per px up
-// (the badges' lean, BADGE.slant / BADGE.height), on a dark card padX and
-// padY round the lockup's reach. SHIFT sits lineGap below SHAPE with its
-// right edge on the E's leaning right edge. The bar's line (drawBarLine())
-// starts with its slashes under the S, reaching as far left as the S does,
-// steps down to SHIFT's middle, runs lowRun px on, and stops stepGap short
-// of SHIFT. The card and the Click to play button below it are centered on
-// the screen as one block.
+// src/logic/title-lockup.ts): SHAPE large (FONT_SIZES.lockup) in cream over
+// SHIFT (FONT_SIZES.lockupSub) in lime (M11 review 6), in Anton, leaning
+// `lean` px across per px up (the badges' lean, BADGE.slant / BADGE.height),
+// on a dark card padX and padY round the lockup's reach, lit like a wall
+// (M11 review 6): the wall panel's glow inside its edge (WALL_DISPLAY) and a
+// lime bloom outside it, blurred `bloom.blur` px, at most `bloom.alpha`.
+// SHIFT sits lineGap below SHAPE with its right edge on the E's leaning
+// right edge. The bar's line (drawBarLine(), motifScale times the bar's
+// size) starts with its slashes under the S, reaching as far left as the S
+// does, steps down to the height of the top of SHIFT's S's lower tail
+// (sTerminal, in ems above the baseline, read from Anton's outline), runs
+// lowRun px on, and stops stepGap short of SHIFT. The card and the Click to
+// play button below it are centered on the screen as one block.
 export const TITLE = {
   lean: 24 / 92,
-  lineGap: 20,
+  lineGap: 14,
   padX: 48,
   padY: 40,
   stepGap: 22,
   lowRun: 28,
+  motifScale: 1.5,
+  sTerminal: 658 / 2048,
+  bloom: { blur: 24, alpha: 0.35 },
 } as const;
 // How to play (M11 review), between the title and the first wall: the
 // heading centered on headingY, then one dark card per step, `cards.top`
@@ -499,7 +506,8 @@ export const WALL_EASE_POWER = 2; // scale follows t^n, so higher n rushes harde
 // hole's edges and follows the hole when a Shift Wall slides it. Grid lines
 // gridWidth px at gridAlpha, lime dots dotSize px square at their crossings
 // at dotAlpha, a scanline every scanEvery px at scanAlpha, and a lime glow
-// glowDepth px deep inside every edge, at most glowAlpha. px at full scale.
+// glowDepth px deep inside every edge, at most glowAlpha (lowered in M11
+// review 6; the title card glows the same). px at full scale.
 export const WALL_DISPLAY = {
   gridWidth: 1,
   gridAlpha: 0.55,
@@ -507,8 +515,8 @@ export const WALL_DISPLAY = {
   dotAlpha: 0.45,
   scanEvery: 3,
   scanAlpha: 0.3,
-  glowDepth: 22,
-  glowAlpha: 0.45,
+  glowDepth: 18,
+  glowAlpha: 0.25,
 } as const;
 // The wall's neon (M10b review 4), px at full scale: a lime frame round the
 // panel and an equally thick lime edge round the hole, each centered on the
