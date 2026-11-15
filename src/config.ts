@@ -35,7 +35,7 @@ export const PALETTE = {
 // edge outlines it against the void and the wall, where its black can't.
 // Lime is the accent: the seam, the runway's edges, the wall's neon, the
 // cards' and the bar's slashes, the lit squares, held keys, PERFECT, a
-// completion, and the prompt badges. The two alert families stay: yellow
+// completion, and the buttons. The two alert families stay: yellow
 // means the hole is moving (Shift Walls), and coral means a mistake (a wrong
 // key, a slip, a close call, Caps Lock).
 export const COLORS = {
@@ -77,17 +77,15 @@ export const COLORS = {
   wallWarning: PALETTE.ochre,
   shiftArrow: PALETTE.yellow,
   wallFlash: PALETTE.red,
-  // Cards (CARD), after the mockup's HUD: cream with a slanted edge, a sage
-  // fold in its corner and a lime slash beside it that fades to deep green.
-  // The HUD, the title's logo, the pause card and the game-over cards. A rule
-  // between a card's readouts holds 3:1 on it.
+  // Cards (CARD), after the mockup's HUD: cream with a slanted edge and a
+  // lime slash beside it that fades to deep green. The HUD, the title's logo
+  // and the screens' headings.
   card: PALETTE.cream,
-  cardFold: PALETTE.sage,
   cardSlash: PALETTE.lime,
   cardSlashEnd: PALETTE.greenDeep,
-  cardRule: PALETTE.greenDeep,
   // The bar along the bottom: a dark band with a thin stepped line, lime
-  // slashes, and a square per letter of the wall, lit once held.
+  // slashes, and a square per letter of the wall, lit once held. The line and
+  // its slashes also part the game-over card's results.
   tray: PALETTE.voidInk,
   trayLine: PALETTE.sage,
   trayAccent: PALETTE.lime,
@@ -110,8 +108,7 @@ export const COLORS = {
   textOutline: PALETTE.ink,
   // Badges (BADGE), each in a thick ink edge that sets it off the runway and
   // the wall alike: the timing label in its grade's color with the points on
-  // an ink tab, the SHIFT callout in yellow, and the screens' buttons (Click
-  // to play, Start, Click to resume, Play again) in lime, all with dark text.
+  // an ink tab, and the SHIFT callout in yellow, all with dark text.
   badgeEdge: PALETTE.voidInk,
   badgeTab: PALETTE.ink,
   gradePerfect: PALETTE.lime,
@@ -119,11 +116,16 @@ export const COLORS = {
   gradeCloseCall: PALETTE.coral,
   calloutCard: PALETTE.yellow,
   calloutInk: PALETTE.ink,
-  promptCard: PALETTE.lime,
-  // The how-to screen's step cards (M11 review): dark, like the bar, in a
-  // sage edge, with the step's number in lime and its words in cream.
-  stepCard: PALETTE.voidInk,
-  stepEdge: PALETTE.sage,
+  // The screens' buttons (Click to play, Start, Click to resume, Play again;
+  // M11 review 2): lime key cap shapes with dark text, in a cream edge that
+  // sets them off the dark stage.
+  button: PALETTE.lime,
+  buttonEdge: PALETTE.cream,
+  // Dark cards (M11 review): the how-to steps and the game-over results, as
+  // dark as the bar, in a sage edge, with lime numbers or captions and cream
+  // words.
+  darkCard: PALETTE.voidInk,
+  darkCardEdge: PALETTE.sage,
   debugPanel: PALETTE.cream,
   veil: PALETTE.voidInk, // over the paused game
 } as const;
@@ -131,9 +133,10 @@ export const COLORS = {
 const css = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
 
 // CSS strings because Phaser text styles take CSS colors. ink sits on the
-// chips, the debug panel, the cards and the badges; light on the hollow
-// preview chip, the badges' ink tabs, the how-to steps and the void (the
-// screens' hints); good on the how-to steps (their numbers). light, good and
+// chips, the debug panel, the cards, the badges and the buttons; light on the
+// hollow preview chip, the badges' ink tabs, the dark cards and the void
+// (GAME OVER, the screens' hints); good on the dark cards (the how-to steps'
+// numbers, the game-over captions). light, good and
 // alert are also the outlined text over the scene (the Caps Lock warning),
 // measured against their outline (COLORS.textOutline). Every pair must
 // reach 4.5:1 (tests/config.test.ts).
@@ -159,7 +162,7 @@ export const FONT_LOAD_TIMEOUT = 3000; // ms; past this, start with the fallback
 // px. Nothing goes below 24 so all text counts as "large" for WCAG contrast.
 export const FONT_SIZES = {
   lockup: 180,
-  poster: 140,
+  poster: 196,
   title: 112,
   heading: 80,
   subheading: 48,
@@ -209,62 +212,69 @@ export const SCREEN_LAYOUT = {
 // Debug overlay (PLAN.md §8), toggled with F2: top-left corner, px.
 export const DEBUG_OVERLAY = { x: 12, y: 12, padding: 10 } as const;
 
-// The screens (M11), in the play screen's language: cards, prompt badges and
-// the bar on the grid stage. px; scales are depths on the stage.
-// Title (M11 review): the grid stage, the lockup after the mock (SHAPE over
-// SHIFT on a card slanting both ways, tilted tiltDeg like the mock's paper),
-// centered on centerY, its two lines lineGap apart and padY inside the
-// card's top and foot, padX beside the wider line; and the Click to play
-// button on promptY.
+// The screens (M11), in the play screen's language: cards, buttons, dark
+// cards and the bar's line on the grid stage. px; scales are depths on the
+// stage.
+// Buttons (PromptButton, M11 review 2): lime key cap shapes `height` px tall,
+// padX each side of their Anton text, the top-left and bottom-right corners
+// cut by `cut`, in a cream edge edgeWidth px thick all round, pulsing in size
+// (PROMPT_PULSE_*). Every screen sets its button gapAbove px below what comes
+// before it, and a hint's middle hintBelow px below the button's.
+export const PROMPT_BUTTON = { height: 78, padX: 30, cut: 16, edgeWidth: 5, gapAbove: 56, hintBelow: 72 } as const;
+// Headings (HOW TO PLAY, PAUSED): Anton on a card slanting both ways, one
+// size on every screen (M11 review 2), `height` px tall with padX beside the
+// word.
+export const HEADING_CARD = { height: 96, padX: 40 } as const;
+// Dark cards (drawDarkCard(): the how-to steps, the game-over results): cut
+// like the key caps by `cut`, in an edge edgeWidth px thick.
+export const DARK_CARD = { cut: 20, edgeWidth: 2 } as const;
+// Title (M11 review): the grid stage and the lockup after the mock (SHAPE
+// over SHIFT on a card slanting both ways), its two lines lineGap apart and
+// padY inside the card's top and foot, padX beside the wider line. The
+// lockup and the Click to play button below it are centered on the screen as
+// one block. Upright since M11 review 2.
 export const TITLE = {
-  lockup: { centerY: 286, padX: 40, padY: 30, lineGap: 22, tiltDeg: -3 },
-  promptY: 620,
+  lockup: { padX: 40, padY: 30, lineGap: 22 },
 } as const;
 // How to play (M11 review), between the title and the first wall: the
-// heading on a card slanting both ways (heading.y and height), then one dark
-// card per step, `cards.top` down and cards.height tall, marginX from the
-// screen's sides and gap apart, chamfered by `cut`, in an edge edgeWidth
-// thick. Inside each, padX from its left: the step's number and name centered
-// on titleY, its keys (or a PERFECT badge) on keysY, and its text from
-// textY down. The Start button sits on promptY with its hint on hintY, and
-// input waits inputDelayMs so the title's click can't skip the screen.
+// heading centered on headingY, then one dark card per step, `cards.top`
+// down and cards.height tall, marginX from the screen's sides and gap apart.
+// Inside each, padX from its left: the step's number and name centered on
+// titleY, its keys (or a PERFECT badge) on keysY, and its text from textY
+// down. Then the Start button and its hint, and input waits inputDelayMs so
+// the title's click can't skip the screen.
 export const HOW_TO = {
-  heading: { y: 30, height: 96, padX: 40 },
-  cards: { top: 160, height: 316, marginX: 56, gap: 28, cut: 20, edgeWidth: 2, padX: 26, titleY: 54, keysY: 126, textY: 176 },
+  headingY: 78,
+  cards: { top: 160, height: 316, marginX: 56, gap: 28, padX: 26, titleY: 54, keysY: 126, textY: 176 },
   numberGap: 14,
   keyGap: 10,
   badge: { height: 64, padX: 18 },
-  promptY: 584,
-  hintY: 656,
   inputDelayMs: 400,
 } as const;
 // Labeled key caps (keycap.ts): height px tall, padX each side of their
 // label.
 export const KEY_CAP = { height: 50, padX: 14 } as const;
-// Pause: a veil over the game, the PAUSED card (slanting both ways) centered
-// on cardY, and the Click to resume badge on promptY.
-export const PAUSE = { veilAlpha: 0.8, cardY: 260, cardHeight: 140, padX: 44, promptY: 410 } as const;
-// Game over: the GAME OVER card on the left and the score card on the right,
-// both cardHeight tall from `top`, marginX from the screen's sides and
-// middleGap apart at their tops, their slanted edges facing, so the gap
-// widens toward their feet. The GAME OVER card is leftWidth wide. Each card's
-// text sits padX in from its straight side, every row centered on its y from
-// the card's top: a caption at captionY, then GAME and OVER (posterY), or
-// this run's score, a rule ruleWidth thick, and the walls it cleared (M11
-// review: the run's own results, no all-time best). The Play again badge
-// sits on promptY, with the hint under it on hintY.
+// Pause: a veil over the game, the PAUSED heading centered on headingY, and
+// the Click to resume button below it.
+export const PAUSE = { veilAlpha: 0.8, headingY: 260 } as const;
+// Game over (M11 review 2), laid out after the user's reference: GAME over
+// OVER in big cream letters on the stage, their right edges lined up so E
+// and R stack, standing exactly as tall as the results card middleGap to
+// their right; the two centered across the screen as one block, from `top`
+// down. The card is a dark card cardHeight tall and at least minCardWidth
+// wide (wider for a long score), its rows padX in from its left, each
+// centered on its y from the card's top: the SCORE caption and this run's
+// score, the bar's line on ruleY (the slashes, then a run of ruleRun px
+// before it steps down), then the WALLS CLEARED caption and the count. Play
+// again sits under the card, and its hint under that.
 export const GAME_OVER = {
-  top: 56,
-  cardHeight: 360,
-  marginX: 48,
-  middleGap: 190,
-  leftWidth: 500,
-  padX: 34,
-  captionY: 34,
-  posterY: [116, 258],
-  score: { valueY: 116, ruleY: 186, ruleWidth: 3, wallsCaptionY: 216, wallsY: 288 },
-  promptY: 520,
-  hintY: 596,
+  top: 88,
+  middleGap: 64,
+  cardHeight: 364,
+  minCardWidth: 420,
+  padX: 36,
+  rows: { scoreCaptionY: 40, scoreY: 114, ruleY: 195, wallsCaptionY: 238, wallsY: 298 },
+  ruleRun: 56,
 } as const;
 
 // Key caps in the bar, px. The current prompt sits in the center; held
@@ -295,8 +305,9 @@ export const CHIP = {
 // for MAX_LETTERS held caps beside the current one, plus padX. A thin line
 // runs along its foot, low (lowY from the bar's top) under the caps, stepping
 // up over `ramp` px to highY beyond them, from lineFromX on the left to
-// lineEndInset from the right edge. Lime slashes (SLASH) sit at its left end, slashY from the top; at its
-// right end, one square per letter of the wall, lit as each is held. A faint
+// lineEndInset from the right edge (drawBarLine(), which the game-over card
+// shares), with lime slashes (SLASH) at its left end; at its right end, one
+// square per letter of the wall, lit as each is held. A faint
 // socket marks the current cap's slot. A faint tint of the void's light runs
 // tintHeight px down from its top, at most tintAlpha. px.
 export const TRAY = {
@@ -311,7 +322,6 @@ export const TRAY = {
   ramp: 14,
   lineFromX: 88,
   lineEndInset: 24,
-  slashY: 76,
   squares: { size: 13, gap: 8, rightX: 34, y: 66 },
   socketWidth: 1.5,
   socketAlpha: 0.45,
@@ -325,7 +335,7 @@ export const SLASH = { width: 9, gap: 7, lean: 14, height: 26 } as const;
 // inset are fractions of the chip, sized to clear even wide capitals (W, M).
 export const SHIFT_MARK = { size: 0.25, inset: 0.07, lineWidth: 2 } as const;
 
-// Prompt badges pulse in size, not alpha, so their contrast never drops.
+// Buttons pulse in size, not alpha, so their contrast never drops.
 export const PROMPT_PULSE_SCALE = 1.06;
 export const PROMPT_PULSE_MS = 700;
 
@@ -397,18 +407,15 @@ export const VOID = {
 } as const;
 // Cards (drawCard() in src/objects/card.ts), after the mockup's HUD: cream,
 // the straight side's corners cut by `cut`, the slanted side running `slant`
-// px inward over the card's height, a sage fold (foldAlpha) foldWidth px wide
-// inside that edge from foldFrom of the height down, and SLASH-shaped lime
-// slashes beside it, slashGap px out, the first full height and fading to deep
-// green toward its foot. These are for a card `height` px tall (the HUD's); a
-// taller or shorter card scales them all, so every slant keeps one angle.
+// px inward over the card's height, and SLASH-shaped lime slashes beside it,
+// slashGap px out, the first full height and fading to deep green toward its
+// foot. These are for a card `height` px tall (the HUD's); a taller or
+// shorter card scales them all, so every slant keeps one angle. (Until M11
+// review 2 a sage fold lay inside the slanted side's foot.)
 export const CARD = {
   height: 108,
   cut: 9,
   slant: 52,
-  foldWidth: 46,
-  foldFrom: 0.52,
-  foldAlpha: 0.5,
   slashGap: 9,
   slashSlices: 12,
 } as const;
@@ -629,9 +636,6 @@ export const BADGE = {
   tabOverlap: 4,
   slashGap: 10,
 } as const;
-// Buttons (M11): the screens' calls to action, lime badges `height` px tall,
-// padX each side of their Anton text, pulsing in size (PROMPT_PULSE_*).
-export const PROMPT_BADGE = { height: 78, padX: 30 } as const;
 export const LABEL_POP_FROM = 0.5; // starting scale of the pop
 export const LABEL_POP_MS = 180;
 export const LABEL_HOLD_MS = 700;

@@ -1,11 +1,12 @@
 import Phaser from 'phaser';
-import { CARD, COLORS, SLASH } from '@/config';
-import type { Point } from '@/logic/perspective';
+import { CARD, COLORS, DARK_CARD, HEADING_CARD, SLASH } from '@/config';
+import { fillEdgedKeyCap } from '@/objects/keycap';
 import { fillSlash } from '@/objects/slash';
 import { toVectors } from '@/objects/vectors';
+import { centerGlyphs, textStyle } from '@/scenes/text-styles';
 
-// Which sides slant inward toward the card's foot. Each slanted side gets a
-// fold inside it and slashes beside it; a straight side has its corners cut.
+// Which sides slant inward toward the card's foot. Each slanted side gets
+// slashes beside it; a straight side has its corners cut.
 export type CardSlant = 'left' | 'right' | 'both';
 
 export interface CardSpec {
@@ -22,13 +23,13 @@ export function cardSlant(height: number): number {
 }
 
 // A card after the mockup's HUD (M10b review 2): cream, its straight side's
-// corners cut, a slanted side with a sage fold in its foot corner and lime
-// slashes beside it, the first fading to deep green toward its foot. The HUD,
-// the title's logo, the pause card and the game-over cards (M11). Everything
-// scales with the card's height, so every slant keeps one angle.
+// corners cut, a slanted side with lime slashes beside it, the first fading
+// to deep green toward its foot. The HUD, the title's logo and the screens'
+// headings (M11). Everything scales with the card's height, so every slant
+// keeps one angle.
 export function drawCard(g: Phaser.GameObjects.Graphics, c: CardSpec): void {
   const k = c.height / CARD.height;
-  const [cut, slant, fold] = [CARD.cut * k, cardSlant(c.height), CARD.foldWidth * k];
+  const [cut, slant] = [CARD.cut * k, cardSlant(c.height)];
   const { x, y, width: w, height: h } = c;
   const [left, right] = [c.slant !== 'right', c.slant !== 'left'];
 
@@ -43,26 +44,11 @@ export function drawCard(g: Phaser.GameObjects.Graphics, c: CardSpec): void {
     true,
   );
 
-  // Each slanted side is drawn as the right one, mirrored about the card's
-  // middle for the left.
-  const edge = (at: number) => x + w - (slant * (at - y)) / h;
-  const foldTop = y + h * CARD.foldFrom;
+  // Each slanted side's slashes are drawn as the right one's, mirrored about
+  // the card's middle for the left.
   const slashGap = CARD.slashGap * k;
   const [thick, thin, gap] = [SLASH.width * k, (SLASH.width * k) / 3, SLASH.gap * k];
   for (const mirrored of [...(right ? [false] : []), ...(left ? [true] : [])]) {
-    const side = (p: Point): Point => (mirrored ? { x: 2 * x + w - p.x, y: p.y } : p);
-    g.fillStyle(COLORS.cardFold, CARD.foldAlpha);
-    g.fillPoints(
-      toVectors(
-        [
-          { x: edge(foldTop) - fold, y: foldTop },
-          { x: edge(foldTop), y: foldTop },
-          { x: edge(y + h), y: y + h },
-          { x: edge(y + h) - fold, y: y + h },
-        ].map(side),
-      ),
-      true,
-    );
     // A slash's top-left corner, from where its top edge starts on the right.
     const slashX = (from: number, width: number) => (mirrored ? 2 * x + w - from - width : from);
     const slash = { y, height: h, lean: mirrored ? -slant : slant, slices: CARD.slashSlices };
@@ -77,4 +63,22 @@ export function drawCard(g: Phaser.GameObjects.Graphics, c: CardSpec): void {
 export function cardSlashReach(height: number): number {
   const k = height / CARD.height;
   return (CARD.slashGap + SLASH.width + SLASH.gap + SLASH.width / 3) * k;
+}
+
+// A screen's heading (HOW TO PLAY, PAUSED): dark Anton on a card slanting
+// both ways, HEADING_CARD.height tall on every screen (M11 review 2), centered
+// on x, y. Not yet added to the scene.
+export function makeHeadingCard(scene: Phaser.Scene, x: number, y: number, label: string): Phaser.GameObjects.Container {
+  const text = centerGlyphs(new Phaser.GameObjects.Text(scene, 0, 0, label, textStyle('heading', 'ink')).setOrigin(0.5));
+  const { height, padX } = HEADING_CARD;
+  const width = text.width + 2 * padX + 2 * cardSlant(height);
+  const card = new Phaser.GameObjects.Graphics(scene);
+  drawCard(card, { x: -width / 2, y: -height / 2, width, height, slant: 'both' });
+  return new Phaser.GameObjects.Container(scene, x, y, [card, text]);
+}
+
+// A dark card (M11 review): as dark as the bar, cut like a key cap, in a
+// closed sage edge. The how-to steps and the game-over results (M11 review 2).
+export function drawDarkCard(g: Phaser.GameObjects.Graphics, x: number, y: number, width: number, height: number): void {
+  fillEdgedKeyCap(g, { x, y, width, height, ...DARK_CARD, edge: COLORS.darkCardEdge, fill: COLORS.darkCard });
 }

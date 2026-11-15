@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { CHIP, CHIP_FONT_FAMILY, COLORS, KEY_CAP } from '@/config';
-import { chamferedRect } from '@/logic/convex';
+import { keyCapRect } from '@/logic/convex';
 import type { Point } from '@/logic/perspective';
 import { toVectors } from '@/objects/vectors';
 import { centerGlyphs, textStyle } from '@/scenes/text-styles';
@@ -9,10 +9,28 @@ import { centerGlyphs, textStyle } from '@/scenes/text-styles';
 // on 0, 0. `grow` pushes every edge out by that much, keeping the cuts
 // parallel.
 export function keyCapShape(width: number, height: number, grow = 0): Point[] {
-  // An edge pushed out by g lengthens a 45-degree cut by g * (2 - sqrt 2).
-  const cut = CHIP.cut + grow * (2 - Math.SQRT2);
-  const [w, h] = [width + 2 * grow, height + 2 * grow];
-  return chamferedRect(-w / 2, -h / 2, w, h, { topLeft: cut, bottomRight: cut });
+  return keyCapRect(-width / 2, -height / 2, width, height, CHIP.cut, grow);
+}
+
+export interface EdgedKeyCap {
+  readonly x: number; // the top-left corner
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+  readonly cut: number;
+  readonly edgeWidth: number;
+  readonly edge: number;
+  readonly fill: number;
+}
+
+// A key cap shape in a closed edge (the buttons and the dark cards, M11
+// review 2): the edge is the shape grown by edgeWidth and filled under it, so
+// it closes at every corner, cuts included.
+export function fillEdgedKeyCap(g: Phaser.GameObjects.Graphics, k: EdgedKeyCap): void {
+  g.fillStyle(k.edge);
+  g.fillPoints(toVectors(keyCapRect(k.x, k.y, k.width, k.height, k.cut, k.edgeWidth)), true);
+  g.fillStyle(k.fill);
+  g.fillPoints(toVectors(keyCapRect(k.x, k.y, k.width, k.height, k.cut)), true);
 }
 
 // A labeled key cap (M11, the how-to screen's keys), cream with dark

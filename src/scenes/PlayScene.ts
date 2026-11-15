@@ -376,7 +376,6 @@ export class PlayScene extends Phaser.Scene {
     const result: RunResult = {
       wallsCleared: this.scoreKeeper.wallsCleared,
       score: this.scoreKeeper.score,
-      endedOnWall: this.scoreKeeper.wallNumber,
       keysDown: this.keyboard.heldCodes(),
     };
     this.scene.start(SceneKeys.GameOver, result);

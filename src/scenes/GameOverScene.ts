@@ -1,22 +1,31 @@
 import Phaser from 'phaser';
 import { COLORS, GAME_OVER, GAME_WIDTH } from '@/config';
 import { RestartGate } from '@/logic/restart';
-import { cardSlant, drawCard, type CardSpec } from '@/objects/card';
+import { BAR_SLASHES_REACH, BAR_STEP, drawBarLine } from '@/objects/bar-line';
+import { drawDarkCard } from '@/objects/card';
 import { GridVoid } from '@/objects/GridVoid';
-import { PromptBadge } from '@/objects/PromptBadge';
+import { buttonYBelow, PromptButton } from '@/objects/PromptButton';
 import { SceneKeys, type RunResult } from '@/scenes/scene-keys';
-import { centerGlyphs, textStyle } from '@/scenes/text-styles';
+import { alignGlyphs, centerGlyphs, glyphHeight, glyphWidth, textStyle } from '@/scenes/text-styles';
 import { formatNumber, onWindowKeys } from '@/scenes/ui';
 
-// The game-over screen (M11), after the mock's layout in the play screen's
-// language: on the grid stage, GAME OVER on a card on the left and the run's
-// results on a card on the right, their slashes facing across the gap, and
-// the Play again button below once a restart is allowed (PLAN.md §7).
+interface Box {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+// The game-over screen (M11 review 2), laid out after the user's reference
+// on the grid stage: GAME over OVER in big cream letters on the left, their
+// last letters stacked, as tall as the dark card on their right with the
+// run's score and walls cleared, and the Play again button under the card
+// once a restart is allowed (PLAN.md §7).
 export class GameOverScene extends Phaser.Scene {
   private result!: RunResult;
   private gate!: RestartGate;
   private restarting = false;
-  private prompt!: PromptBadge;
+  private button!: PromptButton;
   private hint!: Phaser.GameObjects.Text;
 
   constructor() {
@@ -33,18 +42,23 @@ export class GameOverScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(COLORS.void);
     new GridVoid(this);
 
-    const { marginX, top, cardHeight, leftWidth, middleGap } = GAME_OVER;
-    const rightX = marginX + leftWidth + middleGap;
-    const left: CardSpec = { x: marginX, y: top, width: leftWidth, height: cardHeight, slant: 'right' };
-    const right: CardSpec = { x: rightX, y: top, width: GAME_WIDTH - marginX - rightX, height: cardHeight, slant: 'left' };
-    const cards = this.add.graphics();
-    drawCard(cards, left);
-    drawCard(cards, right);
-    this.addRun(left);
-    this.addScores(right, cards);
+    // The card's graphics go first, under its text, though it is sized to
+    // fit that text.
+    const g = this.add.graphics();
+    const { top, middleGap, cardHeight, minCardWidth, padX } = GAME_OVER;
+    const heading = ['GAME', 'OVER'].map((word) => this.add.text(0, 0, word, textStyle('poster', 'light')));
+    const rows = this.addResults();
+    const headingWidth = Math.max(...heading.map(glyphWidth));
+    const cardWidth = Math.max(minCardWidth, ...rows.map((row) => glyphWidth(row) + 2 * padX));
+    const headingRight = (GAME_WIDTH - headingWidth - middleGap - cardWidth) / 2 + headingWidth;
+    const card: Box = { x: headingRight + middleGap, y: top, width: cardWidth, height: cardHeight };
 
-    this.prompt = new PromptBadge(this, GAME_WIDTH / 2, GAME_OVER.promptY, 'PLAY AGAIN').setVisible(false);
-    this.hint = this.add.text(GAME_WIDTH / 2, GAME_OVER.hintY, '', textStyle('small', 'light')).setOrigin(0.5).setVisible(false);
+    this.placeHeading(heading, headingRight, card);
+    drawDarkCard(g, card.x, card.y, card.width, card.height);
+    this.placeResults(rows, card, g);
+
+    this.button = new PromptButton(this, card.x + card.width / 2, buttonYBelow(card.y + card.height), 'PLAY AGAIN').setVisible(false);
+    this.hint = this.button.addHint('').setVisible(false);
 
     this.input.on('pointerdown', () => {
       if (this.gate.click()) this.restart();
@@ -61,39 +75,45 @@ export class GameOverScene extends Phaser.Scene {
 
   update(_time: number, deltaMs: number): void {
     this.gate.tick(deltaMs);
-    this.prompt.setVisible(this.gate.ready);
+    this.button.setVisible(this.gate.ready);
     this.hint.setVisible(this.gate.lockoutOver);
-    this.hint.setText(this.gate.ready ? 'CLICK OR PRESS ANY KEY' : 'LET GO OF EVERY KEY TO PLAY AGAIN');
+    this.hint.setText(this.gate.ready ? 'PRESS ANY KEY OR CLICK' : 'LET GO OF EVERY KEY TO PLAY AGAIN');
   }
 
-  // The left card: where the run ended, over GAME OVER.
-  private addRun(card: CardSpec): void {
-    const x = card.x + GAME_OVER.padX;
-    const caption = `ENDED ON WALL ${this.result.endedOnWall}`;
-    centerGlyphs(this.add.text(x, card.y + GAME_OVER.captionY, caption, textStyle('hudLabel', 'ink', true)).setOrigin(0, 0.5));
-    ['GAME', 'OVER'].forEach((word, i) => {
-      centerGlyphs(this.add.text(x, card.y + (GAME_OVER.posterY[i] ?? 0), word, textStyle('poster', 'ink')).setOrigin(0, 0.5));
-    });
+  // GAME's letters from the card's top and OVER's down to its foot, both
+  // ending on `right`.
+  private placeHeading(lines: readonly Phaser.GameObjects.Text[], right: number, card: Box): void {
+    const [game, over] = lines as [Phaser.GameObjects.Text, Phaser.GameObjects.Text];
+    for (const line of lines) alignGlyphs(centerGlyphs(line), 'right').setX(right);
+    game.setY(card.y + glyphHeight(game) / 2);
+    over.setY(card.y + card.height - glyphHeight(over) / 2);
   }
 
-  // The right card, right-aligned: this run's score, a rule, and the walls
-  // it cleared.
-  private addScores(card: CardSpec, g: Phaser.GameObjects.Graphics): void {
-    const s = GAME_OVER.score;
-    const x = card.x + card.width - GAME_OVER.padX;
-    const at = (dy: number) => card.y + dy;
-    const label = (dy: number, text: string) =>
-      centerGlyphs(this.add.text(x, at(dy), text, textStyle('hudLabel', 'ink', true)).setOrigin(1, 0.5));
-    const value = (dy: number, n: number) => centerGlyphs(this.add.text(x, at(dy), formatNumber(n), textStyle('title', 'ink')).setOrigin(1, 0.5));
+  // The card's captions and numbers, in GAME_OVER.rows order, made before the
+  // card so it can grow to fit them.
+  private addResults(): Phaser.GameObjects.Text[] {
+    const caption = (label: string) => this.add.text(0, 0, label, textStyle('hudLabel', 'good', true));
+    const value = (n: number, size: 'title' | 'heading') => this.add.text(0, 0, formatNumber(n), textStyle(size, 'light'));
+    return [caption('SCORE'), value(this.result.score, 'title'), caption('WALLS CLEARED'), value(this.result.wallsCleared, 'heading')];
+  }
 
-    label(GAME_OVER.captionY, 'SCORE');
-    value(s.valueY, this.result.score);
-    // From just inside the slanted edge, where it crosses the rule's row.
-    const ruleFrom = card.x + (cardSlant(card.height) * s.ruleY) / card.height + GAME_OVER.padX;
-    g.fillStyle(COLORS.cardRule);
-    g.fillRect(ruleFrom, at(s.ruleY) - s.ruleWidth / 2, x - ruleFrom, s.ruleWidth);
-    label(s.wallsCaptionY, 'WALLS CLEARED');
-    value(s.wallsY, this.result.wallsCleared);
+  // Each row's letters padX in from the card's left, centered on its y, and
+  // the bar's line between the score and the walls cleared.
+  private placeResults(rows: readonly Phaser.GameObjects.Text[], card: Box, g: Phaser.GameObjects.Graphics): void {
+    const { padX, rows: at, ruleRun } = GAME_OVER;
+    const ys = [at.scoreCaptionY, at.scoreY, at.wallsCaptionY, at.wallsY];
+    const left = card.x + padX;
+    rows.forEach((row, i) => alignGlyphs(centerGlyphs(row), 'left').setPosition(left, card.y + (ys[i] ?? 0)));
+
+    const from = left + BAR_SLASHES_REACH;
+    const y = card.y + at.ruleY;
+    const stepAt = from + ruleRun;
+    drawBarLine(g, [
+      { x: from, y },
+      { x: stepAt, y },
+      { x: stepAt + BAR_STEP.across, y: y + BAR_STEP.drop },
+      { x: card.x + card.width - padX, y: y + BAR_STEP.drop },
+    ]);
   }
 
   private restart(): void {

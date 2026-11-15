@@ -1,12 +1,10 @@
 import Phaser from 'phaser';
 import { COLORS, GAME_WIDTH, HOW_TO } from '@/config';
-import { chamferedRect } from '@/logic/convex';
 import { badgeLean, drawBadge } from '@/objects/badge';
-import { cardSlant, drawCard } from '@/objects/card';
+import { drawDarkCard, makeHeadingCard } from '@/objects/card';
 import { GridVoid } from '@/objects/GridVoid';
 import { addKeyCap } from '@/objects/keycap';
-import { PromptBadge } from '@/objects/PromptBadge';
-import { toVectors } from '@/objects/vectors';
+import { buttonYBelow, PromptButton } from '@/objects/PromptButton';
 import { SceneKeys } from '@/scenes/scene-keys';
 import { centerGlyphs, textStyle } from '@/scenes/text-styles';
 import { onWindowKeys } from '@/scenes/ui';
@@ -39,12 +37,11 @@ export class HowToScene extends Phaser.Scene {
     this.started = false;
     this.cameras.main.setBackgroundColor(COLORS.void);
     new GridVoid(this);
-    this.addHeading();
-    const { marginX, gap } = HOW_TO.cards;
+    this.add.existing(makeHeadingCard(this, GAME_WIDTH / 2, HOW_TO.headingY, 'HOW TO PLAY'));
+    const { marginX, gap, top, height } = HOW_TO.cards;
     const width = (GAME_WIDTH - 2 * marginX - (STEPS.length - 1) * gap) / STEPS.length;
     STEPS.forEach((step, i) => this.addStep(step, i, marginX + i * (width + gap), width));
-    new PromptBadge(this, GAME_WIDTH / 2, HOW_TO.promptY, 'START');
-    this.add.text(GAME_WIDTH / 2, HOW_TO.hintY, 'PRESS ANY KEY OR CLICK', textStyle('small', 'light')).setOrigin(0.5);
+    new PromptButton(this, GAME_WIDTH / 2, buttonYBelow(top + height), 'START').addHint('PRESS ANY KEY OR CLICK');
 
     this.time.delayedCall(HOW_TO.inputDelayMs, () => {
       this.input.once('pointerdown', () => this.start());
@@ -58,28 +55,13 @@ export class HowToScene extends Phaser.Scene {
     });
   }
 
-  private addHeading(): void {
-    const { y, height, padX } = HOW_TO.heading;
-    const card = this.add.graphics();
-    const heading = centerGlyphs(this.add.text(GAME_WIDTH / 2, y + height / 2, 'HOW TO PLAY', textStyle('heading', 'ink')).setOrigin(0.5));
-    const width = heading.width + 2 * padX + 2 * cardSlant(height);
-    drawCard(card, { x: (GAME_WIDTH - width) / 2, y, width, height, slant: 'both' });
-  }
-
-  // A dark card, chamfered like the key caps, in a closed sage edge: the
-  // step's number in lime and its name, its keys (or the badge it earns),
-  // and its sentence, wrapped to the card.
+  // A dark card: the step's number in lime and its name, its keys (or the
+  // badge it earns), and its sentence, wrapped to the card.
   private addStep(step: Step, index: number, x: number, width: number): void {
     const c = HOW_TO.cards;
     const card = this.add.container(0, 0);
     const shape = this.make.graphics({}, false);
-    const edge = c.edgeWidth;
-    const outer = chamferedRect(x - edge, c.top - edge, width + 2 * edge, c.height + 2 * edge, {
-      topLeft: c.cut + edge * (2 - Math.SQRT2),
-      bottomRight: c.cut + edge * (2 - Math.SQRT2),
-    });
-    shape.fillStyle(COLORS.stepEdge).fillPoints(toVectors(outer), true);
-    shape.fillStyle(COLORS.stepCard).fillPoints(toVectors(chamferedRect(x, c.top, width, c.height, { topLeft: c.cut, bottomRight: c.cut })), true);
+    drawDarkCard(shape, x, c.top, width, c.height);
     card.add(shape);
 
     const left = x + c.padX;

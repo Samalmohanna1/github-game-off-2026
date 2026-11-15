@@ -6,15 +6,14 @@ import {
   GAME_WIDTH,
   MAX_LETTERS,
   SHIFT_MARK,
-  SLASH,
   STAGE_BOTTOM_Y,
   TEXT_COLORS,
   TRAY,
   TRAY_HEIGHT,
 } from '@/config';
 import { isUppercaseLetter, type SequenceView } from '@/logic/sequence';
+import { drawBarLine } from '@/objects/bar-line';
 import { keyCapShape } from '@/objects/keycap';
-import { fillSlash } from '@/objects/slash';
 import { toVectors } from '@/objects/vectors';
 import { textStyle } from '@/scenes/text-styles';
 import { prefersReducedMotion } from '@/scenes/ui';
@@ -250,14 +249,7 @@ function drawBar(g: Phaser.GameObjects.Graphics): void {
     { x: CENTER_X + ROW_HALF_WIDTH + TRAY.ramp, y: high },
     { x: GAME_WIDTH - TRAY.lineEndInset, y: high },
   ];
-  g.lineStyle(TRAY.lineWidth, COLORS.trayLine, TRAY.lineAlpha);
-  g.strokePoints(toVectors(line));
-
-  const slash = { y: top + TRAY.slashY, width: SLASH.width, height: SLASH.height, lean: SLASH.lean, slices: 1 };
-  const firstX = TRAY.lineFromX - SLASH.gap - 2 * SLASH.width - SLASH.gap + SLASH.lean;
-  for (const x of [firstX, firstX + SLASH.width + SLASH.gap]) {
-    fillSlash(g, { ...slash, x, top: COLORS.trayAccent, foot: COLORS.trayAccent });
-  }
+  drawBarLine(g, line);
 
   const outline = capShape(CHIP.currentSize, CHIP.focusGap).map((p) => ({ x: p.x + CENTER_X, y: p.y + BAR_ROW_Y }));
   g.lineStyle(TRAY.socketWidth, COLORS.trayLine, TRAY.socketAlpha);

@@ -34,28 +34,56 @@ export function outlinedStyle(size: Size, color: Color, bold = false): Phaser.Ty
 
 let probe: CanvasRenderingContext2D | null = null;
 
-// Where a one-line text's letters start and end, in px from its top: its
-// baseline (where Phaser draws it) less and plus the letters' own measured
-// reach, not the font's line box.
-function glyphSpan(text: Phaser.GameObjects.Text): readonly [number, number] {
+interface GlyphBox {
+  readonly left: number;
+  readonly right: number;
+  readonly top: number;
+  readonly bottom: number;
+}
+
+// Where a one-line text's letters start and end, in px from its top-left:
+// where Phaser draws it (its baseline, and its left edge inside the padding)
+// less and plus the letters' own measured reach, not the font's line box or
+// the letters' side bearings.
+function glyphBox(text: Phaser.GameObjects.Text): GlyphBox {
   probe ??= document.createElement('canvas').getContext('2d');
-  if (probe === null) return [0, text.height];
-  const baseline = (text.padding.top ?? 0) + text.style.strokeThickness / 2 + text.getTextMetrics().ascent;
+  if (probe === null) return { left: 0, right: text.width, top: 0, bottom: text.height };
+  const inset = text.style.strokeThickness / 2;
+  const baseline = (text.padding.top ?? 0) + inset + text.getTextMetrics().ascent;
+  const start = (text.padding.left ?? 0) + inset;
   probe.font = `${text.style.fontStyle} ${text.style.fontSize} ${text.style.fontFamily}`.trim();
   const letters = probe.measureText(text.text);
-  return [baseline - letters.actualBoundingBoxAscent, baseline + letters.actualBoundingBoxDescent];
+  return {
+    left: start - letters.actualBoundingBoxLeft,
+    right: start + letters.actualBoundingBoxRight,
+    top: baseline - letters.actualBoundingBoxAscent,
+    bottom: baseline + letters.actualBoundingBoxDescent,
+  };
 }
 
 // Centers a one-line text's letters on its y. Anton's line box leaves more
 // room above its capitals than below, so centering the box set them low on
 // cards and buttons (M11 review).
 export function centerGlyphs(text: Phaser.GameObjects.Text): Phaser.GameObjects.Text {
-  const [top, bottom] = glyphSpan(text);
+  const { top, bottom } = glyphBox(text);
   return text.setOrigin(text.originX, (top + bottom) / 2 / text.height);
+}
+
+// Puts a one-line text's letters' own left or right edge on its x, so lines
+// of different letters stack flush (GAME over OVER, M11 review 2).
+export function alignGlyphs(text: Phaser.GameObjects.Text, side: 'left' | 'right'): Phaser.GameObjects.Text {
+  const box = glyphBox(text);
+  return text.setOrigin(box[side] / text.width, text.originY);
 }
 
 // How tall a one-line text's letters stand, px.
 export function glyphHeight(text: Phaser.GameObjects.Text): number {
-  const [top, bottom] = glyphSpan(text);
+  const { top, bottom } = glyphBox(text);
   return bottom - top;
+}
+
+// How wide a one-line text's letters reach, px.
+export function glyphWidth(text: Phaser.GameObjects.Text): number {
+  const { left, right } = glyphBox(text);
+  return right - left;
 }

@@ -29,3 +29,13 @@ export function chamferedRect(x: number, y: number, width: number, height: numbe
     return p.x !== next.x || p.y !== next.y;
   });
 }
+
+// The key caps' shape (M10b review), shared by the buttons and the dark cards
+// (M11 review 2): the top-left and bottom-right corners cut by `cut`, the
+// other two square. `grow` pushes every edge out by that much with the cuts
+// kept parallel, for a closed edge drawn under the shape: an edge pushed out
+// by g lengthens a 45-degree cut by g * (2 - sqrt 2).
+export function keyCapRect(x: number, y: number, width: number, height: number, cut: number, grow = 0): Point[] {
+  const grown = cut + grow * (2 - Math.SQRT2);
+  return chamferedRect(x - grow, y - grow, width + 2 * grow, height + 2 * grow, { topLeft: grown, bottomRight: grown });
+}
