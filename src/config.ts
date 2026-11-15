@@ -121,13 +121,13 @@ export const COLORS = {
   // sets them off the dark stage.
   button: PALETTE.lime,
   buttonEdge: PALETTE.cream,
-  // Dark cards (M11 review): the how-to steps and the game-over results, as
-  // dark as the bar, in a sage edge, with lime numbers or captions and cream
-  // words. The game-over card is edged in lime, with a lime rule under its
-  // heading, as in the user's mock (M11 review 4).
+  // Dark cards (M11 review): the title's lockup, the how-to steps and the
+  // game-over results, as dark as the bar, in a lime edge (every dark card
+  // since M11 review 5; the how-to's were sage), with cream words and lime
+  // numbers or captions. A lime rule sits under GAME OVER, as in the user's
+  // mock (M11 review 4).
   darkCard: PALETTE.voidInk,
-  darkCardEdge: PALETTE.sage,
-  gameOverEdge: PALETTE.lime,
+  darkCardEdge: PALETTE.lime,
   gameOverRule: PALETTE.lime,
   debugPanel: PALETTE.cream,
   veil: PALETTE.voidInk, // over the paused game
@@ -164,7 +164,8 @@ export const FONT_LOAD_TIMEOUT = 3000; // ms; past this, start with the fallback
 
 // px. Nothing goes below 24 so all text counts as "large" for WCAG contrast.
 export const FONT_SIZES = {
-  lockup: 180,
+  lockup: 214,
+  lockupSub: 92,
   title: 112,
   heading: 80,
   subheading: 48,
@@ -179,6 +180,7 @@ export const FONT_SIZES = {
 // The HUD's captions are technical detail, so they set in IBM Plex Mono (M10b).
 export const FONT_ROLES: Readonly<Record<keyof typeof FONT_SIZES, 'display' | 'mono'>> = {
   lockup: 'display',
+  lockupSub: 'display',
   title: 'display',
   heading: 'display',
   subheading: 'display',
@@ -193,6 +195,7 @@ export const FONT_ROLES: Readonly<Record<keyof typeof FONT_SIZES, 'display' | 'm
 // width per size, px. Half of it lies outside the letters.
 export const TEXT_OUTLINE: Readonly<Record<keyof typeof FONT_SIZES, number>> = {
   lockup: 24,
+  lockupSub: 10,
   title: 16,
   heading: 14,
   subheading: 10,
@@ -225,21 +228,26 @@ export const PROMPT_BUTTON = { height: 78, padX: 30, cut: 16, edgeWidth: 5, gapA
 // size on every screen (M11 review 2), `height` px tall with padX beside the
 // word.
 export const HEADING_CARD = { height: 96, padX: 40 } as const;
-// Dark cards (drawDarkCard(): the how-to steps, the game-over results): cut
-// like the key caps by `cut`, in an edge edgeWidth px thick.
+// Dark cards (drawDarkCard(): the title, the how-to steps, the game-over
+// results): cut like the key caps by `cut`, in an edge edgeWidth px thick.
 export const DARK_CARD = { cut: 20, edgeWidth: 2 } as const;
-// Stacked lockups (the title; M11 review 3): each word on its own line at
-// its own size, so every line's letters span one width, flush on both
-// sides, the lines lineGap px apart (about half Anton's stem at these
-// sizes).
-export const LOCKUP = { lineGap: 18 } as const;
-// Title (M11 review): the grid stage and the lockup after the mock (SHAPE
-// over SHIFT on a card slanting both ways; SHAPE at FONT_SIZES.lockup sets
-// the width), padY inside the card's top and foot and padX beside the
-// lines. The lockup and the Click to play button below it are centered on
-// the screen as one block. Upright since M11 review 2.
+// Title (M11 review 5, Option 2 of the user's title concepts, TitleLockup and
+// src/logic/title-lockup.ts): SHAPE large (FONT_SIZES.lockup) over SHIFT
+// (FONT_SIZES.lockupSub) in cream Anton, leaning `lean` px across per px up
+// (the badges' lean, BADGE.slant / BADGE.height), on a dark card padX and
+// padY round the lockup's reach. SHIFT sits lineGap below SHAPE with its
+// right edge on the E's leaning right edge. The bar's line (drawBarLine())
+// starts with its slashes under the S, reaching as far left as the S does,
+// steps down to SHIFT's middle, runs lowRun px on, and stops stepGap short
+// of SHIFT. The card and the Click to play button below it are centered on
+// the screen as one block.
 export const TITLE = {
-  lockup: { padX: 40, padY: 30 },
+  lean: 24 / 92,
+  lineGap: 20,
+  padX: 48,
+  padY: 40,
+  stepGap: 22,
+  lowRun: 28,
 } as const;
 // How to play (M11 review), between the title and the first wall: the
 // heading centered on headingY, then one dark card per step, `cards.top`

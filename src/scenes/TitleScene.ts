@@ -1,16 +1,15 @@
 import Phaser from 'phaser';
-import { COLORS, GAME_HEIGHT, GAME_WIDTH, LOCKUP, TITLE } from '@/config';
-import { cardSlant, drawCard } from '@/objects/card';
+import { COLORS, GAME_HEIGHT, GAME_WIDTH } from '@/config';
 import { GridVoid } from '@/objects/GridVoid';
 import { BUTTON_REACH, buttonYBelow, PromptButton } from '@/objects/PromptButton';
+import { TitleLockup } from '@/objects/TitleLockup';
 import { SceneKeys } from '@/scenes/scene-keys';
-import { fitLockupLine, glyphHeight, glyphWidth, textStyle } from '@/scenes/text-styles';
 
-// The title (M11 review): the grid stage, the lockup after the mock (SHAPE
-// stacked over SHIFT on a cream card, upright since M11 review 2), and the
-// Click to play button, centered as one block. Starting needs a click, not a
-// key: inside the itch.io iframe the page has no keyboard focus until the
-// player clicks into it (PLAN.md §2). The click leads to the how-to screen.
+// The title (M11 review 5): the grid stage, the lockup on its dark card
+// (TitleLockup), and the Click to play button below it, centered as one
+// block. Starting needs a click, not a key: inside the itch.io iframe the
+// page has no keyboard focus until the player clicks into it (PLAN.md §2).
+// The click leads to the how-to screen.
 export class TitleScene extends Phaser.Scene {
   constructor() {
     super(SceneKeys.Title);
@@ -19,36 +18,14 @@ export class TitleScene extends Phaser.Scene {
   create(): void {
     this.cameras.main.setBackgroundColor(COLORS.void);
     new GridVoid(this);
-    const lockupBottom = this.addLockup();
-    new PromptButton(this, GAME_WIDTH / 2, buttonYBelow(lockupBottom), 'CLICK TO PLAY');
+    const lockup = new TitleLockup(this);
+    const top = Math.round((GAME_HEIGHT - lockup.height - BUTTON_REACH) / 2);
+    lockup.setPosition(Math.round((GAME_WIDTH - lockup.width) / 2), top);
+    new PromptButton(this, GAME_WIDTH / 2, buttonYBelow(top + lockup.height), 'CLICK TO PLAY');
 
     this.input.once('pointerdown', () => {
       window.focus();
       this.scene.start(SceneKeys.HowTo);
     });
-  }
-
-  // A stacked lockup, SHAPE at the lockup size setting the width and SHIFT
-  // grown to match, centered as a block on the card, which slants both ways
-  // and is wide enough that its slanted sides clear the lower line too.
-  // Returns the card's foot.
-  private addLockup(): number {
-    const { padX, padY } = TITLE.lockup;
-    const lines = ['SHAPE', 'SHIFT'].map((word) => this.make.text({ text: word, style: textStyle('lockup', 'ink') }, false));
-    const [top, bottom] = lines as [Phaser.GameObjects.Text, Phaser.GameObjects.Text];
-    const span = glyphWidth(top);
-    for (const line of lines) fitLockupLine(line, span).setX(-span / 2);
-    const [topHeight, bottomHeight] = [glyphHeight(top), glyphHeight(bottom)];
-    const block = topHeight + LOCKUP.lineGap + bottomHeight;
-    top.setY(-block / 2 + topHeight / 2);
-    bottom.setY(block / 2 - bottomHeight / 2);
-
-    const height = block + 2 * padY;
-    const width = span + 2 * padX + 2 * cardSlant(height);
-    const card = this.make.graphics({}, false);
-    drawCard(card, { x: -width / 2, y: -height / 2, width, height, slant: 'both' });
-    const centerY = (GAME_HEIGHT - BUTTON_REACH) / 2;
-    this.add.container(GAME_WIDTH / 2, centerY, [card, top, bottom]);
-    return centerY + height / 2;
   }
 }

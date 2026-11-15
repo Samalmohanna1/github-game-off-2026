@@ -59,12 +59,6 @@ export function drawCard(g: Phaser.GameObjects.Graphics, c: CardSpec): void {
   }
 }
 
-// How far a card's slashes reach out past its box on a slanted side.
-export function cardSlashReach(height: number): number {
-  const k = height / CARD.height;
-  return (CARD.slashGap + SLASH.width + SLASH.gap + SLASH.width / 3) * k;
-}
-
 // A screen's heading (HOW TO PLAY, PAUSED): dark Anton on a card slanting
 // both ways, HEADING_CARD.height tall on every screen (M11 review 2), centered
 // on x, y. Not yet added to the scene.
@@ -78,15 +72,7 @@ export function makeHeadingCard(scene: Phaser.Scene, x: number, y: number, label
 }
 
 // A dark card (M11 review): as dark as the bar, cut like a key cap, in a
-// closed edge, sage unless given. The how-to steps and the game-over results
-// (M11 review 2; lime-edged since review 4).
-export function drawDarkCard(
-  g: Phaser.GameObjects.Graphics,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  edge: number = COLORS.darkCardEdge,
-): void {
-  fillEdgedKeyCap(g, { x, y, width, height, ...DARK_CARD, edge, fill: COLORS.darkCard });
+// closed lime edge. The title, the how-to steps and the game-over results.
+export function drawDarkCard(g: Phaser.GameObjects.Graphics, x: number, y: number, width: number, height: number): void {
+  fillEdgedKeyCap(g, { x, y, width, height, ...DARK_CARD, edge: COLORS.darkCardEdge, fill: COLORS.darkCard });
 }

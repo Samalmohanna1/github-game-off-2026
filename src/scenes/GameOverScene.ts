@@ -49,7 +49,7 @@ export class GameOverScene extends Phaser.Scene {
     const rows = this.addRows();
     const width = Math.max(minCardWidth, ...rows.map((row) => glyphWidth(row) + 2 * padX));
     const card: Box = { x: (GAME_WIDTH - width) / 2, y: (GAME_HEIGHT - cardHeight - HINT_REACH) / 2, width, height: cardHeight };
-    drawDarkCard(g, card.x, card.y, card.width, card.height, COLORS.gameOverEdge);
+    drawDarkCard(g, card.x, card.y, card.width, card.height);
     this.placeRows(rows, card, g);
 
     this.button = new PromptButton(this, GAME_WIDTH / 2, buttonYBelow(card.y + card.height), 'PLAY AGAIN').setVisible(false);

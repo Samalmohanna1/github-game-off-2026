@@ -71,30 +71,14 @@ export function centerGlyphs(text: Phaser.GameObjects.Text): Phaser.GameObjects.
 }
 
 // Puts a one-line text's letters' own left or right edge on its x, so lines
-// of different letters stack flush (GAME over OVER, M11 review 2).
+// of different letters stack flush (the game-over card's rows, M11 review 2).
 export function alignGlyphs(text: Phaser.GameObjects.Text, side: 'left' | 'right'): Phaser.GameObjects.Text {
   const box = glyphBox(text);
   return text.setOrigin(box[side] / text.width, text.originY);
-}
-
-// How tall a one-line text's letters stand, px.
-export function glyphHeight(text: Phaser.GameObjects.Text): number {
-  const { top, bottom } = glyphBox(text);
-  return bottom - top;
 }
 
 // How wide a one-line text's letters reach, px.
 export function glyphWidth(text: Phaser.GameObjects.Text): number {
   const { left, right } = glyphBox(text);
   return right - left;
-}
-
-// Sets one line of a stacked lockup (the title, GAME OVER; M11 review 3):
-// resized so its letters reach `width` px across, letters grow in
-// proportion to the size, so every line of the block is flush on both
-// sides. Its letters' left edge then sits on its x and their middle on its y.
-export function fitLockupLine(text: Phaser.GameObjects.Text, width: number): Phaser.GameObjects.Text {
-  const size = parseFloat(String(text.style.fontSize));
-  text.setFontSize((size * width) / glyphWidth(text));
-  return alignGlyphs(centerGlyphs(text), 'left');
 }

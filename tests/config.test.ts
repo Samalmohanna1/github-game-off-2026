@@ -269,10 +269,8 @@ describe('graphics contrast', () => {
     }
   });
 
-  // M11 review 4: the game-over card's lime edge and the rule under its
-  // heading.
-  it('edges the game-over card clearly, with its rule reading on it', () => {
-    expect(contrastRatio(C.COLORS.gameOverEdge, C.COLORS.void)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  // M11 review 4: the rule under GAME OVER.
+  it('reads the game-over rule on its card', () => {
     expect(contrastRatio(C.COLORS.gameOverRule, C.COLORS.darkCard)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
@@ -329,11 +327,8 @@ const TEXT_PAIRS = Object.entries(TEXT_ON).flatMap(([bg, texts]) => texts.map((t
 
 // The screens (M11) keep their parts clear of each other.
 describe('screen layouts', () => {
-  // Anton's capitals stand about 0.9 of its size. A stacked lockup grows
-  // its narrower lines to the widest one's width: SHIFT ends up about 1.17
-  // times SHAPE's size.
+  // Anton's capitals stand about 0.9 of its size.
   const ANTON_CAPS = 0.9;
-  const LOCKUP_GROWTH = 1.25;
   const B = C.PROMPT_BUTTON;
   // A button's reach below what comes before it, and its hint's middle below
   // that same edge (the hint is small text, half its size tall).
@@ -346,9 +341,14 @@ describe('screen layouts', () => {
   });
 
   it('fits the title lockup and its button on screen', () => {
-    const { padY } = C.TITLE.lockup;
-    const lockup = (1 + LOCKUP_GROWTH) * ANTON_CAPS * C.FONT_SIZES.lockup + C.LOCKUP.lineGap + 2 * padY;
+    const { padY, lineGap } = C.TITLE;
+    const lockup = ANTON_CAPS * (C.FONT_SIZES.lockup + C.FONT_SIZES.lockupSub) + lineGap + 2 * padY;
     expect(lockup + buttonReach).toBeLessThan(C.GAME_HEIGHT);
+  });
+
+  // M11 review 5: the title leans like the badges.
+  it('leans the title like the badges', () => {
+    expect(C.TITLE.lean).toBeCloseTo(C.BADGE.slant / C.BADGE.height);
   });
 
   it('stacks the how-to heading, steps, button and hint without overlap', () => {
