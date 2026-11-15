@@ -34,7 +34,7 @@ Scenes, one per screen:
 | `TitleScene` | Final (M11 review 3) | The grid stage, the lockup after the mock (SHAPE stacked over SHIFT in Anton on a big cream card slanting both ways, with lime slashes; upright since M11 review 2, and since review 3 a stacked lockup, SHIFT grown to SHAPE's width), and a lime CLICK TO PLAY button below it, the two centered as one block. The click gives the page keyboard focus inside the itch.io iframe and leads to How to play. |
 | `HowToScene` | Final (M11 review) | How to play, between the title and the first wall: HOW TO PLAY on a heading card, then three numbered steps on dark cards, each with its keys and one sentence (01 LINE UP, Space; 02 HOLD ON, the letters and Shift; 03 FIT THROUGH, a PERFECT badge), and a lime START button. Any key or a click starts the run, after `HOW_TO.inputDelayMs` so the title's click can't skip it. Restarts from game over skip it. |
 | `PlayScene` | Interim (M10b) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). Space lines the figure up, one lane toward the hole per press (during a Shift Wall's warning, toward the lane it is about to slide to); the arrow keys don't move it; the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 4+), the wall stops behind a SHIFT callout, turns orange with an arrow, and the hole slides 1 lane with a sideways jolt while the new lane's tile is marked on the floor; then the wall carries on; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: a PERFECT / GREAT / CLOSE CALL label pops over the figure, the wall comes the rest of the way to the figure, the figure's cells light up lime like the panel's pixels and the panel fills back in (the completion), and the wall fades away as the next one fades in. Held blocks land with a squash, slipped ones slump back limp, a wrong key rattles the wall, and a CLOSE CALL plays the rush in slow motion. If the wall arrives first, it knocks the figure over: it topples toward the camera with its arms flailing, and its blocks come apart and bounce to a stop on the floor before the run ends. Synthesized sounds (M9) play over all of it: the countdown tick in CLOSE CALL range, clicks, slips, the PERFECT fanfare, the Shift Wall alert and whoosh, and the fail's hit and "whomp whomp whooom". Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses the game behind a veil, with PAUSED on a heading card and a lime CLICK TO RESUME button (`PauseOverlay`, M11). F2 toggles the debug overlay. Everything is drawn in the M10b art, a dark grid stage after the user's mockup: a glossy floor grid running back to a gridded back wall at the runway's far end, meeting it at a glowing lime seam, with lit cells that breathe, squares that fall slowly and fade, and streaks running down the floor; a cream runway with thin seams and glowing lime edges, where the figure stands centered on its lane's tile and the lined-up tile is marked; walls that are dark glass display panels lined on the figure's cells, with dots at the crossings, scanlines and the glow of a neon lime frame, with a see-through cutout in an equally thick lime edge; black blocks with cream seams between their cells and a cream edge; a dark line-art bar of cream key caps with lime slashes and a square per letter; SCORE and WALL on cream cards with lime slashes in the top corners; the timing label and the SHIFT callout on solid badges in a thick ink edge; and the Caps Lock warning in bright letters inside a thick dark outline. No texture anywhere. |
-| `GameOverScene` | Final (M11 review 3) | Laid out after the user's reference, on the grid stage: GAME over OVER in big cream Anton on the left, a stacked lockup flush on both sides (M11 review 3; review 2 lined up only their right edges), standing exactly as tall as a dark card on the right with this run's SCORE and WALLS CLEARED, parted by the bar's line; the two centered across the screen. No all-time best is kept or shown (M11 review), nor the wall the run ended on, which is always walls cleared + 1 (M11 review 2). Restart follows PLAN.md §7: input is ignored for `RESTART_LOCKOUT`, then every key must be up ("LET GO OF EVERY KEY TO PLAY AGAIN" shows meanwhile) before a key or click restarts, when a lime PLAY AGAIN button shows under the card over "PRESS ANY KEY OR CLICK". |
+| `GameOverScene` | Final (M11 review 4) | After the user's mock, on the grid stage: one dark card in a lime edge, centered, with GAME OVER in cream Anton over a lime rule, then this run's SCORE and WALLS CLEARED (lime captions over cream numbers, the walls at the HUD's number size), parted by the bar's line; the card, Play again and its hint centered down the screen with room above and below. (Review 2 set GAME over OVER beside the card, and review 3 made it a stacked lockup.) No all-time best is kept or shown (M11 review), nor the wall the run ended on, which is always walls cleared + 1 (M11 review 2). Restart follows PLAN.md §7: input is ignored for `RESTART_LOCKOUT`, then every key must be up ("LET GO OF EVERY KEY TO PLAY AGAIN" shows meanwhile) before a key or click restarts, when a lime PLAY AGAIN button shows under the card over "PRESS ANY KEY OR CLICK". |
 
 Shared scene helpers live in `src/scenes/` (`ui.ts`, `text-styles.ts`,
 `scene-keys.ts`). Game objects live in `src/objects/`:
@@ -203,7 +203,7 @@ src/
     TitleScene.ts          # the SHAPE SHIFT lockup and "Click to play" (gets keyboard focus)
     HowToScene.ts          # how to play: three steps with their keys, then Start
     PlayScene.ts           # the game: draws state, passes input in
-    GameOverScene.ts       # GAME OVER and the run's score and walls cleared, gated restart
+    GameOverScene.ts       # one centered card: GAME OVER, the run's score and walls cleared; gated restart
     scene-keys.ts          # scene keys + RunResult handed to GameOver
     text-styles.ts         # Phaser text styles built from config tokens, plain and outlined
     ui.ts                  # reduced motion, number formatting, window key events
@@ -413,15 +413,16 @@ playtest covers.
   its right. Key caps have 45-degree cut corners (`chamferedRect()`,
   `keyCapRect()`): cream with dark letters, lime-edged when held, framed in
   lime when current. Dark cards (`drawDarkCard()`, `DARK_CARD`) are as dark
-  as the bar, cut like the key caps, in a sage edge. The screens (M11) are
+  as the bar, cut like the key caps, in a sage edge (lime on the game-over
+  card, with a lime rule under its heading). The screens (M11) are
   built only from these parts on the grid stage.
 - **Typography:** each size in `FONT_SIZES` has a role (`FONT_ROLES`): display
-  sizes (poster, title, heading, the HUD's numbers) set in Anton, which has one weight and
+  sizes (the lockup, title, heading, the HUD's numbers) set in Anton, which has one weight and
   is never bolded; the rest (the cards' captions, the prompt letters and other
   technical detail) set in IBM Plex Mono, normal or bold. Prompt
   letters use `CHIP_FONT_FAMILY` (IBM Plex Mono), whose capital I has
   crossbars and can't be mistaken for a lowercase l; any future prompt font
-  must keep I and l distinct. Stacked words (the title, GAME OVER) are a
+  must keep I and l distinct. The title's stacked words are a
   lockup (`LOCKUP`, `fitLockupLine()`, M11 review 3): each line sized so all
   their letters span one width, flush on both sides, a tight gap apart. Text
   stays unscaled where it can: scaling resamples it and blurs it, so the
@@ -837,8 +838,9 @@ Work through **PLAN.md §10** one milestone at a time.
   beside it. Every card keeps one slant angle. (A sage fold lay in the
   slanted side's foot until M11 review 2.)
 - **Dark card** — a panel as dark as the bar, cut like a key cap, in a
-  sage edge (`drawDarkCard()`): the how-to steps, and the game-over results,
-  parted by the bar's line (M11 review 2).
+  sage edge (`drawDarkCard()`): the how-to steps, and the game-over card,
+  which is edged in lime, with GAME OVER over a lime rule and the results
+  parted by the bar's line (M11 review 4).
 - **Outlined text** — bright letters inside a thick dark stroke
   (`outlinedStyle()`, `TEXT_OUTLINE`), for the Caps Lock warning over the
   moving scene. (The timing label, the SHIFT callout and the pause text were
