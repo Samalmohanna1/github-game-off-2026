@@ -5,15 +5,18 @@ A keyboard take on Japan's "Human Tetris", made for GitHub Game Off 2026
 hole with Space, which steps you one lane toward it, then hold the letters shown to pose your figure so it fits
 through. Capital letters need Shift.
 
-**Status:** Week 2. M0–M10 are done: a full run plays from the title through
+**Status:** Week 2. M0–M11 are done: a full run plays from the title through
 walls that get harder by a playtested difficulty curve, Shift Walls whose hole
 slides mid-approach, scoring and a fail to the game-over screen and back, with
 an F2 debug overlay for tuning. M8 added feel (squash and stretch, limp slips,
 a rattling wall, slow motion on CLOSE CALL, a fail where the figure flails,
 topples and its blocks bounce to a stop), M9 synthesized
-sound with no audio files, and M10 the art of the design mocks, drawn in
-code, in Anton and IBM Plex Mono. See [PLAN.md](./PLAN.md) for the
-design and milestones, and [AGENTS.md](./AGENTS.md) for the working rules.
+sound with no audio files, M10 the art of the design mocks, in Anton and IBM
+Plex Mono, M10b restyled the play screen as a lit sci-fi grid stage, all
+drawn in code, with walls that are neon-framed display panels, and M11 set
+the title, how-to, pause and game-over screens in the same style. See [PLAN.md](./PLAN.md)
+for the design and milestones, and [AGENTS.md](./AGENTS.md) for the working
+rules.
 
 ## Setup
 

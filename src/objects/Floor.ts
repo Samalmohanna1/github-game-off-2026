@@ -1,13 +1,13 @@
 import Phaser from 'phaser';
-import { ART_SEED, COLORS, FLOOR, FLOOR_LINE_WIDTH, LANE_COUNT, WALL_START_SCALE } from '@/config';
+import { COLORS, FLOOR, LANE_COUNT, WALL_START_SCALE } from '@/config';
 import { laneLeftX } from '@/logic/lanes';
-import { FLOOR_HALF_WIDTH, STAGE_FRONT_SCALE, crossSeamScales, floorEdge, project, type Point } from '@/logic/perspective';
+import { STAGE_FRONT_SCALE, crossSeamScales, floorEdge, project, type Point } from '@/logic/perspective';
 import { toVectors } from '@/objects/vectors';
 
-// The floor (M10): cream tiles, each a touch lighter or darker, thin pale
-// seams along the lanes and across, green verges beyond its edges, and thin
-// edge lines that frame the stage. The cross seams put the figure in the
-// middle of a row of tiles. Seeded, so the tiles keep their tones every run.
+// The runway (M10b, after the mockup): a cream plane on the grid stage, its
+// tile rows shading toward the deeper cream into the distance, with thin
+// cream-gray seams along the lanes and across, and glowing lime lines down
+// its sides. The cross seams put the figure in the middle of a row of tiles.
 // Drawn once.
 export class Floor extends Phaser.GameObjects.Graphics {
   constructor(scene: Phaser.Scene) {
@@ -15,21 +15,12 @@ export class Floor extends Phaser.GameObjects.Graphics {
     scene.add.existing(this);
 
     const span = (p: Point): Point[] => [project(p, WALL_START_SCALE), project(p, STAGE_FRONT_SCALE)];
-    const strip = (inner: Point, outer: Point) => toVectors([...span(inner), ...span(outer).reverse()]);
-    const outward = (side: -1 | 1, share: number): Point => ({
-      x: floorEdge(side).x + side * share * FLOOR.vergeWidth * FLOOR_HALF_WIDTH,
-      y: floorEdge(side).y,
-    });
+    const [farLeft, nearLeft] = span(floorEdge(-1));
+    const [farRight, nearRight] = span(floorEdge(1));
 
     this.fillStyle(COLORS.floor);
-    this.fillPoints(strip(floorEdge(-1), floorEdge(1)), true);
-    this.toneTiles();
-    for (const side of [-1, 1] as const) {
-      this.fillStyle(COLORS.verge);
-      this.fillPoints(strip(floorEdge(side), outward(side, 1)), true);
-      this.fillStyle(COLORS.vergeOuter);
-      this.fillPoints(strip(outward(side, 1 - FLOOR.vergeOuterShare), outward(side, 1)), true);
-    }
+    this.fillPoints(toVectors([farLeft!, farRight!, nearRight!, nearLeft!]), true);
+    this.shadeRows();
 
     this.lineStyle(FLOOR.seamWidth, COLORS.floorSeam);
     for (let lane = 1; lane < LANE_COUNT; lane++) {
@@ -42,24 +33,29 @@ export class Floor extends Phaser.GameObjects.Graphics {
       this.lineBetween(left.x, left.y, right.x, right.y);
     }
 
-    const [farLeft, nearLeft] = span(floorEdge(-1));
-    const [farRight, nearRight] = span(floorEdge(1));
-    this.lineStyle(FLOOR_LINE_WIDTH, COLORS.floorLine);
-    this.strokePoints(toVectors([nearLeft!, farLeft!, farRight!, nearRight!]));
+    for (const [far, near] of [
+      [farLeft!, nearLeft!],
+      [farRight!, nearRight!],
+    ] as const) {
+      for (const { width, alpha } of FLOOR.edgeGlow) {
+        this.lineStyle(width, COLORS.floorEdge, alpha);
+        this.lineBetween(far.x, far.y, near.x, near.y);
+      }
+      this.lineStyle(FLOOR.edgeWidth, COLORS.floorEdge);
+      this.lineBetween(far.x, far.y, near.x, near.y);
+    }
   }
 
-  // Each tile gets a random share of the deeper cream, so the floor isn't one
-  // flat sheet.
-  private toneTiles(): void {
-    const rng = new Phaser.Math.RandomDataGenerator([ART_SEED]);
+  // Each tile row takes more of the deeper cream the further back it lies,
+  // so the runway reads as running into the distance.
+  private shadeRows(): void {
     const rows = [WALL_START_SCALE, ...crossSeamScales(), STAGE_FRONT_SCALE];
-    const at = (lane: number, scale: number) => project({ x: laneLeftX(lane), y: floorEdge(1).y }, scale);
+    const at = (side: -1 | 1, scale: number) => project(floorEdge(side), scale);
     for (let row = 1; row < rows.length; row++) {
       const [far, near] = [rows[row - 1]!, rows[row]!];
-      for (let lane = 0; lane < LANE_COUNT; lane++) {
-        this.fillStyle(COLORS.floorTone, rng.frac() * FLOOR.toneMax);
-        this.fillPoints(toVectors([at(lane, far), at(lane + 1, far), at(lane + 1, near), at(lane, near)]), true);
-      }
+      const back = (STAGE_FRONT_SCALE - far) / (STAGE_FRONT_SCALE - WALL_START_SCALE);
+      this.fillStyle(COLORS.floorSeam, FLOOR.farShade * back * back);
+      this.fillPoints(toVectors([at(-1, far), at(1, far), at(1, near), at(-1, near)]), true);
     }
   }
 }

@@ -2,16 +2,16 @@ import Phaser from 'phaser';
 import { Synth } from '@/audio/Synth';
 import {
   CLOSE_CALL_SLOWMO,
+  COLORS,
   FAIL_SHAKE_INTENSITY,
   FAIL_SHAKE_MS,
   FAIL_TO_GAME_OVER_MS,
   GAME_HEIGHT,
   GAME_WIDTH,
-  GRAIN,
   LOCK_RUSH_DURATION,
-  RUSH_END_SCALE,
   SCREEN_LAYOUT,
   SHIFT_JOLT,
+  WALL_COMPLETE,
 } from '@/config';
 import { NEUTRAL_POSE } from '@/data/poses';
 import { KeyboardInput } from '@/input/KeyboardInput';
@@ -25,12 +25,12 @@ import { ScoreKeeper, gradeFor } from '@/logic/scoring';
 import { LetterSequence, type SequenceEffect } from '@/logic/sequence';
 import { ShiftWall, type ShiftWallEvent } from '@/logic/shift-wall';
 import { generateWall, holeGrid, type WallSpec } from '@/logic/wall-gen';
+import { Completion } from '@/objects/Completion';
 import { DebugOverlay, type DebugRow } from '@/objects/DebugOverlay';
 import { Figure } from '@/objects/Figure';
 import { Floor } from '@/objects/Floor';
+import { GridVoid } from '@/objects/GridVoid';
 import { Hud } from '@/objects/Hud';
-import { Collage } from '@/objects/Collage';
-import { addGrain } from '@/objects/grain';
 import { LaneTiles } from '@/objects/LaneTiles';
 import { PauseOverlay } from '@/objects/PauseOverlay';
 import { PromptTray } from '@/objects/PromptTray';
@@ -41,15 +41,15 @@ import { SceneKeys, type RunResult } from '@/scenes/scene-keys';
 import { outlinedStyle } from '@/scenes/text-styles';
 import { prefersReducedMotion } from '@/scenes/ui';
 
-// Draw order. The wall moves from behind the figure to in front of it once it
-// rushes past the figure's plane.
+// Draw order. The wall stays behind the figure; a cleared wall's completion
+// is drawn over the figure, where the hole and the pose line up.
 const LAYER = {
   background: 0,
   floor: 1,
   laneTiles: 2,
   wall: 3,
   figure: 4,
-  wallPassed: 5,
+  completion: 5,
   label: 6,
   tray: 7,
   hud: 8,
@@ -60,8 +60,9 @@ const LAYER = {
 // Kept in the game registry so the overlay stays on across walls and restarts.
 const DEBUG_VISIBLE = 'debugOverlayVisible';
 
-// approach: the wall is coming and the player can act. rush: the pose locked
-// and the wall is passing. failing: the wall reached the figure first.
+// approach: the wall is coming and the player can act. rush: the pose locked,
+// and the wall comes to the figure, completes and leaves. failing:
+// the wall reached the figure first.
 type Phase = 'approach' | 'rush' | 'failing';
 
 export class PlayScene extends Phaser.Scene {
@@ -78,6 +79,7 @@ export class PlayScene extends Phaser.Scene {
   private scoreKeeper!: ScoreKeeper;
   private keyboard!: KeyboardInput;
   private wall!: Wall;
+  private completion!: Completion;
   private figure!: Figure;
   private laneTiles!: LaneTiles;
   private tray!: PromptTray;
@@ -105,13 +107,15 @@ export class PlayScene extends Phaser.Scene {
     this.sequence = new LetterSequence();
     this.scoreKeeper = new ScoreKeeper(this.dev.startWall);
 
-    // Paper texture, each element in its own colors (M10): moderate on the
-    // background, very faint on the floor; the wall textures its own surface.
-    addGrain(new Collage(this).setDepth(LAYER.background), GRAIN.background);
-    addGrain(new Floor(this).setDepth(LAYER.floor), GRAIN.floor);
+    // The Shift Wall jolt and the fail's shake move the camera past the
+    // scene's edge, where the void should go on.
+    this.cameras.main.setBackgroundColor(COLORS.void);
+    new GridVoid(this).setDepth(LAYER.background);
+    new Floor(this).setDepth(LAYER.floor);
     this.laneTiles = new LaneTiles(this).setDepth(LAYER.laneTiles);
     this.wall = new Wall(this).setDepth(LAYER.wall);
     this.figure = new Figure(this, this.figureLane).setDepth(LAYER.figure);
+    this.completion = new Completion(this).setDepth(LAYER.completion);
     this.label = new TimingLabel(this).setDepth(LAYER.label);
     this.callout = new ShiftCallout(this).setDepth(LAYER.label);
     this.tray = new PromptTray(this).setDepth(LAYER.tray);
@@ -208,10 +212,12 @@ export class PlayScene extends Phaser.Scene {
     this.shiftWall = new ShiftWall(this.plan.shiftWall, this.holeLane);
     this.countdown = new Countdown();
     this.wall.setHole(this.holeLane, holeGrid(this.spec.targets));
-    this.wall.setAlpha(1).setDepth(LAYER.wall);
+    this.wall.appear();
+    this.completion.reset();
     this.figure.resetPose();
     this.laneTiles.setTarget(null);
     this.sequence.startWall(letters);
+    this.tray.setLetters(letters.length);
     this.phase = 'approach';
     this.setT(0);
     this.refreshAlignment();
@@ -271,12 +277,30 @@ export class PlayScene extends Phaser.Scene {
     this.label.show(score, laneCenterX(this.figureLane));
     if (score.grade === 'closeCall') this.slowMotion();
     if (score.grade === 'perfect') this.synth?.fanfare();
+    // The wall comes the rest of the way to the figure, where its hole and
+    // the pose line up exactly, completes there, and leaves (M10b review).
+    // All of it runs on tweens, so a CLOSE CALL slows it too.
     this.tweens.addCounter({
       from: wallScale(this.t),
-      to: RUSH_END_SCALE,
+      to: 1,
       duration: LOCK_RUSH_DURATION,
       ease: 'Quad.easeIn',
-      onUpdate: (tween) => this.rushWall(tween.getValue() ?? RUSH_END_SCALE),
+      onUpdate: (tween) => this.wall.setScale(tween.getValue() ?? 1),
+      onComplete: () => this.completion.play(this.wall.textureKey, this.spec.targets, this.holeLane, () => this.clearWall()),
+    });
+  }
+
+  // The completed wall fades, growing a little toward the camera unless the
+  // player prefers reduced motion, taking the completion with it, and the
+  // figure is itself again.
+  private clearWall(): void {
+    const { exitGrow, exitMs } = WALL_COMPLETE;
+    this.tweens.add({
+      targets: [this.wall, this.completion],
+      alpha: 0,
+      scale: prefersReducedMotion() ? 1 : exitGrow,
+      duration: exitMs,
+      ease: 'Quad.easeIn',
       onComplete: () => this.startWall(),
     });
   }
@@ -288,13 +312,6 @@ export class PlayScene extends Phaser.Scene {
     this.time.delayedCall(CLOSE_CALL_SLOWMO.ms, () => {
       this.tweens.timeScale = 1;
     });
-  }
-
-  private rushWall(scale: number): void {
-    this.wall.setScale(scale);
-    // Past the figure's plane the wall is in front of it, fading toward the
-    // camera, with the figure showing through its hole.
-    if (scale >= 1) this.wall.setDepth(LAYER.wallPassed).setAlpha(1 - (scale - 1) / (RUSH_END_SCALE - 1));
   }
 
   private fail(): void {
@@ -359,7 +376,6 @@ export class PlayScene extends Phaser.Scene {
     const result: RunResult = {
       wallsCleared: this.scoreKeeper.wallsCleared,
       score: this.scoreKeeper.score,
-      endedOnWall: this.scoreKeeper.wallNumber,
       keysDown: this.keyboard.heldCodes(),
     };
     this.scene.start(SceneKeys.GameOver, result);

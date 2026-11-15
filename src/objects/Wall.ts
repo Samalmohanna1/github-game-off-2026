@@ -1,40 +1,39 @@
 import Phaser from 'phaser';
 import {
-  CELL_SIZE,
   COLORS,
-  FIGURE_FLOOR_Y,
-  GRAIN,
-  FIGURE_HEIGHT,
   FIGURE_WIDTH,
+  HOLE_EDGE_WIDTH,
   SHIFT_ARROW,
   SHIFT_WALL_SLIDE_MS,
-  WALL_EDGE_WIDTH,
+  WALL_APPEAR_MS,
   WALL_FLASH_MS,
-  WALL_HEIGHT,
+  WALL_FRAME_WIDTH,
   WALL_RATTLE,
 } from '@/config';
-import { laneCenterX } from '@/logic/lanes';
-import { FLOOR_HALF_WIDTH, VANISHING_POINT } from '@/logic/perspective';
+import { VANISHING_POINT } from '@/logic/perspective';
 import type { HoleGrid } from '@/logic/wall-gen';
-import { addGrain } from '@/objects/grain';
-
-const FLOOR = FIGURE_FLOOR_Y - VANISHING_POINT.y;
-const TOP = FLOOR - WALL_HEIGHT;
-const LEFT = -FLOOR_HALF_WIDTH;
-const RIGHT = FLOOR_HALF_WIDTH;
-const GRID_TOP = FLOOR - FIGURE_HEIGHT;
-const ARROW_Y = (TOP + GRID_TOP) / 2;
+import { frameEdges, holeEdges, solidRects, wallLayout, type Rect, type WallLayout } from '@/logic/wall-shape';
+import { ImagePieces } from '@/objects/ImagePieces';
+import { WallPanel } from '@/objects/WallPanel';
+import { fillSegments } from '@/objects/vectors';
 
 // Drawn at full size, in coordinates relative to the vanishing point, so
 // setScale(s) places it at depth s exactly as project() does. The hole is cut
 // from the same pose grid the figure uses (PLAN.md §3), at the hole's lane;
 // during a Shift Wall slide that lane is fractional. It is redrawn only when
-// something changes, never every frame. The hole is really cut out: the floor
-// and the background show through it, and the figure does once the wall has
-// passed it (M10 review 5). The wall's surface carries a faint paper texture
-// (src/objects/grain.ts) in its own space, so it shrinks with distance.
+// something changes, never every frame.
+// The wall's face is a dark glass display panel (WallPanel, M10b review 4),
+// shown through ImagePieces with the hole really cut out of it, so the runway
+// and the void show through. Its grid lies on the hole's cells, so the panel
+// is repainted when the hole moves. A lime frame and an equally thick lime
+// edge round the hole are all that is drawn over it. If the panel couldn't be
+// made, the wall is plain dark green.
 export class Wall extends Phaser.GameObjects.Container {
+  private readonly panel: WallPanel;
+  private readonly image: ImagePieces;
   private readonly face: Phaser.GameObjects.Graphics;
+  private readonly lines: Phaser.GameObjects.Graphics;
+  private paintedGridLeft: number | null = null;
   private holeLane = 0;
   private grid: HoleGrid = [];
   private warningDir: -1 | 1 | null = null;
@@ -46,15 +45,20 @@ export class Wall extends Phaser.GameObjects.Container {
   constructor(scene: Phaser.Scene) {
     super(scene, VANISHING_POINT.x, VANISHING_POINT.y);
     scene.add.existing(this);
+    this.panel = new WallPanel(scene);
+    this.image = new ImagePieces(scene);
     this.face = new Phaser.GameObjects.Graphics(scene);
-    // Sized to the drawing, centered on its origin at the vanishing point and
-    // reaching the floor below it, so its texture frames the wall itself.
-    const surface = new Phaser.GameObjects.Container(scene, 0, 0, [this.face]);
-    surface.setSize(2 * (RIGHT + WALL_EDGE_WIDTH), 2 * (FLOOR + WALL_EDGE_WIDTH));
-    this.add(surface);
-    addGrain(surface, GRAIN.wall);
+    this.lines = new Phaser.GameObjects.Graphics(scene);
+    this.add([this.image, this.face, this.lines]);
   }
 
+  // The panel's texture, for the completion to fill the hole back in with
+  // (null for a plain wall).
+  get textureKey(): string | null {
+    return this.panel.key;
+  }
+
+  // A new wall, with its hole at a lane.
   setHole(lane: number, grid: HoleGrid): void {
     this.slide?.stop();
     this.rattling?.stop();
@@ -62,6 +66,13 @@ export class Wall extends Phaser.GameObjects.Container {
     this.grid = grid;
     this.warningDir = null;
     this.redraw();
+  }
+
+  // A new wall fades in where the runway ends, at its starting size.
+  appear(): void {
+    this.scene.tweens.killTweensOf(this);
+    this.setAlpha(0);
+    this.scene.tweens.add({ targets: this, alpha: 1, duration: WALL_APPEAR_MS });
   }
 
   flash(): void {
@@ -115,60 +126,48 @@ export class Wall extends Phaser.GameObjects.Container {
   }
 
   private redraw(): void {
-    const fill = this.flashing ? COLORS.wallFlash : this.warningDir !== null ? COLORS.wallWarning : COLORS.wall;
-    const holeCenter = laneCenterX(this.holeLane) - VANISHING_POINT.x;
-    const gridLeft = holeCenter - FIGURE_WIDTH / 2;
-    const cellX = (col: number) => gridLeft + col * CELL_SIZE;
-    const cellY = (row: number) => GRID_TOP + row * CELL_SIZE;
-    // The wall's solid stretches along one row of the grid, edge to edge.
-    const solidSpans = (cells: readonly boolean[]): [number, number][] => {
-      const spans: [number, number][] = [];
-      let start = LEFT;
-      cells.forEach((hole, col) => {
-        if (!hole) return;
-        if (cellX(col) > start) spans.push([start, cellX(col)]);
-        start = cellX(col + 1);
-      });
-      spans.push([start, RIGHT]);
-      return spans;
-    };
+    const layout = wallLayout(this.holeLane);
+    if (layout.gridLeft !== this.paintedGridLeft) {
+      this.panel.paint(layout);
+      this.paintedGridLeft = layout.gridLeft;
+    }
+    const solid = solidRects(this.grid, layout);
+    this.image.show(this.panel.key, solid);
 
-    const g = this.face;
-    g.clear();
-    g.fillStyle(fill);
-    g.fillRect(LEFT, TOP, RIGHT - LEFT, GRID_TOP - TOP);
-    this.grid.forEach((cells, row) => {
-      for (const [x1, x2] of solidSpans(cells)) g.fillRect(x1, cellY(row), x2 - x1, CELL_SIZE);
-    });
-    g.lineStyle(WALL_EDGE_WIDTH, COLORS.outline);
-    edge(g, LEFT, FLOOR, LEFT, TOP);
-    edge(g, LEFT, TOP, RIGHT, TOP);
-    edge(g, RIGHT, TOP, RIGHT, FLOOR);
-    for (const [x1, x2] of solidSpans(this.grid[this.grid.length - 1] ?? [])) edge(g, x1, FLOOR, x2, FLOOR);
-    if (this.warningDir !== null) this.drawArrow(holeCenter, this.warningDir);
+    // An alert covers the panel; with no texture, the wall is plain.
+    const alert = this.flashing ? COLORS.wallFlash : this.warningDir !== null ? COLORS.wallWarning : null;
+    const face = alert ?? (this.panel.key === null ? COLORS.wall : null);
+    this.face.clear();
+    if (face !== null) fillRects(this.face, solid, face);
+
+    this.lines.clear();
+    fillSegments(this.lines, frameEdges(layout), WALL_FRAME_WIDTH, COLORS.wallFrame, layout.floor);
+    fillSegments(this.lines, holeEdges(this.grid, layout), HOLE_EDGE_WIDTH, COLORS.holeEdge, layout.floor);
+    if (this.warningDir !== null) this.drawArrow(layout.gridLeft + FIGURE_WIDTH / 2, layout, this.warningDir);
   }
 
-  // Over the hole, kept inside the wall when the hole is near an edge.
-  private drawArrow(holeCenter: number, dir: -1 | 1): void {
+  // In the band of wall above the hole, kept inside the wall when the hole is
+  // near an edge.
+  private drawArrow(holeCenter: number, layout: WallLayout, dir: -1 | 1): void {
     const { length, shaftThickness, headLength, headWidth } = SHIFT_ARROW;
-    const center = Phaser.Math.Clamp(holeCenter, LEFT + length / 2 + WALL_EDGE_WIDTH, RIGHT - length / 2 - WALL_EDGE_WIDTH);
+    const center = Phaser.Math.Clamp(
+      holeCenter,
+      layout.left + length / 2 + WALL_FRAME_WIDTH,
+      layout.right - length / 2 - WALL_FRAME_WIDTH,
+    );
+    const arrowY = (layout.top + layout.gridTop) / 2;
     const tail = center - (dir * length) / 2;
     const tip = center + (dir * length) / 2;
     const headBase = tip - dir * headLength;
 
-    const g = this.face;
+    const g = this.lines;
     g.fillStyle(COLORS.shiftArrow);
-    g.fillRect(Math.min(tail, headBase), ARROW_Y - shaftThickness / 2, Math.abs(headBase - tail), shaftThickness);
-    g.fillTriangle(headBase, ARROW_Y - headWidth / 2, headBase, ARROW_Y + headWidth / 2, tip, ARROW_Y);
+    g.fillRect(Math.min(tail, headBase), arrowY - shaftThickness / 2, Math.abs(headBase - tail), shaftThickness);
+    g.fillTriangle(headBase, arrowY - headWidth / 2, headBase, arrowY + headWidth / 2, tip, arrowY);
   }
 }
 
-// A straight edge in the current line style, run on by half its width at both
-// ends, so two edges meeting at a corner close it.
-function edge(g: Phaser.GameObjects.Graphics, x1: number, y1: number, x2: number, y2: number): void {
-  const length = Math.hypot(x2 - x1, y2 - y1);
-  if (length === 0) return;
-  const runX = ((x2 - x1) / length) * (WALL_EDGE_WIDTH / 2);
-  const runY = ((y2 - y1) / length) * (WALL_EDGE_WIDTH / 2);
-  g.lineBetween(x1 - runX, y1 - runY, x2 + runX, y2 + runY);
+function fillRects(g: Phaser.GameObjects.Graphics, rects: readonly Rect[], color: number): void {
+  g.fillStyle(color);
+  for (const r of rects) g.fillRect(r.x, r.y, r.width, r.height);
 }

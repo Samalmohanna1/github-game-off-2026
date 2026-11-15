@@ -67,9 +67,19 @@ describe('config', () => {
     expect(C.FIGURE_HEIGHT).toBeLessThan(C.WALL_HEIGHT);
   });
 
-  it('fits every chip inside the tray', () => {
-    expect(C.CHIP.size).toBeLessThan(C.TRAY_HEIGHT);
-    expect(C.CHIP.currentSize).toBeLessThan(C.TRAY_HEIGHT);
+  // M10b: the bar sits below the runway, so it never covers it or the
+  // figure, and the current key cap's lime frame stays clear of the
+  // runway above and of the bar's line below.
+  it('fits every chip, and the current one with its frame, between the runway and the bar line', () => {
+    const framedHalf = C.CHIP.currentSize / 2 + C.CHIP.focusGap + C.CHIP.focusWidth / 2;
+    expect(C.CHIP.size).toBeLessThan(C.CHIP.currentSize);
+    expect(C.TRAY.rowY - framedHalf).toBeGreaterThanOrEqual(0);
+    expect(C.TRAY.rowY + framedHalf).toBeLessThanOrEqual(C.TRAY.lowY - C.TRAY.lineWidth / 2);
+    expect(C.TRAY.lowY).toBeLessThanOrEqual(C.TRAY_HEIGHT);
+  });
+
+  it('keeps the HUD above the horizon, where nothing that moves reaches', () => {
+    expect(C.HUD.top + C.HUD.height).toBeLessThan(C.HORIZON_Y);
   });
 
   it('keeps the Shift mark inside its chip corner', () => {
@@ -177,38 +187,109 @@ describe('color system', () => {
 });
 
 describe('graphics contrast', () => {
-  it.each(['wall', 'floorLine', 'tray', 'figure', 'outline'] as const)('%s stands out from the stage', (name) => {
-    expect(contrastRatio(C.COLORS[name], C.COLORS.stage)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  // The wall stands in the dark void, with a glow behind it, and its panel is
+  // dark too, so its lime frame is what sets it apart.
+  it.each(['void', 'voidGlow'] as const)('frames the wall clearly against the %s', (name) => {
+    expect(contrastRatio(C.COLORS.wallFrame, C.COLORS[name])).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
-  // The lit tile and the Shift Wall's target outline sit on the floor, and
-  // the floor's edge lines run along it.
-  it.each(['laneLit', 'wallWarning', 'floorLine', 'figure'] as const)('%s stands out from the floor', (name) => {
+  // While the wall is far off, the hole shows the void, as dark as the
+  // panel; its lime edge reads there. Nearer, it shows the cream runway,
+  // which the panel's darks set off.
+  it.each(['void', 'voidGlow', 'wall', 'panelTop', 'panelFoot'] as const)('edges the hole clearly against the %s', (name) => {
+    expect(contrastRatio(C.COLORS.holeEdge, C.COLORS[name])).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  });
+
+  it.each(['panelTop', 'panelFoot', 'wall'] as const)('the %s sets the hole off from the runway it shows', (name) => {
     expect(contrastRatio(C.COLORS[name], C.COLORS.floor)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
-  // M10: the mocks' black figure is only 1.5:1 on the dark green wall, so its
-  // cream edge is what outlines it there.
-  it('keeps the figure readable in front of the wall by its edge', () => {
-    expect(contrastRatio(C.COLORS.figureEdge, C.COLORS.wall)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
-    expect(contrastRatio(C.COLORS.figureEdge, C.COLORS.figure)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  // A completion's lit cells part by dark seams, like the panel's pixels.
+  it('parts the completion cells clearly by their seams', () => {
+    expect(contrastRatio(C.COLORS.completionCell, C.COLORS.completionSeam)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
-  it('keeps the Shift Wall warning readable: wall on the stage, arrow on the wall, callout arrow in its outline', () => {
-    expect(contrastRatio(C.COLORS.wallWarning, C.COLORS.stage)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  // The lined-up marker and the Shift Wall's target outline sit on the runway.
+  it.each(['laneLit', 'wallWarning', 'figure'] as const)('%s stands out from the runway', (name) => {
+    expect(contrastRatio(C.COLORS[name], C.COLORS.floor)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  });
+
+  // The black figure is only 1.5:1 on a dark wall and less on the void, so
+  // its cream edge is what outlines it there.
+  it.each(['void', 'wall', 'figure'] as const)('outlines the figure clearly against the %s by its edge', (name) => {
+    expect(contrastRatio(C.COLORS.figureEdge, C.COLORS[name])).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  });
+
+  // Over the glow, the wall's frame carries the alert walls too.
+  it.each(['wallWarning', 'wallFlash'] as const)('the %s wall stands out from the void', (name) => {
+    expect(contrastRatio(C.COLORS[name], C.COLORS.void)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  });
+
+  it('keeps the Shift Wall arrows readable: on the wall, and on the callout card', () => {
     expect(contrastRatio(C.COLORS.shiftArrow, C.COLORS.wallWarning)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
-    expect(contrastRatio(C.COLORS.shiftArrow, C.COLORS.textOutline)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(contrastRatio(C.COLORS.calloutInk, C.COLORS.calloutCard)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
-  it.each(['chipHeld', 'chipCurrent', 'chipSlipped'] as const)('%s chips stand out from the tray', (name) => {
+  // M10b review 4: the badges pop up over the dark panel, and over the cream
+  // runway, where their ink edge sets them off.
+  it.each(['gradePerfect', 'gradeGreat', 'gradeCloseCall', 'calloutCard'] as const)(
+    'the %s badge stands out from the wall panel',
+    (name) => {
+      for (const panel of [C.COLORS.panelTop, C.COLORS.panelFoot]) {
+        expect(contrastRatio(C.COLORS[name], panel)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+      }
+    },
+  );
+
+  it('edges the badges clearly against the runway', () => {
+    expect(contrastRatio(C.COLORS.badgeEdge, C.COLORS.floor)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  });
+
+  // M11 review 2: the buttons sit on the stage (or the pause veil, which is
+  // the void's color), where their cream edge sets them off.
+  it('edges the buttons clearly against the stage', () => {
+    expect(contrastRatio(C.COLORS.buttonEdge, C.COLORS.void)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(contrastRatio(C.COLORS.buttonEdge, C.COLORS.veil)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  });
+
+  // The cream cards stand on the void; the bar's line, slashes and its letter
+  // squares, lit and unlit, all read on the bar.
+  it('sets the cards off from the void', () => {
+    expect(contrastRatio(C.COLORS.card, C.COLORS.void)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  });
+
+  // The dark cards are as dark as the void, so their edge outlines them; the
+  // how-to's key caps and the game-over card's line read on them.
+  it('edges the dark cards clearly on the void, with key caps and the bar line that read on them', () => {
+    expect(contrastRatio(C.COLORS.darkCardEdge, C.COLORS.void)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(contrastRatio(C.COLORS.darkCardEdge, C.COLORS.darkCard)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(contrastRatio(C.COLORS.chipCurrent, C.COLORS.darkCard)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    for (const line of [C.COLORS.trayLine, C.COLORS.trayAccent]) {
+      expect(contrastRatio(line, C.COLORS.darkCard)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    }
+  });
+
+  // M11 review 4: the rule under GAME OVER.
+  it('reads the game-over rule on its card', () => {
+    expect(contrastRatio(C.COLORS.gameOverRule, C.COLORS.darkCard)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  });
+
+  it.each(['trayLine', 'trayAccent', 'trayDim'] as const)('%s reads on the bar', (name) => {
     expect(contrastRatio(C.COLORS[name], C.COLORS.tray)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
+
+  it.each(['chipHeld', 'chipHeldEdge', 'chipCurrent', 'chipSlipped', 'chipFocus'] as const)(
+    '%s stands out from the bar',
+    (name) => {
+      expect(contrastRatio(C.COLORS[name], C.COLORS.tray)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    },
+  );
 
   it.each(['chipHeld', 'chipCurrent', 'chipSlipped'] as const)('the Shift mark reads on %s chips', (name) => {
     expect(contrastRatio(C.COLORS.chipShiftMark, C.COLORS[name])).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
-  it('outlines the next-letter preview, and its Shift mark, clearly on the tray', () => {
+  it('outlines the next-letter preview, and its Shift mark, clearly on the bar', () => {
     expect(contrastRatio(C.COLORS.chipNextEdge, C.COLORS.tray)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
     expect(contrastRatio(C.COLORS.chipNextEdge, C.COLORS.chipNext)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
@@ -219,14 +300,23 @@ const css = (color: string) => parseInt(color.slice(1), 16);
 // Every place each text color is drawn. Outlined text is measured against its
 // outline, which is all that touches it.
 const TEXT_ON = {
-  stage: ['ink', 'muted', 'accent', 'danger'],
-  textOutline: ['light', 'good', 'alert', 'shift'],
+  textOutline: ['light', 'good', 'alert'],
+  // The badges (M10b review 4) and the timing label's points tab.
+  gradePerfect: ['ink'],
+  gradeGreat: ['ink'],
+  gradeCloseCall: ['ink'],
+  calloutCard: ['ink'],
+  badgeTab: ['light'],
   debugPanel: ['ink'],
-  // The HUD sits on the pale sheets in the top corners; a long score reaches
-  // the sage disc.
-  collagePaper: ['ink'],
-  collageSage: ['ink'],
-  tray: ['light'],
+  // The buttons (M11 review 2).
+  button: ['ink'],
+  // The HUD's, the lockup's and the screens' cards.
+  card: ['ink'],
+  // The dark cards: the how-to steps' lime numbers and cream names and text
+  // (M11 review), the game-over card's lime captions and cream numbers.
+  darkCard: ['light', 'good'],
+  // GAME OVER and the screens' hints on the void.
+  void: ['light'],
   chipNext: ['light'],
   chipHeld: ['ink'],
   chipCurrent: ['ink'],
@@ -234,6 +324,77 @@ const TEXT_ON = {
 } as const satisfies Partial<Record<keyof typeof C.COLORS, readonly (keyof typeof C.TEXT_COLORS)[]>>;
 
 const TEXT_PAIRS = Object.entries(TEXT_ON).flatMap(([bg, texts]) => texts.map((text) => [text, bg] as const));
+
+// The screens (M11) keep their parts clear of each other.
+describe('screen layouts', () => {
+  // Anton's capitals stand about 0.9 of its size.
+  const ANTON_CAPS = 0.9;
+  const B = C.PROMPT_BUTTON;
+  // A button's reach below what comes before it, and its hint's middle below
+  // that same edge (the hint is small text, half its size tall).
+  const buttonReach = B.gapAbove + 2 * B.edgeWidth + B.height;
+  const hintFoot = B.gapAbove + B.edgeWidth + B.height / 2 + B.hintBelow + C.FONT_SIZES.small / 2;
+
+  it('keeps a button\'s hint clear of the button as it pulses', () => {
+    const pulsedHalf = (B.height / 2 + B.edgeWidth) * C.PROMPT_PULSE_SCALE;
+    expect(B.hintBelow - C.FONT_SIZES.small / 2).toBeGreaterThan(pulsedHalf);
+  });
+
+  it('fits the title lockup and its button on screen', () => {
+    const { padY, lineGap } = C.TITLE;
+    const lockup = ANTON_CAPS * (C.FONT_SIZES.lockup + C.FONT_SIZES.lockupSub) + lineGap + 2 * padY;
+    expect(lockup + buttonReach).toBeLessThan(C.GAME_HEIGHT);
+  });
+
+  // M11 review 5: the title leans like the badges.
+  it('leans the title like the badges', () => {
+    expect(C.TITLE.lean).toBeCloseTo(C.BADGE.slant / C.BADGE.height);
+  });
+
+  it('stacks the how-to heading, steps, button and hint without overlap', () => {
+    const { headingY, cards } = C.HOW_TO;
+    const half = C.HEADING_CARD.height / 2;
+    expect(headingY - half).toBeGreaterThan(0);
+    expect(headingY + half).toBeLessThan(cards.top);
+    expect(cards.top + cards.height + hintFoot).toBeLessThan(C.GAME_HEIGHT);
+    expect(cards.titleY).toBeLessThan(cards.keysY);
+    expect(cards.keysY + Math.max(C.KEY_CAP.height, C.HOW_TO.badge.height) / 2).toBeLessThan(cards.textY);
+  });
+
+  // M11 review 4 asked for room to breathe: the card, Play again and its
+  // hint keep a margin above and below them.
+  it('fits the game-over card, its button and hint on screen with room to spare', () => {
+    const { cardHeight, minCardWidth } = C.GAME_OVER;
+    const margin = (C.GAME_HEIGHT - cardHeight - hintFoot) / 2;
+    expect(margin).toBeGreaterThanOrEqual(32);
+    expect(minCardWidth).toBeLessThan(C.GAME_WIDTH);
+  });
+
+  it('stacks the game-over rows inside their card, each clear of the next', () => {
+    const { cardHeight, rows, ruleWidth } = C.GAME_OVER;
+    const heading = (ANTON_CAPS * C.FONT_SIZES.heading) / 2;
+    const caption = C.FONT_SIZES.hudLabel / 2;
+    const score = (ANTON_CAPS * C.FONT_SIZES.title) / 2;
+    const walls = (ANTON_CAPS * C.FONT_SIZES.hud) / 2;
+    const drop = C.TRAY.lowY - C.TRAY.highY;
+    // On top of these generous letter heights, so the real gaps are wider.
+    const gap = 8;
+    expect(rows.headingY - heading).toBeGreaterThanOrEqual(gap);
+    expect(rows.headingY + heading + gap).toBeLessThanOrEqual(rows.ruleY - ruleWidth / 2);
+    expect(rows.ruleY + ruleWidth / 2 + gap).toBeLessThanOrEqual(rows.scoreCaptionY - caption);
+    expect(rows.scoreCaptionY + caption + gap).toBeLessThanOrEqual(rows.scoreY - score);
+    expect(rows.scoreY + score + gap).toBeLessThanOrEqual(rows.barY - C.SLASH.height / 2);
+    expect(rows.barY + Math.max(drop, C.SLASH.height / 2) + gap).toBeLessThanOrEqual(rows.wallsCaptionY - caption);
+    expect(rows.wallsCaptionY + caption + gap).toBeLessThanOrEqual(rows.wallsY - walls);
+    expect(rows.wallsY + walls + gap).toBeLessThanOrEqual(cardHeight);
+  });
+
+  it('fits the pause heading and its button on screen', () => {
+    const half = C.HEADING_CARD.height / 2;
+    expect(C.PAUSE.headingY - half).toBeGreaterThan(0);
+    expect(C.PAUSE.headingY + half + buttonReach).toBeLessThan(C.GAME_HEIGHT);
+  });
+});
 
 describe('text contrast', () => {
   it('keeps every font size at WCAG large-text size', () => {

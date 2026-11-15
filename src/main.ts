@@ -8,6 +8,7 @@ import { COLORS, GAME_HEIGHT, GAME_WIDTH } from '@/config';
 import { preventPageScroll } from '@/input/prevent-page-scroll';
 import { BootScene } from '@/scenes/BootScene';
 import { GameOverScene } from '@/scenes/GameOverScene';
+import { HowToScene } from '@/scenes/HowToScene';
 import { PlayScene } from '@/scenes/PlayScene';
 import { TitleScene } from '@/scenes/TitleScene';
 
@@ -18,10 +19,14 @@ new Phaser.Game({
   parent: 'game',
   width: GAME_WIDTH,
   height: GAME_HEIGHT,
-  backgroundColor: COLORS.stage,
+  backgroundColor: COLORS.void,
+  // Draws text and other textures at whole pixels while they are unscaled.
+  // Text centered on its letters often lands on a half pixel, where its
+  // texture is blended across two and looks blurry (M11 review 3).
+  roundPixels: true,
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
-  scene: [BootScene, TitleScene, PlayScene, GameOverScene],
+  scene: [BootScene, TitleScene, HowToScene, PlayScene, GameOverScene],
 });

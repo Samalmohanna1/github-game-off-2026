@@ -1,28 +1,31 @@
 import Phaser from 'phaser';
-import { GAME_HEIGHT, GAME_WIDTH, SCREEN_LAYOUT } from '@/config';
+import { COLORS, GAME_HEIGHT, GAME_WIDTH } from '@/config';
+import { GridVoid } from '@/objects/GridVoid';
+import { BUTTON_REACH, buttonYBelow, PromptButton } from '@/objects/PromptButton';
+import { TitleLockup } from '@/objects/TitleLockup';
 import { SceneKeys } from '@/scenes/scene-keys';
-import { textStyle } from '@/scenes/text-styles';
-import { addPulsingPrompt } from '@/scenes/ui';
 
-// Starting needs a click, not a key: inside the itch.io iframe the page has
-// no keyboard focus until the player clicks into it (PLAN.md §2).
+// The title (M11 review 5): the grid stage, the lockup on its dark card
+// (TitleLockup), and the Click to play button below it, centered as one
+// block. Starting needs a click, not a key: inside the itch.io iframe the
+// page has no keyboard focus until the player clicks into it (PLAN.md §2).
+// The click leads to the how-to screen.
 export class TitleScene extends Phaser.Scene {
   constructor() {
     super(SceneKeys.Title);
   }
 
   create(): void {
-    const cx = GAME_WIDTH / 2;
-
-    this.add.text(cx, GAME_HEIGHT * SCREEN_LAYOUT.titleY, 'SHAPE SHIFT', textStyle('title', 'ink', true)).setOrigin(0.5);
-    this.add
-      .text(cx, GAME_HEIGHT * SCREEN_LAYOUT.subtitleY, 'Space to line up · hold letters · Shift for CAPS', textStyle('small', 'muted'))
-      .setOrigin(0.5);
-    addPulsingPrompt(this, GAME_HEIGHT * SCREEN_LAYOUT.promptY, 'Click to play');
+    this.cameras.main.setBackgroundColor(COLORS.void);
+    new GridVoid(this);
+    const lockup = new TitleLockup(this);
+    const top = Math.round((GAME_HEIGHT - lockup.height - BUTTON_REACH) / 2);
+    lockup.setPosition(Math.round((GAME_WIDTH - lockup.width) / 2), top);
+    new PromptButton(this, GAME_WIDTH / 2, buttonYBelow(top + lockup.height), 'CLICK TO PLAY');
 
     this.input.once('pointerdown', () => {
       window.focus();
-      this.scene.start(SceneKeys.Play);
+      this.scene.start(SceneKeys.HowTo);
     });
   }
 }
