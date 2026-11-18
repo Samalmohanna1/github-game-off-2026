@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { COLORS, GAME_HEIGHT, GAME_OVER, GAME_WIDTH } from '@/config';
+import { Music } from '@/audio/Music';
+import { AUDIO, COLORS, GAME_HEIGHT, GAME_OVER, GAME_WIDTH } from '@/config';
 import { RestartGate } from '@/logic/restart';
 import { BAR_SLASHES_REACH, BAR_STEP, drawBarLine } from '@/objects/bar-line';
 import { drawDarkCard } from '@/objects/card';
@@ -41,6 +42,13 @@ export class GameOverScene extends Phaser.Scene {
   create(): void {
     this.cameras.main.setBackgroundColor(COLORS.void);
     new GridVoid(this);
+
+    const sound = this.sound;
+    if (sound instanceof Phaser.Sound.WebAudioSoundManager) {
+      const music = new Music(sound.context, sound.destination, AUDIO.gameOverMusic);
+      music.start();
+      this.events.once('shutdown', () => music.stop());
+    }
 
     // The card's graphics go first, under its text, though it is sized to
     // fit that text.

@@ -8,10 +8,13 @@ const sec = (ms: number) => ms / 1000;
 
 type Wave = Exclude<OscillatorType, 'custom'> | 'pulse';
 
-function whiteNoise(ctx: BaseAudioContext, seconds: number): AudioBuffer {
+// White noise. Given heldHz, each value is held so it changes only heldHz
+// times a second: a crunchy 8-bit noise.
+function noiseBuffer(ctx: BaseAudioContext, seconds: number, heldHz?: number): AudioBuffer {
   const buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * seconds), ctx.sampleRate);
   const data = buffer.getChannelData(0);
-  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  const hold = heldHz === undefined ? 1 : Math.max(1, Math.round(ctx.sampleRate / heldHz));
+  for (let i = 0; i < data.length; i++) data[i] = i % hold === 0 ? Math.random() * 2 - 1 : data[i - 1]!;
   return buffer;
 }
 
@@ -33,6 +36,7 @@ function pulseWave(ctx: BaseAudioContext, duty: number): PeriodicWave {
 export class Synth {
   private readonly out: GainNode;
   private readonly noise: AudioBuffer;
+  private readonly crunch: AudioBuffer;
   private readonly pulse: PeriodicWave;
 
   constructor(
@@ -42,7 +46,8 @@ export class Synth {
     this.out = ctx.createGain();
     this.out.gain.value = AUDIO.master;
     this.out.connect(destination);
-    this.noise = whiteNoise(ctx, 1);
+    this.noise = noiseBuffer(ctx, 1);
+    this.crunch = noiseBuffer(ctx, 1, AUDIO.hit.smackCrushHz);
     this.pulse = pulseWave(ctx, AUDIO.pulseDuty);
   }
 
@@ -114,22 +119,23 @@ export class Synth {
     const band = this.filter('bandpass', fromHz, 1.2);
     band.frequency.setValueAtTime(fromHz, at);
     band.frequency.exponentialRampToValueAtTime(toHz, at + sec(ms));
-    this.noiseBurst(at, ms).connect(band).connect(this.envelope(gain, ms / 2, ms, at, this.panner(dir * pan)));
+    this.noiseBurst(this.noise, at, ms).connect(band).connect(this.envelope(gain, ms / 2, ms, at, this.panner(dir * pan)));
   }
 
-  // The wall hits the figure: a low thump under a short smack, with no lead-in.
+  // The wall hits the figure: a low chip thump under a crunchy 8-bit smack,
+  // with no lead-in.
   hit(): void {
     if (!this.running) return;
-    const { gain, fromHz, toHz, ms, smackMs, smackCutoffHz } = AUDIO.hit;
+    const { gain, wave, fromHz, toHz, ms, smackGain, smackMs } = AUDIO.hit;
     const at = this.ctx.currentTime;
-    const thump = this.tone('sine', fromHz, at, ms);
+    const thump = this.tone(wave, fromHz, at, ms);
     thump.frequency.exponentialRampToValueAtTime(toHz, at + sec(ms));
     thump.connect(this.envelope(gain, 2, ms, at));
-    this.noiseBurst(at, smackMs).connect(this.filter('lowpass', smackCutoffHz)).connect(this.envelope(gain, 1, smackMs, at));
+    this.noiseBurst(this.crunch, at, smackMs).connect(this.envelope(smackGain, 1, smackMs, at));
   }
 
-  // The figure lands: "whomp whomp whooom". Each brassy note opens and closes
-  // its filter (the "wah"); the last one is long, wobbles and sags.
+  // The figure lands: "whomp whomp whooom", stepping down the music's key.
+  // Each note plays on the pulse wave, with the triangle an octave under it.
   whomp(): void {
     if (!this.running) return;
     const w = AUDIO.whomp;
@@ -139,20 +145,25 @@ export class Synth {
       const last = i === notes.length - 1;
       const at = start + sec(i * w.gapMs);
       const ms = last ? w.lastMs : w.noteMs;
-      const end = at + sec(ms);
-      const note = this.tone('sawtooth', hz, at, ms);
-      if (last) {
-        note.frequency.setValueAtTime(hz, at + sec(ms * w.holdShare));
-        note.frequency.exponentialRampToValueAtTime(noteHz(hz, -w.sagSemitones), end);
-        this.wobble(note, w.vibratoHz, w.vibratoDepthHz, at, ms);
-      }
-      const wah = this.filter('lowpass', w.wahLowHz, 2);
-      wah.frequency.setValueAtTime(w.wahLowHz, at);
-      wah.frequency.exponentialRampToValueAtTime(w.wahHighHz, at + sec(w.wahOpenMs));
-      wah.frequency.setValueAtTime(w.wahHighHz, at + sec(ms * w.holdShare));
-      wah.frequency.exponentialRampToValueAtTime(w.wahLowHz, end);
-      note.connect(wah).connect(this.heldEnvelope(w.gain, 20, ms * w.holdShare, ms, at));
+      this.whompNote(w.wave, hz, at, ms, last)
+        .connect(this.filter('lowpass', hz * 6))
+        .connect(this.heldEnvelope(w.gain, 10, ms * w.holdShare, ms, at));
+      this.whompNote(w.subWave, hz / 2, at, ms, last).connect(this.heldEnvelope(w.gain, 10, ms * w.holdShare, ms, at));
     });
+  }
+
+  // One voice of a whomp note: it bends down into its pitch (the "whomp"),
+  // and the last note wobbles and sags.
+  private whompNote(wave: Wave, hz: number, at: number, ms: number, last: boolean): OscillatorNode {
+    const w = AUDIO.whomp;
+    const note = this.tone(wave, noteHz(hz, w.bendSemitones), at, ms);
+    note.frequency.exponentialRampToValueAtTime(hz, at + sec(w.bendMs));
+    if (last) {
+      note.frequency.setValueAtTime(hz, at + sec(ms * w.holdShare));
+      note.frequency.exponentialRampToValueAtTime(noteHz(hz, -w.sagSemitones), at + sec(ms));
+      this.wobble(note, w.vibratoHz, hz * w.vibratoDepth, at, ms);
+    }
+    return note;
   }
 
   // Silence up to `peak` over attackMs, then back to silence by endMs.
@@ -186,9 +197,9 @@ export class Synth {
     return osc;
   }
 
-  private noiseBurst(at: number, ms: number): AudioBufferSourceNode {
+  private noiseBurst(noise: AudioBuffer, at: number, ms: number): AudioBufferSourceNode {
     const source = this.ctx.createBufferSource();
-    source.buffer = this.noise;
+    source.buffer = noise;
     source.loop = true;
     source.start(at);
     source.stop(at + sec(ms) + STOP_MARGIN);

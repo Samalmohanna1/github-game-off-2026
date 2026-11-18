@@ -602,6 +602,12 @@ export const AUDIO = {
   // scale), so it sits well under the effects: 0.3 under master is about
   // -25 LUFS, peaking near the key click.
   music: { gain: 0.3, stopMs: 100 },
+  // Game over: the same track "after the show", slowed (rate, which lowers
+  // it about 4 semitones), muffled (a lowpass at cutoffHz), with an echo
+  // (each repeat echo.ms after the last, at echo.feedback of its level). It
+  // fades in over fadeInMs as the screen shows, under the end of the whomp,
+  // and stops (stopMs) on restart. Picked from rendered options.
+  gameOverMusic: { gain: 0.24, rate: 0.8, cutoffHz: 1200, echo: { ms: 300, feedback: 0.35 }, fadeInMs: 1000 },
   // The music's key, measured from the track: C minor (it leans on C, Eb, F,
   // G and Bb, at 90 BPM). The effects heard over it keep to its pentatonic
   // scale, in semitones above C, so they sit in the music.
@@ -625,29 +631,35 @@ export const AUDIO = {
   // C5 to C6, then a whoosh that way as it slides.
   shiftAlert: { gain: 0.28, fromHz: 523.25, toHz: 1046.5, chirps: 2, chirpMs: 90, gapMs: 120, pan: 0.7 },
   whoosh: { gain: 0.22, fromHz: 400, toHz: 2400, ms: 220, pan: 0.7 },
-  // The wall hits the figure: a thump under a short smack, at once. The thump
-  // stays above ~80 Hz so laptop speakers still play it. (A crowd "oooh" after
-  // it was cut after the second M9 playtest.)
-  hit: { gain: 0.8, fromHz: 300, toHz: 80, ms: 200, smackMs: 110, smackCutoffHz: 2500 },
-  // The figure lands: a game-show "whomp whomp whooom". Brassy notes stepping
-  // down from rootHz, each with a "wah" as its filter opens and closes; the
-  // last one is long, wobbles and sags. Each note holds until holdShare of its
-  // length, then fades. It replaced a water splash sound after the third M9
-  // playtest.
+  // The wall hits the figure, at once: a thump on the chip bass voice under a
+  // short smack of crunchy 8-bit noise (white noise held smackCrushHz times a
+  // second). The thump stays above ~80 Hz so laptop speakers still play it.
+  // (A sine thump and a smooth noise smack until the music came; a crowd
+  // "oooh" after it was cut after the second M9 playtest.)
+  hit: { gain: 0.9, wave: 'triangle', fromHz: 300, toHz: 80, ms: 200, smackGain: 0.45, smackMs: 110, smackCrushHz: 8820 },
+  // The figure lands: "whomp whomp whooom", in the chip voices and the
+  // music's key: G3, Eb3, C3 (semitones from rootHz) on the pulse wave, each
+  // over the triangle an octave down. Each note bends down into its pitch
+  // from bendSemitones above over bendMs, holds until holdShare of its
+  // length, then fades; the last one is long, wobbles (vibratoDepth of its
+  // pitch) and sags. Picked from rendered options. (Until then a sawtooth
+  // "sad trombone", G3, F#3, F3, each note with a filter "wah"; it replaced a
+  // water splash sound after the third M9 playtest.)
   whomp: {
-    gain: 0.35,
-    rootHz: 196, // G3; 233 Hz (Bb3) played a bit high
-    semitones: [0, -1, -2],
+    gain: 0.3,
+    wave: 'pulse',
+    subWave: 'triangle',
+    rootHz: 196,
+    semitones: [0, -4, -7],
     noteMs: 260,
     gapMs: 320,
     lastMs: 950,
-    holdShare: 0.6,
+    holdShare: 0.55,
+    bendSemitones: 1,
+    bendMs: 60,
     sagSemitones: 2,
-    wahLowHz: 250,
-    wahHighHz: 1500,
-    wahOpenMs: 110,
-    vibratoHz: 5.5,
-    vibratoDepthHz: 4,
+    vibratoHz: 6,
+    vibratoDepth: 0.025,
   },
 } as const;
 

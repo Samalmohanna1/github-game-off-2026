@@ -110,6 +110,15 @@ describe('the fail tumble (M10 review 5)', () => {
     expect((landings[0] ?? 0) * 1000).toBeGreaterThan(AUDIO.hit.ms);
   });
 
+  it('ends the whomp while the game-over music is still fading in, so they barely meet', () => {
+    const tumble = new Tumble(STANDING, 1, FAIL_TUMBLE);
+    let landedMs = NaN;
+    for (let time = FRAME; time < 3 && Number.isNaN(landedMs); time += FRAME) if (tumble.advance(FRAME)) landedMs = time * 1000;
+    const { whomp, gameOverMusic } = AUDIO;
+    const whompEndsMs = landedMs + (whomp.semitones.length - 1) * whomp.gapMs + whomp.lastMs;
+    expect(whompEndsMs - FAIL_TO_GAME_OVER_MS).toBeLessThan(gameOverMusic.fadeInMs / 2);
+  });
+
   it('falls the way it is pushed, mirrored either way', () => {
     const right = new Tumble(STANDING, 1, FAIL_TUMBLE);
     const left = new Tumble(STANDING, -1, FAIL_TUMBLE);

@@ -35,10 +35,12 @@ describe('the held-letter click (M9)', () => {
 });
 
 // The music plays under every wall, so every pitched effect heard over it
-// keeps to its key. (The slip and the whoosh glide, and the hit and the whomp
-// come after the music stops.)
+// keeps to its key, and so does the fail's whomp, sag and all, which closes
+// the run on it. (The slip, the whoosh and the hit's thump are glides.)
 describe('the effects heard over the music', () => {
   it('play notes of its key', () => {
+    const whomp = whompHz();
+    const sag = noteHz(whomp.at(-1) ?? NaN, -AUDIO.whomp.sagSemitones);
     const notes = [
       AUDIO.tick.tickHz,
       AUDIO.tick.tockHz,
@@ -46,6 +48,8 @@ describe('the effects heard over the music', () => {
       ...fanfareHz(),
       AUDIO.shiftAlert.fromHz,
       AUDIO.shiftAlert.toHz,
+      ...whomp,
+      sag,
     ];
     for (const hz of notes) expect(inKey(hz), `${hz.toFixed(1)} Hz`).toBe(true);
   });
