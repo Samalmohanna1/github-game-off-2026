@@ -591,11 +591,15 @@ export const BLOCK_LIMP = { ms: 450, tiltDeg: 14 } as const;
 // `ms` of real time.
 export const CLOSE_CALL_SLOWMO = { scale: 0.3, ms: 650 } as const;
 
-// Audio (PLAN.md §10, M9): every sound is synthesized with Web Audio, with no
-// sound files. Gains are 0-1 under `master`; Hz for pitches, ms for times; pan
-// runs -1 (left) to 1 (right).
+// Audio (PLAN.md §10, M9): every sound effect is synthesized with Web Audio,
+// and the music is the one sound file. Gains are 0-1 under `master`; Hz for
+// pitches, ms for times; pan runs -1 (left) to 1 (right).
 export const AUDIO = {
   master: 0.5,
+  // The music loops under every screen. The track is mastered loud (about
+  // -9 LUFS, peaking at full scale), so it sits well under the effects:
+  // 0.3 under master is about -25 LUFS, peaking near the key click.
+  music: { gain: 0.3 },
   // Countdown: silent until the wall is in CLOSE CALL range (past GREAT_T),
   // then a clock ticks and tocks, faster as t nears 1. It replaced an
   // approach rumble after the M9 playtest.

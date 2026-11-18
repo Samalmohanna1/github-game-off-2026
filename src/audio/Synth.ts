@@ -12,10 +12,10 @@ function whiteNoise(ctx: BaseAudioContext, seconds: number): AudioBuffer {
   return buffer;
 }
 
-// Every game sound, synthesized with Web Audio (PLAN.md §10, M9): no sound
-// files. Sounds are skipped unless the context is running, so nothing queues
-// up before the browser unlocks audio on the first click, or plays while the
-// window is blurred. Plain Web Audio, no Phaser: the scene hands in Phaser's
+// Every sound effect, synthesized with Web Audio (PLAN.md §10, M9); the music
+// is the one sound file (music.ts). Sounds are skipped unless the context is
+// running, so nothing queues up before the browser unlocks audio on the first
+// click, or plays while the window is blurred. Plain Web Audio, no Phaser: the scene hands in Phaser's
 // context and master node, so Phaser's mute and volume still apply.
 export class Synth {
   private readonly out: GainNode;
