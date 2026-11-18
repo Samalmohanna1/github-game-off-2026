@@ -593,26 +593,37 @@ export const CLOSE_CALL_SLOWMO = { scale: 0.3, ms: 650 } as const;
 
 // Audio (PLAN.md §10, M9): every sound effect is synthesized with Web Audio,
 // and the music is the one sound file. Gains are 0-1 under `master`; Hz for
-// pitches, ms for times; pan runs -1 (left) to 1 (right).
+// pitches, ms for times; pan runs -1 (left) to 1 (right). A sound's `wave` is
+// an oscillator type, or 'pulse' for a chiptune pulse wave of `pulseDuty`.
 export const AUDIO = {
   master: 0.5,
-  // The music loops under every screen. The track is mastered loud (about
-  // -9 LUFS, peaking at full scale), so it sits well under the effects:
-  // 0.3 under master is about -25 LUFS, peaking near the key click.
-  music: { gain: 0.3 },
+  // The music plays through each run and stops, fading over stopMs, as the
+  // wall hits. The track is mastered loud (about -9 LUFS, peaking at full
+  // scale), so it sits well under the effects: 0.3 under master is about
+  // -25 LUFS, peaking near the key click.
+  music: { gain: 0.3, stopMs: 100 },
+  // The music's key, measured from the track: C minor (it leans on C, Eb, F,
+  // G and Bb, at 90 BPM). The effects heard over it keep to its pentatonic
+  // scale, in semitones above C, so they sit in the music.
+  key: { rootHz: 261.63, scale: [0, 3, 5, 7, 10] },
+  pulseDuty: 0.25,
   // Countdown: silent until the wall is in CLOSE CALL range (past GREAT_T),
   // then a clock ticks and tocks, faster as t nears 1. It replaced an
-  // approach rumble after the M9 playtest.
-  tick: { gain: 0.22, fromT: GREAT_T, startMs: 420, endMs: 110, tickHz: 2000, tockHz: 1500, ms: 25 },
-  // Each held letter clicks a step higher than the last.
-  click: { gain: 0.3, baseHz: 660, stepSemitones: 2, ms: 50 },
+  // approach rumble after the M9 playtest. Tick C7, tock G6.
+  tick: { gain: 0.22, fromT: GREAT_T, startMs: 420, endMs: 110, tickHz: 2093, tockHz: 1568, ms: 25 },
+  // Each held letter clicks a step higher than the last, up the key's scale
+  // from C5. A pulse is brighter than the triangle it replaced, so it is a
+  // little quieter (0.3 before).
+  click: { gain: 0.22, baseHz: 523.25, wave: 'pulse', ms: 50 },
   // A slip: a quick cartoon "bloop" deflating, with a wobble.
   slip: { gain: 0.35, fromHz: 700, toHz: 160, ms: 240, wobbleHz: 14, wobbleDepthHz: 30 },
-  // PERFECT: a quick major arpeggio, the last note held.
-  fanfare: { gain: 0.22, rootHz: 523.25, semitones: [0, 4, 7, 12], noteMs: 90, lastMs: 360 },
+  // PERFECT: a quick C minor arpeggio up to the octave, the last note held.
+  // Its notes are 32nds at the music's 90 BPM. (A C major arpeggio, 90 ms
+  // apart, until the music came: its E clashed with the track's Eb.)
+  fanfare: { gain: 0.22, rootHz: 523.25, semitones: [0, 3, 7, 12], wave: 'pulse', noteMs: 83, lastMs: 360 },
   // Shift Wall warning: rising chirps from the side the hole is moving to,
-  // then a whoosh that way as it slides.
-  shiftAlert: { gain: 0.28, fromHz: 520, toHz: 1040, chirps: 2, chirpMs: 90, gapMs: 120, pan: 0.7 },
+  // C5 to C6, then a whoosh that way as it slides.
+  shiftAlert: { gain: 0.28, fromHz: 523.25, toHz: 1046.5, chirps: 2, chirpMs: 90, gapMs: 120, pan: 0.7 },
   whoosh: { gain: 0.22, fromHz: 400, toHz: 2400, ms: 220, pan: 0.7 },
   // The wall hits the figure: a thump under a short smack, at once. The thump
   // stays above ~80 Hz so laptop speakers still play it. (A crowd "oooh" after

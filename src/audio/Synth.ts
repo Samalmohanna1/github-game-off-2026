@@ -3,7 +3,10 @@ import { clickHz, fanfareHz, noteHz, whompHz } from '@/logic/sound-levels';
 
 const SILENT = 0.0001; // exponential ramps can't reach 0
 const STOP_MARGIN = 0.05; // s a source runs past its envelope, so it never clicks off
+const PULSE_HARMONICS = 32; // the browser band-limits the wave; more adds nothing audible
 const sec = (ms: number) => ms / 1000;
+
+type Wave = Exclude<OscillatorType, 'custom'> | 'pulse';
 
 function whiteNoise(ctx: BaseAudioContext, seconds: number): AudioBuffer {
   const buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * seconds), ctx.sampleRate);
@@ -12,14 +15,25 @@ function whiteNoise(ctx: BaseAudioContext, seconds: number): AudioBuffer {
   return buffer;
 }
 
+// A pulse wave high for `duty` of each cycle, from its Fourier series. Web
+// Audio's oscillators only offer the 50% square.
+function pulseWave(ctx: BaseAudioContext, duty: number): PeriodicWave {
+  const real = new Float32Array(PULSE_HARMONICS + 1);
+  const imag = new Float32Array(PULSE_HARMONICS + 1);
+  for (let n = 1; n <= PULSE_HARMONICS; n++) real[n] = (2 / (n * Math.PI)) * Math.sin(n * Math.PI * duty);
+  return ctx.createPeriodicWave(real, imag);
+}
+
 // Every sound effect, synthesized with Web Audio (PLAN.md §10, M9); the music
-// is the one sound file (music.ts). Sounds are skipped unless the context is
+// is the one sound file (Music.ts). Sounds are skipped unless the context is
 // running, so nothing queues up before the browser unlocks audio on the first
-// click, or plays while the window is blurred. Plain Web Audio, no Phaser: the scene hands in Phaser's
-// context and master node, so Phaser's mute and volume still apply.
+// click, or plays while the window is blurred. Plain Web Audio, no Phaser:
+// the scene hands in Phaser's context and master node, so Phaser's mute and
+// volume still apply.
 export class Synth {
   private readonly out: GainNode;
   private readonly noise: AudioBuffer;
+  private readonly pulse: PeriodicWave;
 
   constructor(
     private readonly ctx: BaseAudioContext,
@@ -29,6 +43,7 @@ export class Synth {
     this.out.gain.value = AUDIO.master;
     this.out.connect(destination);
     this.noise = whiteNoise(ctx, 1);
+    this.pulse = pulseWave(ctx, AUDIO.pulseDuty);
   }
 
   private get running(): boolean {
@@ -47,9 +62,10 @@ export class Synth {
   // A held letter; each one in the wall clicks a step higher.
   click(heldCount: number): void {
     if (!this.running) return;
-    const { gain, ms } = AUDIO.click;
+    const { gain, wave, ms } = AUDIO.click;
     const at = this.ctx.currentTime;
-    this.tone('triangle', clickHz(heldCount), at, ms).connect(this.envelope(gain, 2, ms, at));
+    const hz = clickHz(heldCount);
+    this.tone(wave, hz, at, ms).connect(this.filter('lowpass', hz * 6)).connect(this.envelope(gain, 2, ms, at));
   }
 
   // A slip: a quick "bloop" deflating, with a wobble.
@@ -66,13 +82,13 @@ export class Synth {
   // PERFECT: a quick rising arpeggio, the last note held.
   fanfare(): void {
     if (!this.running) return;
-    const { gain, noteMs, lastMs } = AUDIO.fanfare;
+    const { gain, wave, noteMs, lastMs } = AUDIO.fanfare;
     const notes = fanfareHz();
     const start = this.ctx.currentTime;
     notes.forEach((hz, i) => {
       const at = start + sec(i * noteMs);
       const ms = i === notes.length - 1 ? lastMs : noteMs;
-      this.tone('square', hz, at, ms).connect(this.filter('lowpass', hz * 6)).connect(this.envelope(gain, 5, ms, at));
+      this.tone(wave, hz, at, ms).connect(this.filter('lowpass', hz * 6)).connect(this.envelope(gain, 5, ms, at));
     });
   }
 
@@ -160,9 +176,10 @@ export class Synth {
     return gain;
   }
 
-  private tone(type: OscillatorType, hz: number, at: number, ms: number): OscillatorNode {
+  private tone(wave: Wave, hz: number, at: number, ms: number): OscillatorNode {
     const osc = this.ctx.createOscillator();
-    osc.type = type;
+    if (wave === 'pulse') osc.setPeriodicWave(this.pulse);
+    else osc.type = wave;
     osc.frequency.setValueAtTime(hz, at);
     osc.start(at);
     osc.stop(at + sec(ms) + STOP_MARGIN);

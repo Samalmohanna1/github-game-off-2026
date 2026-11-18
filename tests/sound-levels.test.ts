@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { AUDIO } from '@/config';
-import { clickHz, fanfareHz, noteHz, whompHz } from '@/logic/sound-levels';
+import { AUDIO, MAX_LETTERS } from '@/config';
+import { clickHz, fanfareHz, noteHz, scaleHz, whompHz } from '@/logic/sound-levels';
+
+const { key } = AUDIO;
+
+// Within a few cents of a note of the music's key (its pentatonic scale).
+function inKey(hz: number): boolean {
+  const semitones = 12 * Math.log2(hz / key.rootHz);
+  const nearest = Math.round(semitones);
+  const pitchClass = ((nearest % 12) + 12) % 12;
+  return Math.abs(semitones - nearest) < 0.05 && (key.scale as readonly number[]).includes(pitchClass);
+}
 
 describe('noteHz', () => {
   it('doubles the pitch every 12 semitones', () => {
@@ -10,12 +20,34 @@ describe('noteHz', () => {
   });
 });
 
+describe('scaleHz', () => {
+  it('walks the key scale from the root, an octave up each time round', () => {
+    key.scale.forEach((semitones, degree) => expect(scaleHz(key.rootHz, degree)).toBeCloseTo(noteHz(key.rootHz, semitones)));
+    expect(scaleHz(key.rootHz, key.scale.length)).toBeCloseTo(key.rootHz * 2);
+  });
+});
+
 describe('the held-letter click (M9)', () => {
   it('starts at the base pitch and steps up with each letter held', () => {
     expect(clickHz(1)).toBeCloseTo(AUDIO.click.baseHz);
-    for (let held = 2; held <= 5; held++) {
-      expect(clickHz(held) / clickHz(held - 1)).toBeCloseTo(2 ** (AUDIO.click.stepSemitones / 12));
-    }
+    for (let held = 2; held <= MAX_LETTERS; held++) expect(clickHz(held)).toBeGreaterThan(clickHz(held - 1));
+  });
+});
+
+// The music plays under every wall, so every pitched effect heard over it
+// keeps to its key. (The slip and the whoosh glide, and the hit and the whomp
+// come after the music stops.)
+describe('the effects heard over the music', () => {
+  it('play notes of its key', () => {
+    const notes = [
+      AUDIO.tick.tickHz,
+      AUDIO.tick.tockHz,
+      ...Array.from({ length: MAX_LETTERS }, (_, i) => clickHz(i + 1)),
+      ...fanfareHz(),
+      AUDIO.shiftAlert.fromHz,
+      AUDIO.shiftAlert.toHz,
+    ];
+    for (const hz of notes) expect(inKey(hz), `${hz.toFixed(1)} Hz`).toBe(true);
   });
 });
 

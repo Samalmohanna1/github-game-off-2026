@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { Music } from '@/audio/Music';
 import { Synth } from '@/audio/Synth';
 import {
   CLOSE_CALL_SLOWMO,
@@ -91,6 +92,7 @@ export class PlayScene extends Phaser.Scene {
   private debug!: DebugOverlay;
   // Null when the browser has no Web Audio; the game then plays silent.
   private synth: Synth | null = null;
+  private music: Music | null = null;
   private countdown = new Countdown();
   // The URL's playtest shortcuts, honored on the dev server only, so a
   // published build always plays a normal run.
@@ -144,7 +146,11 @@ export class PlayScene extends Phaser.Scene {
     // Phaser's own context and master node: Phaser unlocks audio on the first
     // click and suspends it while the window is blurred (PLAN.md §10, M9).
     const sound = this.sound;
-    this.synth = sound instanceof Phaser.Sound.WebAudioSoundManager ? new Synth(sound.context, sound.destination) : null;
+    if (sound instanceof Phaser.Sound.WebAudioSoundManager) {
+      this.synth = new Synth(sound.context, sound.destination);
+      this.music = new Music(sound.context, sound.destination);
+      this.music.start();
+    }
     this.events.once('shutdown', () => this.keyboard.destroy());
 
     this.startWall();
@@ -318,6 +324,7 @@ export class PlayScene extends Phaser.Scene {
     if (this.phase === 'failing') return;
     this.phase = 'failing';
     this.sequence.lock();
+    this.music?.stop();
     this.synth?.hit();
     this.figure.topple(fallDirection(this.figureLane), () => {
       this.synth?.whomp();

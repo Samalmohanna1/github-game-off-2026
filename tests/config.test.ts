@@ -147,6 +147,16 @@ describe('audio (M9)', () => {
     }
   });
 
+  it('fades the music out under the hit', () => {
+    expect(music.stopMs).toBeGreaterThan(0);
+    expect(music.stopMs).toBeLessThanOrEqual(hit.ms);
+  });
+
+  it('gives the pulse wave a duty strictly between silent and always on', () => {
+    expect(C.AUDIO.pulseDuty).toBeGreaterThan(0);
+    expect(C.AUDIO.pulseDuty).toBeLessThan(1);
+  });
+
   it('finishes the PERFECT fanfare while the PERFECT label is still up', () => {
     const length = (fanfare.semitones.length - 1) * fanfare.noteMs + fanfare.lastMs;
     expect(length).toBeLessThanOrEqual(C.LABEL_HOLD_MS);
