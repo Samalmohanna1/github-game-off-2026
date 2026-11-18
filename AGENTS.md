@@ -30,10 +30,10 @@ Scenes, one per screen:
 
 | Scene | Status | Contents |
 |---|---|---|
-| `BootScene` | Final (M10b) | Starts the music (`playMusic()`), which loads in the background, and waits for the bundled fonts (`loadFonts()`, giving up after `FONT_LOAD_TIMEOUT`), then hands off to Title. Boot runs once per page load, so the music starts once. |
+| `BootScene` | Final (M10b) | Starts loading the music in the background (`loadMusic()`), for the first run, and waits for the bundled fonts (`loadFonts()`, giving up after `FONT_LOAD_TIMEOUT`), then hands off to Title. |
 | `TitleScene` | Final (M11 review 6) | The grid stage, the lockup (`TitleLockup`, Option 2 of the user's title concepts) and a lime CLICK TO PLAY button below it, the two centered as one block. The lockup is a dark card lit like a wall (a lime bloom outside its lime edge, the wall panel's glow inside) with SHAPE in cream, large, over SHIFT in lime, both in Anton leaning like the badges, SHIFT's right edge on the E's leaning edge, and the bar's line, half as big again, starting with its slashes under the S and stepping down to the top of SHIFT's S's lower tail. (Until review 5 it was a cream card slanting both ways; review 3 made it a stacked lockup.) The click gives the page keyboard focus inside the itch.io iframe and leads to How to play. |
 | `HowToScene` | Final (M11 review) | How to play, between the title and the first wall: HOW TO PLAY on a heading card, then three numbered steps on dark cards, each with its keys and one sentence (01 LINE UP, Space; 02 HOLD ON, the letters and Shift; 03 FIT THROUGH, a PERFECT badge), and a lime START button. Any key or a click starts the run, after `HOW_TO.inputDelayMs` so the title's click can't skip it. Restarts from game over skip it. |
-| `PlayScene` | Interim (M10b) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). Space lines the figure up, one lane toward the hole per press (during a Shift Wall's warning, toward the lane it is about to slide to); the arrow keys don't move it; the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 4+), the wall stops behind a SHIFT callout, turns orange with an arrow, and the hole slides 1 lane with a sideways jolt while the new lane's tile is marked on the floor; then the wall carries on; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: a PERFECT / GREAT / CLOSE CALL label pops over the figure, the wall comes the rest of the way to the figure, the figure's cells light up lime like the panel's pixels and the panel fills back in (the completion), and the wall fades away as the next one fades in. Held blocks land with a squash, slipped ones slump back limp, a wrong key rattles the wall, and a CLOSE CALL plays the rush in slow motion. If the wall arrives first, it knocks the figure over: it topples toward the camera with its arms flailing, and its blocks come apart and bounce to a stop on the floor before the run ends. Synthesized sounds (M9) play over all of it: the countdown tick in CLOSE CALL range, clicks, slips, the PERFECT fanfare, the Shift Wall alert and whoosh, and the fail's hit and "whomp whomp whooom". Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses the game behind a veil, with PAUSED on a heading card and a lime CLICK TO RESUME button (`PauseOverlay`, M11). F2 toggles the debug overlay. Everything is drawn in the M10b art, a dark grid stage after the user's mockup: a glossy floor grid running back to a gridded back wall at the runway's far end, meeting it at a glowing lime seam, with lit cells that breathe, squares that fall slowly and fade, and streaks running down the floor; a cream runway with thin seams and glowing lime edges, where the figure stands centered on its lane's tile and the lined-up tile is marked; walls that are dark glass display panels lined on the figure's cells, with dots at the crossings, scanlines and the glow of a neon lime frame, with a see-through cutout in an equally thick lime edge; black blocks with cream seams between their cells and a cream edge; a dark line-art bar of cream key caps with lime slashes and a square per letter; SCORE and WALL on cream cards with lime slashes in the top corners; the timing label and the SHIFT callout on solid badges in a thick ink edge; and the Caps Lock warning in bright letters inside a thick dark outline. No texture anywhere. |
+| `PlayScene` | Interim (M10b) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). Space lines the figure up, one lane toward the hole per press (during a Shift Wall's warning, toward the lane it is about to slide to); the arrow keys don't move it; the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 4+), the wall stops behind a SHIFT callout, turns orange with an arrow, and the hole slides 1 lane with a sideways jolt while the new lane's tile is marked on the floor; then the wall carries on; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: a PERFECT / GREAT / CLOSE CALL label pops over the figure, the wall comes the rest of the way to the figure, the figure's cells light up lime like the panel's pixels and the panel fills back in (the completion), and the wall fades away as the next one fades in. Held blocks land with a squash, slipped ones slump back limp, a wrong key rattles the wall, and a CLOSE CALL plays the rush in slow motion. If the wall arrives first, it knocks the figure over: it topples toward the camera with its arms flailing, and its blocks come apart and bounce to a stop on the floor before the run ends. The music plays from the top through each run and stops as the wall hits (`Music`). Synthesized sounds (M9), tuned to its key, play over it: the countdown tick in CLOSE CALL range, clicks, slips, the PERFECT fanfare, the Shift Wall alert and whoosh; then, once it stops, the fail's hit and "whomp whomp whooom". Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses the game behind a veil, with PAUSED on a heading card and a lime CLICK TO RESUME button (`PauseOverlay`, M11). F2 toggles the debug overlay. Everything is drawn in the M10b art, a dark grid stage after the user's mockup: a glossy floor grid running back to a gridded back wall at the runway's far end, meeting it at a glowing lime seam, with lit cells that breathe, squares that fall slowly and fade, and streaks running down the floor; a cream runway with thin seams and glowing lime edges, where the figure stands centered on its lane's tile and the lined-up tile is marked; walls that are dark glass display panels lined on the figure's cells, with dots at the crossings, scanlines and the glow of a neon lime frame, with a see-through cutout in an equally thick lime edge; black blocks with cream seams between their cells and a cream edge; a dark line-art bar of cream key caps with lime slashes and a square per letter; SCORE and WALL on cream cards with lime slashes in the top corners; the timing label and the SHIFT callout on solid badges in a thick ink edge; and the Caps Lock warning in bright letters inside a thick dark outline. No texture anywhere. |
 | `GameOverScene` | Final (M11 review 4) | After the user's mock, on the grid stage: one dark card in a lime edge, centered, with GAME OVER in cream Anton over a lime rule, then this run's SCORE and WALLS CLEARED (lime captions over cream numbers, the walls at the HUD's number size), parted by the bar's line; the card, Play again and its hint centered down the screen with room above and below. (Review 2 set GAME over OVER beside the card, and review 3 made it a stacked lockup.) No all-time best is kept or shown (M11 review), nor the wall the run ended on, which is always walls cleared + 1 (M11 review 2). Restart follows PLAN.md §7: input is ignored for `RESTART_LOCKOUT`, then every key must be up ("LET GO OF EVERY KEY TO PLAY AGAIN" shows meanwhile) before a key or click restarts, when a lime PLAY AGAIN button shows under the card over "PRESS ANY KEY OR CLICK". |
 
 Shared scene helpers live in `src/scenes/` (`ui.ts`, `text-styles.ts`,
@@ -151,7 +151,7 @@ src/
     audio/                 # the music track (the game's one sound file)
   audio/
     Synth.ts               # Web Audio sound effects, no files: tick, click, slip, fanfare, Shift alert, hit, whomp
-    music.ts               # playMusic(): loads the track in the background and loops it forever
+    Music.ts               # loadMusic(): the track, fetched and decoded once; Music: a run's loop, stopped when the player loses
   data/                    # PURE: static game data
     keyboard.ts            # QWERTY row/x (with stagger), hand, finger per letter
     poses.ts               # block ids, neutral pose and alt poses on the grid
@@ -203,7 +203,7 @@ src/
     TimingLabel.ts         # PERFECT / GREAT / CLOSE CALL on a badge in the grade's color, points on an ink tab
     DebugOverlay.ts        # F2 panel: state, t, lanes, prompt, queue, held, stretch
   scenes/
-    BootScene.ts           # starts the music, waits for fonts, hands off to Title
+    BootScene.ts           # starts loading the music, waits for fonts, hands off to Title
     fonts.ts               # loads the bundled font faces before any text is drawn
     TitleScene.ts          # the title lockup and "Click to play" (gets keyboard focus)
     HowToScene.ts          # how to play: three steps with their keys, then Start
@@ -231,7 +231,7 @@ tests/
   sequence.test.ts         # PLAN.md §2 input rules, incl. the M3 cases + lock
   shift-wall.test.ts       # trigger, warning, hold, slide range, M6 line-up case
   countdown.test.ts        # silent before CLOSE CALL range, speeds up, no catch-up bursts
-  sound-levels.test.ts     # click steps, fanfare rises an octave, whomp steps down
+  sound-levels.test.ts     # the key's scale, click steps, effects over the music in its key, fanfare rises an octave, whomp steps down
   title-lockup.test.ts     # SHIFT on the E's edge, the slashes under the S and clear of it, the line's step into SHIFT, even padding
   tumble.test.ts           # the fall lands after the hit, bounces low, never sinks, settles flat in time
   wall-gen.test.ts         # valid poses for every block set, one-piece holes, hole grid, the title's pose
@@ -783,22 +783,29 @@ Work through **PLAN.md §10** one milestone at a time.
   `MAX_MULTIPLIER`, so the first PERFECT is ×1 and the second ×1.5. Any other
   grade scores ×1 and resets the streak (PLAN.md §6).
 - **Music** — the user's track in `src/assets/audio/`, the game's one sound
-  file (added after M11). `playMusic()` (`src/audio/music.ts`, started by
-  Boot) fetches and decodes it in the background and plays it as one
-  gapless Web Audio loop, under every screen for as long as the page is
-  open; it never restarts between runs. Like the synth it goes through
-  Phaser's context and master node, so it starts on the first click, stops
-  while the window is blurred, and will follow the M12 mute. It is mixed
-  well under the effects (`AUDIO.music`), since the track is mastered loud.
-  A browser that can't fetch or decode it plays the game without music.
+  file (added after M11), in C minor at 90 BPM, cut to loop. Boot starts
+  `loadMusic()` (`src/audio/Music.ts`), which fetches and decodes it once in
+  the background. Each run's `Music` plays it from the top as a gapless Web
+  Audio loop, and stops it with a quick fade (`AUDIO.music.stopMs`) as the
+  wall hits, so the fail's sounds play alone; the title, How to play and game
+  over are silent. Like the synth it goes through Phaser's context and master
+  node, so it is silent while the window is blurred and will follow the M12
+  mute. It is mixed well under the effects (`AUDIO.music`), since the track
+  is mastered loud. A browser that can't fetch or decode it plays the game
+  without music. (At first it played under every screen from the title's
+  click and never stopped.)
 - **Sounds** (M9) — every sound effect is synthesized in
-  `src/audio/Synth.ts` from `AUDIO` in config, with no sound files:
+  `src/audio/Synth.ts` from `AUDIO` in config, with no sound files. The
+  pitched ones heard over the music keep to its key (`AUDIO.key`, C minor
+  pentatonic; `tests/sound-levels.test.ts` checks them), and the click and
+  the fanfare use a chiptune pulse wave (`AUDIO.pulseDuty`) to sit with its
+  synths:
   - The **countdown**: silent until the wall is in CLOSE CALL range (past
     `GREAT_T`), then a tick-tock that speeds up as `t` nears 1 (`Countdown`
     in `src/logic/countdown.ts`, one per wall).
-  - A click per held letter, rising a step each time.
+  - A click per held letter, rising a step up the key's scale each time.
   - A "bloop" on a slip, but not for the forced slips of a blur pause.
-  - A fanfare on PERFECT.
+  - A fanfare on PERFECT: a quick C minor arpeggio up to the octave.
   - A Shift Wall alert panned to the side the hole is going, then a whoosh
     that way as it slides.
   - On a fail: a hit at once, then a game-show "whomp whomp whooom" as the
