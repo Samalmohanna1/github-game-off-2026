@@ -3,23 +3,41 @@ import { clickHz, fanfareHz, noteHz, whompHz } from '@/logic/sound-levels';
 
 const SILENT = 0.0001; // exponential ramps can't reach 0
 const STOP_MARGIN = 0.05; // s a source runs past its envelope, so it never clicks off
+const PULSE_HARMONICS = 32; // the browser band-limits the wave; more adds nothing audible
 const sec = (ms: number) => ms / 1000;
 
-function whiteNoise(ctx: BaseAudioContext, seconds: number): AudioBuffer {
+type Wave = Exclude<OscillatorType, 'custom'> | 'pulse';
+
+// White noise. Given heldHz, each value is held so it changes only heldHz
+// times a second: a crunchy 8-bit noise.
+function noiseBuffer(ctx: BaseAudioContext, seconds: number, heldHz?: number): AudioBuffer {
   const buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * seconds), ctx.sampleRate);
   const data = buffer.getChannelData(0);
-  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  const hold = heldHz === undefined ? 1 : Math.max(1, Math.round(ctx.sampleRate / heldHz));
+  for (let i = 0; i < data.length; i++) data[i] = i % hold === 0 ? Math.random() * 2 - 1 : data[i - 1]!;
   return buffer;
 }
 
-// Every game sound, synthesized with Web Audio (PLAN.md §10, M9): no sound
-// files. Sounds are skipped unless the context is running, so nothing queues
-// up before the browser unlocks audio on the first click, or plays while the
-// window is blurred. Plain Web Audio, no Phaser: the scene hands in Phaser's
-// context and master node, so Phaser's mute and volume still apply.
+// A pulse wave high for `duty` of each cycle, from its Fourier series. Web
+// Audio's oscillators only offer the 50% square.
+function pulseWave(ctx: BaseAudioContext, duty: number): PeriodicWave {
+  const real = new Float32Array(PULSE_HARMONICS + 1);
+  const imag = new Float32Array(PULSE_HARMONICS + 1);
+  for (let n = 1; n <= PULSE_HARMONICS; n++) real[n] = (2 / (n * Math.PI)) * Math.sin(n * Math.PI * duty);
+  return ctx.createPeriodicWave(real, imag);
+}
+
+// Every sound effect, synthesized with Web Audio (PLAN.md §10, M9); the music
+// is the one sound file (Music.ts). Sounds are skipped unless the context is
+// running, so nothing queues up before the browser unlocks audio on the first
+// click, or plays while the window is blurred. Plain Web Audio, no Phaser:
+// the scene hands in Phaser's context and master node, so Phaser's mute and
+// volume still apply.
 export class Synth {
   private readonly out: GainNode;
   private readonly noise: AudioBuffer;
+  private readonly crunch: AudioBuffer;
+  private readonly pulse: PeriodicWave;
 
   constructor(
     private readonly ctx: BaseAudioContext,
@@ -28,7 +46,9 @@ export class Synth {
     this.out = ctx.createGain();
     this.out.gain.value = AUDIO.master;
     this.out.connect(destination);
-    this.noise = whiteNoise(ctx, 1);
+    this.noise = noiseBuffer(ctx, 1);
+    this.crunch = noiseBuffer(ctx, 1, AUDIO.hit.smackCrushHz);
+    this.pulse = pulseWave(ctx, AUDIO.pulseDuty);
   }
 
   private get running(): boolean {
@@ -47,9 +67,10 @@ export class Synth {
   // A held letter; each one in the wall clicks a step higher.
   click(heldCount: number): void {
     if (!this.running) return;
-    const { gain, ms } = AUDIO.click;
+    const { gain, wave, ms } = AUDIO.click;
     const at = this.ctx.currentTime;
-    this.tone('triangle', clickHz(heldCount), at, ms).connect(this.envelope(gain, 2, ms, at));
+    const hz = clickHz(heldCount);
+    this.tone(wave, hz, at, ms).connect(this.filter('lowpass', hz * 6)).connect(this.envelope(gain, 2, ms, at));
   }
 
   // A slip: a quick "bloop" deflating, with a wobble.
@@ -66,13 +87,13 @@ export class Synth {
   // PERFECT: a quick rising arpeggio, the last note held.
   fanfare(): void {
     if (!this.running) return;
-    const { gain, noteMs, lastMs } = AUDIO.fanfare;
+    const { gain, wave, noteMs, lastMs } = AUDIO.fanfare;
     const notes = fanfareHz();
     const start = this.ctx.currentTime;
     notes.forEach((hz, i) => {
       const at = start + sec(i * noteMs);
       const ms = i === notes.length - 1 ? lastMs : noteMs;
-      this.tone('square', hz, at, ms).connect(this.filter('lowpass', hz * 6)).connect(this.envelope(gain, 5, ms, at));
+      this.tone(wave, hz, at, ms).connect(this.filter('lowpass', hz * 6)).connect(this.envelope(gain, 5, ms, at));
     });
   }
 
@@ -98,22 +119,23 @@ export class Synth {
     const band = this.filter('bandpass', fromHz, 1.2);
     band.frequency.setValueAtTime(fromHz, at);
     band.frequency.exponentialRampToValueAtTime(toHz, at + sec(ms));
-    this.noiseBurst(at, ms).connect(band).connect(this.envelope(gain, ms / 2, ms, at, this.panner(dir * pan)));
+    this.noiseBurst(this.noise, at, ms).connect(band).connect(this.envelope(gain, ms / 2, ms, at, this.panner(dir * pan)));
   }
 
-  // The wall hits the figure: a low thump under a short smack, with no lead-in.
+  // The wall hits the figure: a low chip thump under a crunchy 8-bit smack,
+  // with no lead-in.
   hit(): void {
     if (!this.running) return;
-    const { gain, fromHz, toHz, ms, smackMs, smackCutoffHz } = AUDIO.hit;
+    const { gain, wave, fromHz, toHz, ms, smackGain, smackMs } = AUDIO.hit;
     const at = this.ctx.currentTime;
-    const thump = this.tone('sine', fromHz, at, ms);
+    const thump = this.tone(wave, fromHz, at, ms);
     thump.frequency.exponentialRampToValueAtTime(toHz, at + sec(ms));
     thump.connect(this.envelope(gain, 2, ms, at));
-    this.noiseBurst(at, smackMs).connect(this.filter('lowpass', smackCutoffHz)).connect(this.envelope(gain, 1, smackMs, at));
+    this.noiseBurst(this.crunch, at, smackMs).connect(this.envelope(smackGain, 1, smackMs, at));
   }
 
-  // The figure lands: "whomp whomp whooom". Each brassy note opens and closes
-  // its filter (the "wah"); the last one is long, wobbles and sags.
+  // The figure lands: "whomp whomp whooom", stepping down the music's key.
+  // Each note plays on the pulse wave, with the triangle an octave under it.
   whomp(): void {
     if (!this.running) return;
     const w = AUDIO.whomp;
@@ -123,20 +145,25 @@ export class Synth {
       const last = i === notes.length - 1;
       const at = start + sec(i * w.gapMs);
       const ms = last ? w.lastMs : w.noteMs;
-      const end = at + sec(ms);
-      const note = this.tone('sawtooth', hz, at, ms);
-      if (last) {
-        note.frequency.setValueAtTime(hz, at + sec(ms * w.holdShare));
-        note.frequency.exponentialRampToValueAtTime(noteHz(hz, -w.sagSemitones), end);
-        this.wobble(note, w.vibratoHz, w.vibratoDepthHz, at, ms);
-      }
-      const wah = this.filter('lowpass', w.wahLowHz, 2);
-      wah.frequency.setValueAtTime(w.wahLowHz, at);
-      wah.frequency.exponentialRampToValueAtTime(w.wahHighHz, at + sec(w.wahOpenMs));
-      wah.frequency.setValueAtTime(w.wahHighHz, at + sec(ms * w.holdShare));
-      wah.frequency.exponentialRampToValueAtTime(w.wahLowHz, end);
-      note.connect(wah).connect(this.heldEnvelope(w.gain, 20, ms * w.holdShare, ms, at));
+      this.whompNote(w.wave, hz, at, ms, last)
+        .connect(this.filter('lowpass', hz * 6))
+        .connect(this.heldEnvelope(w.gain, 10, ms * w.holdShare, ms, at));
+      this.whompNote(w.subWave, hz / 2, at, ms, last).connect(this.heldEnvelope(w.gain, 10, ms * w.holdShare, ms, at));
     });
+  }
+
+  // One voice of a whomp note: it bends down into its pitch (the "whomp"),
+  // and the last note wobbles and sags.
+  private whompNote(wave: Wave, hz: number, at: number, ms: number, last: boolean): OscillatorNode {
+    const w = AUDIO.whomp;
+    const note = this.tone(wave, noteHz(hz, w.bendSemitones), at, ms);
+    note.frequency.exponentialRampToValueAtTime(hz, at + sec(w.bendMs));
+    if (last) {
+      note.frequency.setValueAtTime(hz, at + sec(ms * w.holdShare));
+      note.frequency.exponentialRampToValueAtTime(noteHz(hz, -w.sagSemitones), at + sec(ms));
+      this.wobble(note, w.vibratoHz, hz * w.vibratoDepth, at, ms);
+    }
+    return note;
   }
 
   // Silence up to `peak` over attackMs, then back to silence by endMs.
@@ -160,18 +187,19 @@ export class Synth {
     return gain;
   }
 
-  private tone(type: OscillatorType, hz: number, at: number, ms: number): OscillatorNode {
+  private tone(wave: Wave, hz: number, at: number, ms: number): OscillatorNode {
     const osc = this.ctx.createOscillator();
-    osc.type = type;
+    if (wave === 'pulse') osc.setPeriodicWave(this.pulse);
+    else osc.type = wave;
     osc.frequency.setValueAtTime(hz, at);
     osc.start(at);
     osc.stop(at + sec(ms) + STOP_MARGIN);
     return osc;
   }
 
-  private noiseBurst(at: number, ms: number): AudioBufferSourceNode {
+  private noiseBurst(noise: AudioBuffer, at: number, ms: number): AudioBufferSourceNode {
     const source = this.ctx.createBufferSource();
-    source.buffer = this.noise;
+    source.buffer = noise;
     source.loop = true;
     source.start(at);
     source.stop(at + sec(ms) + STOP_MARGIN);

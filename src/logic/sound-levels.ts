@@ -7,9 +7,16 @@ export function noteHz(baseHz: number, semitones: number): number {
   return baseHz * 2 ** (semitones / 12);
 }
 
+// The note `degree` steps up the key's scale from a note of the key's root,
+// going up an octave each time round the scale.
+export function scaleHz(rootHz: number, degree: number): number {
+  const { scale } = AUDIO.key;
+  return noteHz(rootHz, 12 * Math.floor(degree / scale.length) + scale[degree % scale.length]!);
+}
+
 // heldCount includes the letter just held, so the first click is baseHz.
 export function clickHz(heldCount: number): number {
-  return noteHz(AUDIO.click.baseHz, Math.max(0, heldCount - 1) * AUDIO.click.stepSemitones);
+  return scaleHz(AUDIO.click.baseHz, Math.max(0, heldCount - 1));
 }
 
 export function fanfareHz(): number[] {

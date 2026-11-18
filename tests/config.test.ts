@@ -136,15 +136,38 @@ describe('feel (M8)', () => {
 });
 
 describe('audio (M9)', () => {
-  const { master, tick, click, slip, fanfare, shiftAlert, whoosh, hit, whomp } = C.AUDIO;
+  const { master, music, gameOverMusic, tick, click, slip, fanfare, shiftAlert, whoosh, hit, whomp } = C.AUDIO;
 
   it('keeps every gain above silence and at most full scale', () => {
     // Above zero too: the envelopes ramp exponentially, which can't reach 0.
-    const gains = [master, tick.gain, click.gain, slip.gain, fanfare.gain, shiftAlert.gain, whoosh.gain, hit.gain, whomp.gain];
+    const gains = [
+      master,
+      music.gain,
+      gameOverMusic.gain,
+      tick.gain,
+      click.gain,
+      slip.gain,
+      fanfare.gain,
+      shiftAlert.gain,
+      whoosh.gain,
+      hit.gain,
+      hit.smackGain,
+      whomp.gain,
+    ];
     for (const gain of gains) {
       expect(gain).toBeGreaterThan(0);
       expect(gain).toBeLessThanOrEqual(1);
     }
+  });
+
+  it('fades the music out under the hit', () => {
+    expect(music.stopMs).toBeGreaterThan(0);
+    expect(music.stopMs).toBeLessThanOrEqual(hit.ms);
+  });
+
+  it('gives the pulse wave a duty strictly between silent and always on', () => {
+    expect(C.AUDIO.pulseDuty).toBeGreaterThan(0);
+    expect(C.AUDIO.pulseDuty).toBeLessThan(1);
   });
 
   it('finishes the PERFECT fanfare while the PERFECT label is still up', () => {
@@ -161,10 +184,28 @@ describe('audio (M9)', () => {
     expect(whomp.noteMs).toBeLessThanOrEqual(whomp.gapMs);
     expect(whomp.lastMs).toBeGreaterThan(whomp.noteMs);
     expect(whomp.sagSemitones).toBeGreaterThan(0);
-    expect(whomp.wahLowHz).toBeLessThan(whomp.wahHighHz);
-    expect(whomp.wahOpenMs).toBeLessThan(whomp.noteMs * whomp.holdShare);
     expect(whomp.holdShare).toBeGreaterThan(0);
     expect(whomp.holdShare).toBeLessThan(1);
+  });
+
+  it('bends each whomp note down into its pitch before it holds', () => {
+    expect(whomp.bendSemitones).toBeGreaterThan(0);
+    expect(whomp.bendMs).toBeLessThan(whomp.noteMs * whomp.holdShare);
+  });
+
+  it('crunches the hit noise below the sample rate, so it is held for whole samples', () => {
+    expect(hit.smackCrushHz).toBeGreaterThan(0);
+    expect(hit.smackCrushHz).toBeLessThan(44100);
+  });
+
+  it('plays the game-over music slower, muffled, with an echo that dies away', () => {
+    expect(gameOverMusic.rate).toBeGreaterThan(0);
+    expect(gameOverMusic.rate).toBeLessThan(1);
+    expect(gameOverMusic.cutoffHz).toBeGreaterThan(0);
+    expect(gameOverMusic.echo.ms).toBeGreaterThan(0);
+    expect(gameOverMusic.echo.feedback).toBeGreaterThan(0);
+    expect(gameOverMusic.echo.feedback).toBeLessThan(1);
+    expect(gameOverMusic.fadeInMs).toBeGreaterThan(0);
   });
 });
 
