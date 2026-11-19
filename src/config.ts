@@ -142,13 +142,14 @@ export const COLORS = {
   // The studio's splash before the title: charcoal, as the user asked (ink
   // until a review asked for darker).
   splash: PALETTE.charcoal,
-  // The title's mute button: with sound, a cream key with a dark speaker, as
-  // in the mock; muted, a dark key in a cream edge with a cream speaker.
-  muteButton: PALETTE.cream,
+  // The title's sound switch: a lime track with sound, a dark one in a cream
+  // edge muted, with a cream knob in an ink edge carrying a dark speaker.
+  muteOn: PALETTE.lime,
+  muteOff: PALETTE.voidInk,
+  muteOffEdge: PALETTE.cream,
+  muteKnob: PALETTE.cream,
+  muteKnobEdge: PALETTE.ink,
   muteIcon: PALETTE.ink,
-  mutedButton: PALETTE.voidInk,
-  mutedEdge: PALETTE.cream,
-  mutedIcon: PALETTE.cream,
 } as const;
 
 const css = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
@@ -338,11 +339,24 @@ export const SPLASH = {
   leaveMs: 4600,
   fadeMs: 400,
 } as const;
-// The title's mute button (MuteButton): a square key cap `size` px across,
-// marginX from the right edge and `top` from the top (the HUD's corner), its
-// speaker drawn in lines iconLineWidth px thick, muted in an edge edgeWidth
-// px thick, with SOUND ON or SOUND OFF labelGap px to its left.
-export const MUTE_BUTTON = { size: 56, marginX: 24, top: 18, iconLineWidth: 3.5, edgeWidth: 2.5, labelGap: 14 } as const;
+// The title's sound switch (MuteToggle): a key cap track `width` by
+// `height`, marginX from the right edge and `top` from the top (the HUD's
+// corner), muted in a cream edge edgeWidth px thick; a square knob `knob`
+// px across in an ink edge knobEdgeWidth px thick, knobInset from the
+// track's end, sliding over slideMs, its speaker drawn in lines
+// iconLineWidth px thick.
+export const MUTE_TOGGLE = {
+  width: 92,
+  height: 48,
+  marginX: 24,
+  top: 18,
+  edgeWidth: 2.5,
+  knob: 38,
+  knobEdgeWidth: 2,
+  knobInset: 5,
+  slideMs: 140,
+  iconLineWidth: 2.5,
+} as const;
 // Pause: a veil over the game, the PAUSED heading centered on headingY, and
 // the Click to resume button below it.
 export const PAUSE = { veilAlpha: 0.8, headingY: 260 } as const;

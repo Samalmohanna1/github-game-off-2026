@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { startMenuMusic } from '@/audio/standby';
 import { COLORS, GAME_HEIGHT, GAME_WIDTH, SPLASH } from '@/config';
 import { GridVoid } from '@/objects/GridVoid';
-import { MuteButton } from '@/objects/MuteButton';
+import { MuteToggle } from '@/objects/MuteToggle';
 import { BUTTON_REACH, buttonYBelow, PromptButton } from '@/objects/PromptButton';
 import { TitleLockup } from '@/objects/TitleLockup';
 import { SceneKeys, type PlayStart } from '@/scenes/scene-keys';
@@ -14,7 +14,7 @@ import { rgb, webAudio } from '@/scenes/ui';
 // page has no keyboard focus until the player clicks into it (PLAN.md §2).
 // The click leads to the interactive tutorial. The menus' Standby starts
 // here and plays on through the tutorial, once the browser lets audio play.
-// The mute button in the corner toggles all sound; a click on it never
+// The sound switch in the corner toggles all sound; a click on it never
 // starts the game.
 export class TitleScene extends Phaser.Scene {
   constructor() {
@@ -33,7 +33,7 @@ export class TitleScene extends Phaser.Scene {
     lockup.setPosition(Math.round((GAME_WIDTH - lockup.width) / 2), top);
     new PromptButton(this, GAME_WIDTH / 2, buttonYBelow(top + lockup.height), 'CLICK TO PLAY');
 
-    const mute = new MuteButton(this);
+    const mute = new MuteToggle(this);
     let starting = false;
     this.input.on('pointerdown', (_pointer: Phaser.Input.Pointer, over: readonly Phaser.GameObjects.GameObject[]) => {
       if (starting || over.includes(mute)) return;
