@@ -136,7 +136,7 @@ describe('feel (M8)', () => {
 });
 
 describe('audio (M9)', () => {
-  const { master, music, gameOverMusic, standby, tick, click, slip, fanfare, shiftAlert, whoosh, hit, whomp } = C.AUDIO;
+  const { master, music, gameOverMusic, standby, ready, tick, click, slip, fanfare, shiftAlert, whoosh, hit, whomp } = C.AUDIO;
 
   it('keeps every gain above silence and at most full scale', () => {
     // Above zero too: the envelopes ramp exponentially, which can't reach 0.
@@ -151,6 +151,7 @@ describe('audio (M9)', () => {
       standby.bells.level,
       ...standby.bells.partials.map(([, level]) => level),
       standby.reverb.wet,
+      ready.gain,
       tick.gain,
       click.gain,
       slip.gain,
@@ -362,6 +363,7 @@ const TEXT_ON = {
   gradePerfect: ['ink'],
   gradeGreat: ['ink'],
   gradeCloseCall: ['ink'],
+  readyBadge: ['ink'],
   calloutCard: ['ink'],
   badgeTab: ['light'],
   debugPanel: ['ink'],
@@ -408,14 +410,58 @@ describe('screen layouts', () => {
     expect(C.TITLE.lean).toBeCloseTo(C.BADGE.slant / C.BADGE.height);
   });
 
-  it('stacks the how-to heading, steps, button and hint without overlap', () => {
-    const { headingY, cards } = C.HOW_TO;
-    const half = C.HEADING_CARD.height / 2;
-    expect(headingY - half).toBeGreaterThan(0);
-    expect(headingY + half).toBeLessThan(cards.top);
-    expect(cards.top + cards.height + hintFoot).toBeLessThan(C.GAME_HEIGHT);
-    expect(cards.titleY).toBeLessThan(cards.keysY);
-    expect(cards.keysY + Math.max(C.KEY_CAP.height, C.HOW_TO.badge.height) / 2).toBeLessThan(cards.textY);
+  // The interactive tutorial's step card sits in the band above the wall that
+  // the HUD leaves free until step 3, then between the HUD's cards; step 3's
+  // Start button and hint go under it, on a clear stage, above the figure.
+  describe('the tutorial', () => {
+    const T = C.TUTORIAL;
+    const cardFoot = (lines: number) => T.card.top + T.card.textY + lines * T.card.lineHeight + T.card.padBottom;
+    const cardRight = (C.GAME_WIDTH + T.card.width) / 2;
+    // Plex Mono's letters are 0.6 of its size wide.
+    const monoWidth = (text: string) => 0.6 * C.FONT_SIZES.small * text.length;
+    const figureTop = C.FIGURE_FLOOR_Y - C.FIGURE_HEIGHT;
+
+    it("keeps a one-line step card above the wall's top at every depth", () => {
+      // The wall's top edge, projected toward the vanishing point, is highest
+      // while the wall is farthest.
+      const wallTop = C.HORIZON_Y + (C.FIGURE_FLOOR_Y - C.WALL_HEIGHT - C.HORIZON_Y) * C.WALL_START_SCALE;
+      expect(T.card.top).toBeGreaterThan(0);
+      expect(cardFoot(1)).toBeLessThan(wallTop);
+    });
+
+    it("fits the card between the HUD's cards, slashes and all", () => {
+      const hudReach = C.HUD.marginX + C.HUD.minWidth + 2 * C.SLASH.width + C.SLASH.gap + C.SLASH.lean;
+      expect((C.GAME_WIDTH - T.card.width) / 2).toBeGreaterThan(hudReach);
+    });
+
+    it('keeps ENTER TO SKIP clear of the card', () => {
+      const enterCap = Math.max(C.KEY_CAP.height, monoWidth('ENTER') + 2 * C.KEY_CAP.padX);
+      const skipLeft = C.GAME_WIDTH - C.HUD.marginX - monoWidth('TO SKIP') - T.skipGap - enterCap;
+      expect(skipLeft).toBeGreaterThan(cardRight);
+    });
+
+    it("sets step 3's Start button and hint under its card, above the figure", () => {
+      expect(cardFoot(T.card.maxLines) + hintFoot).toBeLessThan(figureTop);
+    });
+
+    it("keeps the Caps Lock warning between step 3's card and its Start button", () => {
+      const half = C.FONT_SIZES.small / 2;
+      expect(T.capsWarningY - half).toBeGreaterThan(cardFoot(T.card.maxLines));
+      expect(T.capsWarningY + half).toBeLessThan(cardFoot(T.card.maxLines) + B.gapAbove);
+    });
+
+    it('waits on step 3 until the cleared wall has played out', () => {
+      const { pixelMs, restoreMs, holdMs, exitMs } = C.WALL_COMPLETE;
+      expect(T.continueLockoutMs).toBeGreaterThanOrEqual(C.LOCK_RUSH_DURATION + pixelMs + restoreMs + holdMs + exitMs);
+    });
+
+    it('counts READY?, 3, 2, 1 on beats of the game track, over the stage and above the figure', () => {
+      const beatMs = 60000 / C.AUDIO.standby.bpm;
+      expect(C.READY_COUNT.stepMs).toBeCloseTo(beatMs, 0);
+      expect(C.READY_COUNT.readyMs).toBeCloseTo(2 * beatMs, 0);
+      expect(C.READY_COUNT.y - C.BADGE.height / 2).toBeGreaterThan(C.HUD.top + C.HUD.height);
+      expect(C.READY_COUNT.y + C.BADGE.height / 2).toBeLessThan(figureTop);
+    });
   });
 
   // M11 review 4 asked for room to breathe: the card, Play again and its

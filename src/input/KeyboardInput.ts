@@ -5,6 +5,8 @@ export interface KeyboardHandlers {
   onBlur(): void;
   onCapsLock(on: boolean): void;
   onToggleDebug(): void;
+  // Enter skips the tutorial.
+  onEnter(): void;
 }
 
 // Native window listeners rather than Phaser key objects, as PLAN.md §2
@@ -26,6 +28,8 @@ export class KeyboardInput {
     if (event.code === 'Space') this.handlers.onSpace();
     // F2 is the debug overlay and never reaches the letter rules (PLAN.md §8).
     else if (event.code === 'F2') this.handlers.onToggleDebug();
+    // Enter isn't a letter either, so it can never be a wrong key.
+    else if (event.code === 'Enter' || event.code === 'NumpadEnter') this.handlers.onEnter();
     else this.handlers.onKeyDown(event.key, event.code);
   };
 
