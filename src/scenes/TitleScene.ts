@@ -1,12 +1,12 @@
 import Phaser from 'phaser';
 import { startMenuMusic } from '@/audio/standby';
-import { COLORS, GAME_HEIGHT, GAME_WIDTH } from '@/config';
+import { COLORS, GAME_HEIGHT, GAME_WIDTH, SPLASH } from '@/config';
 import { GridVoid } from '@/objects/GridVoid';
 import { MuteButton } from '@/objects/MuteButton';
 import { BUTTON_REACH, buttonYBelow, PromptButton } from '@/objects/PromptButton';
 import { TitleLockup } from '@/objects/TitleLockup';
 import { SceneKeys, type PlayStart } from '@/scenes/scene-keys';
-import { webAudio } from '@/scenes/ui';
+import { rgb, webAudio } from '@/scenes/ui';
 
 // The title (M11 review 5): the grid stage, the lockup on its dark card
 // (TitleLockup), and the Click to play button below it, centered as one
@@ -23,6 +23,8 @@ export class TitleScene extends Phaser.Scene {
 
   create(): void {
     this.cameras.main.setBackgroundColor(COLORS.void);
+    // The splash dissolves into the title through the void's color.
+    this.cameras.main.fadeIn(SPLASH.fadeMs, ...rgb(COLORS.void));
     new GridVoid(this);
     const audio = webAudio(this);
     if (audio !== null) startMenuMusic(audio.ctx, audio.destination);

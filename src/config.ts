@@ -28,6 +28,7 @@ export const PALETTE = {
   ochre: 0x8f6a00, // yellow, darkened to hold 3:1 on cream
   coral: 0xff7f7f, // mock logo
   red: 0xd8453c, // coral, darkened to hold 3:1 on cream
+  charcoal: 0x101010, // a neutral near-black: the studio splash before the title
 } as const;
 
 // What each color means. Every screen (M10b, M11) is set in a dark grid stage:
@@ -138,6 +139,9 @@ export const COLORS = {
   gameOverRule: PALETTE.lime,
   debugPanel: PALETTE.cream,
   veil: PALETTE.voidInk, // over the paused game
+  // The studio's splash before the title: charcoal, as the user asked (ink
+  // until a review asked for darker).
+  splash: PALETTE.charcoal,
   // The title's mute button: with sound, a cream key with a dark speaker, as
   // in the mock; muted, a dark key in a cream edge with a cream speaker.
   muteButton: PALETTE.cream,
@@ -315,6 +319,25 @@ export const READY_COUNT = { readyMs: 1333, stepMs: 667, y: 214 } as const;
 // Labeled key caps (keycap.ts): height px tall, padX each side of their
 // label.
 export const KEY_CAP = { height: 50, padX: 14 } as const;
+// The splash before the title (SplashScene): Sleepy Sam turned angleDeg to
+// lie on his side, at imageScale, centered on imageY, fading in over imageFadeMs and
+// floating floatPx up and down, floatMs each way; A SLEEPYSAM GAME (in the
+// subheading size) centered on textY, fading in over textFadeMs after textDelayMs. It leaves after
+// leaveMs (or on a click or a key), dissolving through the void's color
+// over fadeMs each way into the title. px, degrees and ms.
+export const SPLASH = {
+  imageY: 320,
+  imageScale: 0.7,
+  angleDeg: -90,
+  floatPx: 10,
+  floatMs: 1400,
+  imageFadeMs: 400,
+  textY: 430,
+  textDelayMs: 600,
+  textFadeMs: 900,
+  leaveMs: 4600,
+  fadeMs: 400,
+} as const;
 // The title's mute button (MuteButton): a square key cap `size` px across,
 // marginX from the right edge and `top` from the top (the HUD's corner), its
 // speaker drawn in lines iconLineWidth px thick, muted in an edge edgeWidth

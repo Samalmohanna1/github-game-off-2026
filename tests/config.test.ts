@@ -345,6 +345,13 @@ describe('graphics contrast', () => {
     expect(contrastRatio(C.COLORS.gameOverRule, C.COLORS.darkCard)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
+  it("shows the splash's words, faded in, a good while before it leaves", () => {
+    const { textDelayMs, textFadeMs, leaveMs, imageY, textY } = C.SPLASH;
+    expect(textDelayMs + textFadeMs).toBeLessThan(leaveMs / 2);
+    expect(textY).toBeGreaterThan(imageY);
+    expect(textY).toBeLessThan(C.GAME_HEIGHT);
+  });
+
   // Sound on: a bright key with a dark speaker. Muted: a dark key in a cream
   // edge with a cream speaker and X. Each reads on the stage, and its
   // speaker on its key.
@@ -399,6 +406,8 @@ const TEXT_ON = {
   // The dark cards: the how-to steps' lime numbers and cream names and text
   // (M11 review), the game-over card's lime captions and cream numbers.
   darkCard: ['light', 'good'],
+  // A SLEEPYSAM GAME on the splash.
+  splash: ['light'],
   // GAME OVER and the screens' hints on the void.
   void: ['light'],
   chipNext: ['ink'],

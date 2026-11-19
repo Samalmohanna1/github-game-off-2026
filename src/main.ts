@@ -9,6 +9,7 @@ import { preventPageScroll } from '@/input/prevent-page-scroll';
 import { BootScene } from '@/scenes/BootScene';
 import { GameOverScene } from '@/scenes/GameOverScene';
 import { PlayScene } from '@/scenes/PlayScene';
+import { SplashScene } from '@/scenes/SplashScene';
 import { TitleScene } from '@/scenes/TitleScene';
 
 preventPageScroll();
@@ -27,5 +28,5 @@ new Phaser.Game({
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
-  scene: [BootScene, TitleScene, PlayScene, GameOverScene],
+  scene: [BootScene, SplashScene, TitleScene, PlayScene, GameOverScene],
 });
