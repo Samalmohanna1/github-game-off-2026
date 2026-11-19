@@ -27,7 +27,8 @@ import { generateLetters } from '@/logic/letters';
 import { ScoreKeeper, gradeFor } from '@/logic/scoring';
 import { LetterSequence, type SequenceEffect } from '@/logic/sequence';
 import { ShiftWall, type ShiftWallEvent } from '@/logic/shift-wall';
-import { TutorialSteps } from '@/logic/tutorial';
+import { TutorialSteps, type TutorialStep } from '@/logic/tutorial';
+import { tutorialCardPlace, type CardPlace, type Side } from '@/logic/tutorial-layout';
 import { generateWall, holeGrid, type WallSpec } from '@/logic/wall-gen';
 import { Completion } from '@/objects/Completion';
 import { DebugOverlay, type DebugRow } from '@/objects/DebugOverlay';
@@ -112,6 +113,7 @@ export class PlayScene extends Phaser.Scene {
   // The tutorial's steps and their card; null outside the tutorial.
   private tutorial: TutorialSteps | null = null;
   private panel: TutorialPanel | null = null;
+  private startPrompt: GatedPrompt | null = null;
   private readyCount: ReadyCount | null = null;
   // Set once the scene has asked to restart, so a second ask can't.
   private leaving = false;
@@ -183,21 +185,29 @@ export class PlayScene extends Phaser.Scene {
 
     this.tutorial = null;
     this.panel = null;
+    this.startPrompt = null;
     this.readyCount = null;
     if (this.mode === 'tutorial') this.startTutorial();
     else if (this.mode === 'countdown') this.startCount();
     else this.beginRun();
   }
 
-  // The tutorial: the HUD waits for the last step, the step card sits in its
-  // band, and the Caps Lock warning moves under the card.
+  // The tutorial: the HUD waits for the last step, and step 1's card goes up
+  // once the wall says which side the hole is on.
   private startTutorial(): void {
     this.hud.setVisible(false);
-    this.capsWarning.setY(TUTORIAL.capsWarningY);
     this.tutorial = new TutorialSteps();
     this.panel = new TutorialPanel(this).setDepth(LAYER.hud);
-    this.panel.show(this.tutorial.step);
     this.startWall();
+    this.panel.show(this.tutorial.step, this.cardPlace(this.tutorial.step));
+  }
+
+  // Which halves of the stage the hole and the figure are in, for where a
+  // step's card goes. The hole is never in the figure's lane at the start,
+  // and the figure is never centered once lined up; right breaks a tie.
+  private cardPlace(step: TutorialStep): CardPlace {
+    const side = (d: number): Side => (d < 0 ? -1 : 1);
+    return tutorialCardPlace(step, side(this.holeLane - this.figureLane), side(this.figureLane - CENTER_LANE));
   }
 
   // READY?, 3, 2, 1 on an empty stage, a beep on each number and a higher one
@@ -349,12 +359,14 @@ export class PlayScene extends Phaser.Scene {
     const aligned = isAligned(this.figureLane, this.holeLane);
     const step = this.tutorial?.update(aligned, this.sequence.locked, this.sequence.heldCount) ?? null;
     if (step === null || this.panel === null) return;
-    this.panel.show(step);
+    this.panel.show(step, this.cardPlace(step));
     if (step !== 'score') return;
     this.hud.setVisible(true).setAlpha(0);
     this.tweens.add({ targets: this.hud, alpha: 1, duration: TUTORIAL.hudFadeMs });
+    // Step 3's card takes the top band, so the warning goes under it.
+    this.capsWarning.setY(TUTORIAL.capsWarningY);
     const text = { button: 'START', waiting: 'LET GO OF EVERY KEY', ready: 'PRESS ANY KEY OR CLICK' };
-    new GatedPrompt(this, GAME_WIDTH / 2, buttonYBelow(this.panel.bottom), text, {
+    this.startPrompt = new GatedPrompt(this, GAME_WIDTH / 2, buttonYBelow(this.panel.bottom), text, {
       keysDown: this.keyboard.heldCodes(),
       lockoutMs: TUTORIAL.continueLockoutMs,
       hintOnCard: true,
@@ -374,10 +386,13 @@ export class PlayScene extends Phaser.Scene {
     this.leave('countdown');
   }
 
+  // The tutorial's cards and Start fade away before the scene restarts.
   private leave(mode: PlayMode): void {
     if (this.leaving) return;
     this.leaving = true;
-    this.scene.restart({ mode } satisfies PlayStart);
+    this.panel?.hide();
+    this.startPrompt?.fadeOut(TUTORIAL.fadeMs);
+    this.time.delayedCall(TUTORIAL.fadeMs, () => this.scene.restart({ mode } satisfies PlayStart));
   }
 
   // PLAN.md §3: pass = lined up and every letter held, decided from game
@@ -444,7 +459,9 @@ export class PlayScene extends Phaser.Scene {
       this.synth?.whomp();
       if (!prefersReducedMotion()) this.cameras.main.shake(FAIL_SHAKE_MS, FAIL_SHAKE_INTENSITY);
     });
-    // A fail in the tutorial plays out, then replays the tutorial wall.
+    // A fail in the tutorial fades its card as the wall hits, plays out, then
+    // replays the tutorial wall.
+    this.panel?.hide();
     this.time.delayedCall(FAIL_TO_GAME_OVER_MS, () => (this.mode === 'tutorial' ? this.leave('tutorial') : this.endRun()));
   }
 

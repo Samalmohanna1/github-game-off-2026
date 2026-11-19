@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FONT_SIZES, TUTORIAL } from '@/config';
-import { TUTORIAL_CARDS } from '@/data/tutorial';
-import { TUTORIAL_STEPS, TutorialSteps } from '@/logic/tutorial';
+import { TutorialSteps } from '@/logic/tutorial';
 
 describe('the interactive tutorial', () => {
   it('starts on lining up', () => {
@@ -48,12 +46,5 @@ describe('the interactive tutorial', () => {
     const steps = new TutorialSteps();
     expect(steps.update(true, true, 3)).toBe('score');
     expect(steps.update(true, true, 3)).toBeNull();
-  });
-
-  // Plex Mono's letters are 0.6 of its size wide; one line keeps the card
-  // above the wall and step 3's Start above the figure.
-  it.each(TUTORIAL_STEPS)("fits the %s card's sentence on one line", (step) => {
-    const room = TUTORIAL.card.width - 2 * TUTORIAL.card.padX;
-    expect(0.6 * FONT_SIZES.small * TUTORIAL_CARDS[step].text.length).toBeLessThanOrEqual(room);
   });
 });

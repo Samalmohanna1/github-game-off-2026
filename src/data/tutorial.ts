@@ -1,10 +1,11 @@
 import type { TutorialStep } from '@/logic/tutorial';
 
 // Each tutorial step's card: its name, the keys it uses, and one sentence.
-// Every sentence fits on one line of the card (tests/tutorial.test.ts), so
-// the card stays above the wall and step 3's Start and hint clear the
-// figure. (Step 3 said "The faster you clear a wall, the more points you
-// score." over two lines until its hint went on a card.)
+// The sentences are short enough for their cards' places
+// (tests/tutorial-layout.test.ts): step 1's wraps to two lines on its
+// narrower card beside the runway, and step 3's fits one line, so its Start
+// and hint clear the figure. (Step 3 said "The faster you clear a wall, the
+// more points you score." over two lines until its hint went on a card.)
 export interface TutorialCard {
   readonly name: string;
   readonly keys: readonly string[];

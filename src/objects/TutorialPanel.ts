@@ -1,22 +1,23 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, HUD, TUTORIAL } from '@/config';
+import { GAME_WIDTH, TUTORIAL } from '@/config';
 import { TUTORIAL_CARDS } from '@/data/tutorial';
 import { TUTORIAL_STEPS, type TutorialStep } from '@/logic/tutorial';
+import type { CardPlace } from '@/logic/tutorial-layout';
 import { drawDarkCard } from '@/objects/card';
 import { addKeyCap } from '@/objects/keycap';
 import { centerGlyphs, textStyle } from '@/scenes/text-styles';
 
-const CARD_FADE_MS = 200;
-
-// The interactive tutorial's step, one at a time: a dark card centered in
-// the band above the wall, with the step's number (1., 2., 3.) in lime, its
-// name and any keys it uses, and one sentence under them; and, until the
-// last step, ENTER TO SKIP in the top-right corner, where the HUD's WALL
-// card shows from step 3.
+// The interactive tutorial's step, one at a time, each on a dark card where
+// src/logic/tutorial-layout.ts places it, by what it is about: the step's
+// number (1., 2., 3.) in lime, its name and any keys it uses, and its
+// sentence under them. A card fades out before the next fades in (fades are
+// not motion, so they play for reduced motion too). Until the last step,
+// ENTER TO SKIP sits in the top-right corner, where the HUD's WALL card
+// shows from step 3.
 export class TutorialPanel extends Phaser.GameObjects.Container {
   private card: Phaser.GameObjects.Container | null = null;
   private readonly skip: Phaser.GameObjects.Container;
-  private cardBottom: number = TUTORIAL.card.top;
+  private cardBottom = 0;
 
   constructor(scene: Phaser.Scene) {
     super(scene);
@@ -30,29 +31,53 @@ export class TutorialPanel extends Phaser.GameObjects.Container {
     return this.cardBottom;
   }
 
-  show(step: TutorialStep): void {
-    this.card?.destroy();
-    this.card = this.makeCard(step);
+  show(step: TutorialStep, place: CardPlace): void {
+    const hadCard = this.fadeOutCard();
+    this.card = this.makeCard(step, place);
     this.add(this.card);
-    this.skip.setVisible(step !== 'score');
-    // A fade, not motion, so it plays for reduced motion too.
     this.card.setAlpha(0);
-    this.scene.tweens.add({ targets: this.card, alpha: 1, duration: CARD_FADE_MS });
+    this.scene.tweens.add({ targets: this.card, alpha: 1, duration: TUTORIAL.fadeMs, delay: hadCard ? TUTORIAL.fadeMs : 0 });
+    if (step === 'score') this.fade(this.skip);
   }
 
-  private makeCard(step: TutorialStep): Phaser.GameObjects.Container {
-    const { top, width, padX, titleY, textY, padBottom } = TUTORIAL.card;
-    const card = new Phaser.GameObjects.Container(this.scene);
-    const left = (GAME_WIDTH - width) / 2;
+  // Everything fades away: the tutorial is over, or its wall hit.
+  hide(): void {
+    this.fadeOutCard();
+    this.fade(this.skip);
+  }
+
+  // Fades the current card out and lets it go; false if there was none.
+  private fadeOutCard(): boolean {
+    const old = this.card;
+    if (old === null) return false;
+    this.card = null;
+    this.scene.tweens.killTweensOf(old);
+    this.scene.tweens.add({ targets: old, alpha: 0, duration: TUTORIAL.fadeMs, onComplete: () => old.destroy() });
+    return true;
+  }
+
+  private fade(target: Phaser.GameObjects.Container): void {
+    this.scene.tweens.add({ targets: target, alpha: 0, duration: TUTORIAL.fadeMs });
+  }
+
+  private makeCard(step: TutorialStep, place: CardPlace): Phaser.GameObjects.Container {
+    const { padX, titleY, textY, padBottom } = TUTORIAL.card;
+    const { left, width } = place;
     const { name, keys, text } = TUTORIAL_CARDS[step];
 
-    const sentence = new Phaser.GameObjects.Text(this.scene, left + padX, top + textY, text, {
+    // Measured first: the card's height, and so where its top goes, is the
+    // sentence's.
+    const sentence = new Phaser.GameObjects.Text(this.scene, left + padX, 0, text, {
       ...textStyle('small', 'light'),
       align: 'left',
       wordWrap: { width: width - 2 * padX },
     });
     const height = textY + sentence.height + padBottom;
+    const top = place.from === 'top' ? place.y : place.y - height;
     this.cardBottom = top + height;
+    sentence.setY(top + textY);
+
+    const card = new Phaser.GameObjects.Container(this.scene);
     const shape = new Phaser.GameObjects.Graphics(this.scene);
     drawDarkCard(shape, left, top, width, height);
     card.add([shape, sentence]);
@@ -71,7 +96,7 @@ export class TutorialPanel extends Phaser.GameObjects.Container {
   // ENTER TO SKIP: the key cap, then the words, right-aligned.
   private makeSkip(): Phaser.GameObjects.Container {
     const skip = new Phaser.GameObjects.Container(this.scene);
-    const right = GAME_WIDTH - HUD.marginX;
+    const right = GAME_WIDTH - TUTORIAL.marginX;
     const words = new Phaser.GameObjects.Text(this.scene, right, TUTORIAL.skipY, 'TO SKIP', textStyle('small', 'light')).setOrigin(1, 0.5);
     const key = new Phaser.GameObjects.Container(this.scene);
     const keyWidth = addKeyCap(this.scene, key, 0, 0, 'ENTER');

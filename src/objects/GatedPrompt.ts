@@ -35,7 +35,7 @@ export class GatedPrompt {
   private gone = false;
 
   constructor(
-    scene: Phaser.Scene,
+    private readonly scene: Phaser.Scene,
     x: number,
     y: number,
     private readonly text: GatedPromptText,
@@ -68,6 +68,14 @@ export class GatedPrompt {
     this.hintCard?.setDepth(depth);
     this.hint.setDepth(depth);
     return this;
+  }
+
+  // Fades away, and no longer answers keys or clicks.
+  fadeOut(ms: number): void {
+    this.gone = true;
+    const parts: Phaser.GameObjects.GameObject[] = [this.button, this.hint];
+    if (this.hintCard !== null) parts.push(this.hintCard);
+    this.scene.tweens.add({ targets: parts, alpha: 0, duration: ms });
   }
 
   private update(deltaMs: number): void {

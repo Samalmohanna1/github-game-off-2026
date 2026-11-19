@@ -413,51 +413,16 @@ describe('screen layouts', () => {
   // The interactive tutorial's step card sits in the band above the wall that
   // the HUD leaves free until step 3, then between the HUD's cards; step 3's
   // Start button and hint go under it, on a clear stage, above the figure.
+  // The interactive tutorial; where its cards go is in tests/tutorial-layout.test.ts.
   describe('the tutorial', () => {
     const T = C.TUTORIAL;
-    const cardFoot = (lines: number) => T.card.top + T.card.textY + lines * T.card.lineHeight + T.card.padBottom;
-    const cardRight = (C.GAME_WIDTH + T.card.width) / 2;
-    // Plex Mono's letters are 0.6 of its size wide.
-    const monoWidth = (text: string) => 0.6 * C.FONT_SIZES.small * text.length;
     const figureTop = C.FIGURE_FLOOR_Y - C.FIGURE_HEIGHT;
 
-    it("keeps a one-line step card above the wall's top at every depth", () => {
-      // The wall's top edge, projected toward the vanishing point, is highest
-      // while the wall is farthest.
-      const wallTop = C.HORIZON_Y + (C.FIGURE_FLOOR_Y - C.WALL_HEIGHT - C.HORIZON_Y) * C.WALL_START_SCALE;
-      expect(T.card.top).toBeGreaterThan(0);
-      expect(cardFoot(1)).toBeLessThan(wallTop);
-    });
-
-    it("fits the card between the HUD's cards, slashes and all", () => {
-      const hudReach = C.HUD.marginX + C.HUD.minWidth + 2 * C.SLASH.width + C.SLASH.gap + C.SLASH.lean;
-      expect((C.GAME_WIDTH - T.card.width) / 2).toBeGreaterThan(hudReach);
-    });
-
-    it('keeps ENTER TO SKIP clear of the card', () => {
-      const enterCap = Math.max(C.KEY_CAP.height, monoWidth('ENTER') + 2 * C.KEY_CAP.padX);
-      const skipLeft = C.GAME_WIDTH - C.HUD.marginX - monoWidth('TO SKIP') - T.skipGap - enterCap;
-      expect(skipLeft).toBeGreaterThan(cardRight);
-    });
-
-    // Over the cream runway the hint sits on a small dark card (HINT_CARD).
-    const hintCardFoot = B.gapAbove + B.edgeWidth + B.height / 2 + B.hintBelow + C.HINT_CARD.height / 2 + C.DARK_CARD.edgeWidth;
-
-    it("sets step 3's Start button and its hint's card under its card, above the figure", () => {
-      expect(cardFoot(1) + hintCardFoot).toBeLessThan(figureTop);
-    });
-
-    it("keeps the hint's card clear of the Start button as it pulses, and roomy for its words", () => {
+    it("keeps the Start hint's card clear of the button as it pulses, and roomy for its words", () => {
       const pulsedHalf = (B.height / 2 + B.edgeWidth) * C.PROMPT_PULSE_SCALE;
       expect(B.hintBelow - C.HINT_CARD.height / 2 - C.DARK_CARD.edgeWidth).toBeGreaterThan(pulsedHalf);
       expect(C.HINT_CARD.height).toBeGreaterThan(C.FONT_SIZES.small);
       expect(C.HINT_CARD.cut).toBeLessThan(C.HINT_CARD.height / 2);
-    });
-
-    it("keeps the Caps Lock warning between step 3's card and its Start button", () => {
-      const half = C.FONT_SIZES.small / 2;
-      expect(T.capsWarningY - half).toBeGreaterThan(cardFoot(1));
-      expect(T.capsWarningY + half).toBeLessThan(cardFoot(1) + B.gapAbove);
     });
 
     it('waits on step 3 until the cleared wall has played out', () => {

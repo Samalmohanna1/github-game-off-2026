@@ -263,22 +263,30 @@ export const TITLE = {
   bloom: { blur: 24, alpha: 0.35 },
 } as const;
 // The interactive tutorial (the Play scene's tutorial mode, after the title):
-// one step at a time on a dark card, card.width wide, centered, card.top
-// down, in the band above the wall that the HUD leaves free until step 3
-// shows it. Inside, padX from its left: the step's number, its name and any
-// keys centered on titleY (numberGap and keyGap apart), then its text from
-// textY down (one line, lineHeight tall), with room between the two (a
-// review asked for more), and padBottom under it. One line keeps the card's
-// foot above the wall's top, and step 3's Start and its hint above the
-// figure.
+// one step at a time on a dark card by what it is about
+// (src/logic/tutorial-layout.ts), card.width wide (step 1's, beside the
+// runway, sideWidth), marginX from the screen's side when at one. Step 1's
+// top is lineUpTop, beside the runway's far end where the wall waits; step
+// 2's foot is holdGap above the letter bar; step 3's top is scoreTop,
+// between the HUD's cards. Inside, padX from its left: the step's number,
+// its name and any keys centered on titleY (numberGap and keyGap apart),
+// then its text from textY down, wrapped to the card (lineHeight a line),
+// with room between the two (a review asked for more), and padBottom under
+// it. Each card fades out over fadeMs before the next fades in.
 // The Enter-to-skip hint sits on skipY, right-aligned marginX from the edge,
 // its key skipGap before its words. In step 3 the Start button waits
 // continueLockoutMs, long enough for the cleared wall's completion to play
 // out, then for every key to be let go (RestartGate); the HUD fades in over
-// hudFadeMs as it starts. The Caps Lock warning moves under the card, to
-// capsWarningY. ms and px.
+// hudFadeMs as it starts, and the Caps Lock warning moves from the top
+// band, which step 3's card takes, to capsWarningY, under the card. ms and
+// px.
 export const TUTORIAL = {
-  card: { top: 12, width: 600, padX: 26, titleY: 36, textY: 76, lineHeight: 31, padBottom: 16 },
+  card: { width: 600, sideWidth: 400, padX: 26, titleY: 36, textY: 76, lineHeight: 31, padBottom: 16 },
+  marginX: 24,
+  lineUpTop: 104,
+  holdGap: 10,
+  scoreTop: 12,
+  fadeMs: 200,
   numberGap: 14,
   keyGap: 18,
   skipY: 52,
