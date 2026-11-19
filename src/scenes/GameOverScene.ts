@@ -21,7 +21,8 @@ interface Box {
 // stage: one dark card in a lime edge, centered, with GAME OVER over a lime
 // rule, then the run's score and walls cleared parted by the bar's line;
 // below it the Play again button once a restart is allowed (PLAN.md §7),
-// and its hint.
+// and its hint. Only Space or Enter restarts: the user asked that a click
+// not, so a stray click can't throw the player straight back into a run.
 export class GameOverScene extends Phaser.Scene {
   private result!: RunResult;
 
@@ -57,6 +58,7 @@ export class GameOverScene extends Phaser.Scene {
     const text = { button: 'PLAY AGAIN', waiting: 'LET GO OF EVERY KEY TO PLAY AGAIN', ready: PRESS_HINT };
     new GatedPrompt(this, GAME_WIDTH / 2, buttonYBelow(card.y + card.height), text, {
       keysDown: this.result.keysDown,
+      clicks: false,
       onGo: () => this.scene.start(SceneKeys.Play),
     });
   }
