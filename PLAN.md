@@ -54,7 +54,7 @@ SPAWN → ALIGN → POSE → (SHIFT WALL?) → RESOLVE → next wall | GAME OVER
 | Letter pressed during ALIGN (no prompt showing) | Counts as a **wrong key**. |
 | Space, Shift, the arrow keys and all other non-letter keys | Never count as wrong keys. Space moves the figure, and the rest are ignored. |
 | Pose locked | Input is ignored until the next wall. Keys still held from this wall are ignored until they're released. |
-| Window loses focus (`blur`) | Pause the game and show "Click to resume". Every held letter counts as slipped. |
+| Window loses focus (`blur`) | Pause the game and show RESUME; Space, Enter or a click resumes. Every held letter counts as slipped. |
 
 ### Implementation notes for input
 - Use the browser's own `keydown`/`keyup` on `window` instead of Phaser key objects for letters.
@@ -63,7 +63,7 @@ SPAWN → ALIGN → POSE → (SHIFT WALL?) → RESOLVE → next wall | GAME OVER
 - Ignore `event.repeat`.
 - If Caps Lock is on (`event.getModifierState('CapsLock')` on any key event), show a "Caps Lock is on" warning during play. The rules above don't change, but with Caps Lock on, Shift + letter can produce a lowercase `event.key`.
 - Call `preventDefault()` on arrow keys and Space, so they don't scroll the page.
-- The game will run inside an iframe (itch.io), so the title screen needs **"Click to play"** to get keyboard focus.
+- The game will run inside an iframe (itch.io), where the page only gets keyboard focus from a click, so a click anywhere on the title plays, as well as Space or Enter. Every button takes Space or Enter and a click, so the mouse is never needed once the frame has focus. (Until a review asked for that, the title needed a click and read "Click to play".)
 
 ---
 
@@ -177,7 +177,7 @@ The timing label pops up big over the figure as the wall rushes past. The game o
 
 - When the player fails: the wall knocks the figure off its feet, toward the camera. It flails its arms as it topples toward the middle of the stage, and when it hits the floor its blocks come apart and bounce, low like wood rather than rubber, then tip flat and lie still. A screen shake goes with the landing. (Until the fifth M10 review, the figure fell into a pool with a splash of water particles and a ripple.)
 - Game-over screen: the run's **Score** and **Walls cleared**. (It also showed the wall number where the run ended until M11 review 2; that is always walls cleared + 1.)
-- **Restart:** ignore input for 1s, wait until **every key is released**, then any key or a click restarts. This stops keys still held from the failed wall from restarting the game straight away.
+- **Restart:** ignore input for 1s, wait until **every key is released**, then Space, Enter or a click restarts (any key did until a review asked for Space or Enter). This stops keys still held from the failed wall from restarting the game straight away.
 
 ---
 
@@ -234,7 +234,7 @@ shape-shift/
 │  │  └─ PromptTray.ts
 │  └─ scenes/
 │     ├─ BootScene.ts
-│     ├─ TitleScene.ts       # "Click to play" (gets keyboard focus)
+│     ├─ TitleScene.ts       # Play: Space, Enter or a click (which gets keyboard focus)
 │     ├─ PlayScene.ts
 │     └─ GameOverScene.ts
 └─ tests/
@@ -343,7 +343,8 @@ Built in this order (chosen after M7): feel and audio go on the grey box first, 
 - (After M11 review 5: the user generated title concepts and picked Option 2, offset diagonal, refined over two rounds of rendered mockups in `../design-mocks/title-options/`. The title is now a dark card in a lime edge holding SHAPE, large, over SHIFT, both in cream Anton leaning like the badges. SHIFT's right edge lies on the E's leaning right edge. The bar's line starts with its slashes under the S, as far left as the S reaches, and steps down into SHIFT's middle. The mockups' outlines were dropped, since the dark card gives the contrast. Every dark card's edge is now lime. The SVG in `../design-mocks/logo/` was regenerated to match.)
 - (After M11 review 6: the user found the title flat and picked mock B, `../design-mocks/title-options/punch-B-plus-bigger-motif.png`. SHIFT is now lime. The card is lit like a wall, with a soft lime bloom outside its edge and the wall panel's glow inside, which was lowered on the wall too (`WALL_DISPLAY`). The bar's line is 1.5 times its size; at 2 times the slashes ran into the S. The line now ends at the top of SHIFT's S's lower tail, and the words sit closer. The SVG was regenerated, without the glow, which is a lighting effect.)
 - (After M11, at the user's request: How to play became an interactive tutorial, played on the real stage by the real rules. One step card at a time, each until the player does it, each by what it shows (after a review): step 1 beside the runway's far end on the hole's side, step 2 just above the letter bar on the side away from the figure, step 3 at the top between the HUD's cards, each fading out before the next fades in. The steps: 1. LINE UP with Space, 2. HOLD ON to the wall's three lowercase letters (the card says capitals need Shift), then, as the pose locks, 3. SCORE, as the HUD fades in with the points and the card says "Clear walls faster for more points." (one line, so the card stays above the wall; it was "The faster you clear a wall, the more points you score." over two lines until a review asked for Start's hint to sit on a card, which needed the room). The user chose for the tutorial wall to come at wall 1's real speed, so it can be failed (a fail replays it), but only once the player starts: it waits at its start through lining up and until the first letter is held, then keeps coming even if the letters slip. It is practice: Start leads to a READY?, 3, 2, 1 count, and the run starts from 0 on wall 1. Enter skips the tutorial, and Play again skips it and the count.)
-- (After M11, at the user's request: a studio splash before the title, Sleepy Sam lying on his side and floating up and down on a charcoal screen, A SLEEPYSAM GAME fading in below him, then a dissolve into the title after 4.6 s or on a click or key.)
+- (After M11, at the user's request: a studio splash before the title, Sleepy Sam lying on his side and floating up and down on a charcoal screen, A SLEEPYSAM GAME fading in below him, then a dissolve into the title after 4.6 s or on a click or key. Then the user turned it off for now, to use later: `SPLASH.show`.)
+- (Then, at the user's request, the mouse is never needed: every button takes Space or Enter as well as a click, and no other key; the title reads PLAY and the pause RESUME, each button over PRESS SPACE OR ENTER; and on the title the arrow keys move a focus ring between Play and the sound switch.)
 - ✅ A new player can start a run knowing the controls from the title and the interactive tutorial.
 
 **M12: Ship**
