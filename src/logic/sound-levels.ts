@@ -7,6 +7,11 @@ export function noteHz(baseHz: number, semitones: number): number {
   return baseHz * 2 ** (semitones / 12);
 }
 
+// A MIDI note number's pitch: 69 is A4, 440 Hz.
+export function midiHz(midi: number): number {
+  return noteHz(440, midi - 69);
+}
+
 // The note `degree` steps up the key's scale from a note of the key's root,
 // going up an octave each time round the scale.
 export function scaleHz(rootHz: number, degree: number): number {

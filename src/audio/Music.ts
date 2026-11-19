@@ -25,11 +25,15 @@ export interface MusicStyle {
   readonly fadeInMs?: number;
 }
 
-// The track looping from the top, in one style: a run's music (AUDIO.music),
-// stopped when the player loses, or the game over's (AUDIO.gameOverMusic).
-// One per scene, like the Synth, and through the same context and master
-// node, so it is silent while the window is blurred and follows Phaser's mute
-// and volume. A buffer loop is gapless, and the track is cut to loop.
+// A buffer of music, loaded or made once and shared.
+export type MusicLoader = (ctx: BaseAudioContext) => Promise<AudioBuffer | null>;
+
+// Music looping from the top, in one style: by default the track, as a run's
+// music (AUDIO.music), stopped when the player loses, or as the game over's
+// (AUDIO.gameOverMusic); or the menus' Standby (src/audio/standby.ts),
+// through the same context and master node as the Synth, so it is silent
+// while the window is blurred and follows Phaser's mute and volume. A buffer
+// loop is gapless, and the track and Standby are both cut to loop.
 export class Music {
   private readonly out: GainNode;
   private source: AudioBufferSourceNode | null = null;
@@ -39,14 +43,15 @@ export class Music {
     private readonly ctx: BaseAudioContext,
     destination: AudioNode,
     private readonly style: MusicStyle = AUDIO.music,
+    private readonly load: MusicLoader = loadMusic,
   ) {
     this.out = ctx.createGain();
     this.out.connect(destination);
   }
 
-  // Plays as soon as the track has loaded, unless stopped by then.
+  // Plays as soon as the music is ready, unless stopped by then.
   start(): void {
-    void loadMusic(this.ctx).then((buffer) => {
+    void this.load(this.ctx).then((buffer) => {
       if (buffer === null || this.stopped) return;
       const { gain, rate = 1, cutoffHz, echo, fadeInMs = 0 } = this.style;
       const at = this.ctx.currentTime;

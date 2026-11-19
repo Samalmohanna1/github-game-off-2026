@@ -11,7 +11,8 @@ slides mid-approach, scoring and a fail to the game-over screen and back, with
 an F2 debug overlay for tuning. M8 added feel (squash and stretch, limp slips,
 a rattling wall, slow motion on CLOSE CALL, a fail where the figure flails,
 topples and its blocks bounce to a stop), M9 synthesized
-sound effects (and, later, a looping music track), M10 the art of the design mocks, in Anton and IBM
+sound effects (and, later, music: a looping track for runs and game over,
+and an ambient menu loop drawn in code), M10 the art of the design mocks, in Anton and IBM
 Plex Mono, M10b restyled the play screen as a lit sci-fi grid stage, all
 drawn in code, with walls that are neon-framed display panels, and M11 set
 the title, how-to, pause and game-over screens in the same style. See [PLAN.md](./PLAN.md)

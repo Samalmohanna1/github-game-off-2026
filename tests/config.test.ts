@@ -136,7 +136,7 @@ describe('feel (M8)', () => {
 });
 
 describe('audio (M9)', () => {
-  const { master, music, gameOverMusic, tick, click, slip, fanfare, shiftAlert, whoosh, hit, whomp } = C.AUDIO;
+  const { master, music, gameOverMusic, standby, tick, click, slip, fanfare, shiftAlert, whoosh, hit, whomp } = C.AUDIO;
 
   it('keeps every gain above silence and at most full scale', () => {
     // Above zero too: the envelopes ramp exponentially, which can't reach 0.
@@ -144,6 +144,13 @@ describe('audio (M9)', () => {
       master,
       music.gain,
       gameOverMusic.gain,
+      standby.gain,
+      standby.pad.level,
+      standby.bass.level,
+      standby.bass.octaveLevel,
+      standby.bells.level,
+      ...standby.bells.partials.map(([, level]) => level),
+      standby.reverb.wet,
       tick.gain,
       click.gain,
       slip.gain,
@@ -196,6 +203,15 @@ describe('audio (M9)', () => {
   it('crunches the hit noise below the sample rate, so it is held for whole samples', () => {
     expect(hit.smackCrushHz).toBeGreaterThan(0);
     expect(hit.smackCrushHz).toBeLessThan(44100);
+  });
+
+  it("keeps Standby's breathing lowpass above 0 Hz and its sends at most full", () => {
+    expect(standby.pad.cutoffHz - standby.pad.breatheHz).toBeGreaterThan(0);
+    const sends = [standby.pad.reverb, standby.bells.reverb, standby.bells.echo, standby.echo.reverb];
+    for (const send of sends) {
+      expect(send).toBeGreaterThan(0);
+      expect(send).toBeLessThanOrEqual(1);
+    }
   });
 
   it('plays the game-over music slower, muffled, with an echo that dies away', () => {

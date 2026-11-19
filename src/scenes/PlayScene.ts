@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { Music } from '@/audio/Music';
+import { stopMenuMusic } from '@/audio/standby';
 import { Synth } from '@/audio/Synth';
 import {
   CLOSE_CALL_SLOWMO,
@@ -40,7 +41,7 @@ import { TimingLabel } from '@/objects/TimingLabel';
 import { Wall } from '@/objects/Wall';
 import { SceneKeys, type RunResult } from '@/scenes/scene-keys';
 import { outlinedStyle } from '@/scenes/text-styles';
-import { prefersReducedMotion } from '@/scenes/ui';
+import { prefersReducedMotion, webAudio } from '@/scenes/ui';
 
 // Draw order. The wall stays behind the figure; a cleared wall's completion
 // is drawn over the figure, where the hole and the pose line up.
@@ -143,12 +144,11 @@ export class PlayScene extends Phaser.Scene {
       onCapsLock: (on) => this.capsWarning.setVisible(on),
       onToggleDebug: () => this.toggleDebug(),
     });
-    // Phaser's own context and master node: Phaser unlocks audio on the first
-    // click and suspends it while the window is blurred (PLAN.md §10, M9).
-    const sound = this.sound;
-    if (sound instanceof Phaser.Sound.WebAudioSoundManager) {
-      this.synth = new Synth(sound.context, sound.destination);
-      this.music = new Music(sound.context, sound.destination);
+    stopMenuMusic();
+    const audio = webAudio(this);
+    if (audio !== null) {
+      this.synth = new Synth(audio.ctx, audio.destination);
+      this.music = new Music(audio.ctx, audio.destination);
       this.music.start();
     }
     this.events.once('shutdown', () => this.keyboard.destroy());

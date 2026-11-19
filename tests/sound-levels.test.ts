@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AUDIO, MAX_LETTERS } from '@/config';
-import { clickHz, fanfareHz, noteHz, scaleHz, whompHz } from '@/logic/sound-levels';
+import { clickHz, fanfareHz, midiHz, noteHz, scaleHz, whompHz } from '@/logic/sound-levels';
 
 const { key } = AUDIO;
 
@@ -17,6 +17,14 @@ describe('noteHz', () => {
     expect(noteHz(440, 12)).toBeCloseTo(880);
     expect(noteHz(440, -12)).toBeCloseTo(220);
     expect(noteHz(440, 0)).toBe(440);
+  });
+});
+
+describe('midiHz', () => {
+  it('puts A4 at 440 Hz and middle C on the key root', () => {
+    expect(midiHz(69)).toBeCloseTo(440);
+    expect(midiHz(60)).toBeCloseTo(key.rootHz, 1);
+    expect(midiHz(81)).toBeCloseTo(880);
   });
 });
 
