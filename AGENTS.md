@@ -64,8 +64,9 @@ its scale places it at any depth.
   tuning constants and milestones. Read the current milestone and every
   section it touches before starting it. Design changes need the user's
   approval first.
-- **[README.md](./README.md)**: setup, commands, tests, build and the itch.io
-  upload.
+- **[README.md](./README.md)**: the game for a visitor (how to play, the
+  controls, scoring, with screenshots from `docs/screenshots/`), then setup,
+  commands, tests, build and the itch.io upload.
 - **[CLAUDE.md](./CLAUDE.md)**: a pointer to this file for Claude Code, which
   loads CLAUDE.md automatically. Don't put rules in it.
 
@@ -144,7 +145,9 @@ vite.config.ts             # base './', @/ alias, Vitest config
 AGENTS.md                  # this file
 CLAUDE.md                  # pointer to AGENTS.md for Claude Code
 PLAN.md                    # game design + milestones
-README.md                  # setup, commands, deploy
+README.md                  # the game, how to play, screenshots; setup, commands, deploy
+docs/
+  screenshots/             # README screenshots, 1280×720 PNGs from the real game (title, tutorial, play, Shift Wall, PERFECT)
 src/
   main.ts                  # Phaser game config + scene list
   config.ts                # every tunable number (PLAN.md §8), palette and fonts
