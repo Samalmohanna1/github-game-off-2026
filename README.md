@@ -15,7 +15,8 @@ sound effects (and, later, music: a looping track for runs and game over,
 and an ambient menu loop drawn in code), M10 the art of the design mocks, in Anton and IBM
 Plex Mono, M10b restyled the play screen as a lit sci-fi grid stage, all
 drawn in code, with walls that are neon-framed display panels, and M11 set
-the title, how-to, pause and game-over screens in the same style. See [PLAN.md](./PLAN.md)
+the title, pause and game-over screens in the same style, with an
+interactive tutorial on the play screen. See [PLAN.md](./PLAN.md)
 for the design and milestones, and [AGENTS.md](./AGENTS.md) for the working
 rules.
 
