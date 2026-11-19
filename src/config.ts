@@ -114,6 +114,8 @@ export const COLORS = {
   gradePerfect: PALETTE.lime,
   gradeGreat: PALETTE.cream,
   gradeCloseCall: PALETTE.coral,
+  // READY? and 3, 2, 1 before the first wall, lime like the screens' prompts.
+  readyBadge: PALETTE.lime,
   calloutCard: PALETTE.yellow,
   calloutInk: PALETTE.ink,
   // The screens' buttons (Click to play, Start, Click to resume, Play again;
@@ -224,6 +226,10 @@ export const DEBUG_OVERLAY = { x: 12, y: 12, padding: 10 } as const;
 // (PROMPT_PULSE_*). Every screen sets its button gapAbove px below what comes
 // before it, and a hint's middle hintBelow px below the button's.
 export const PROMPT_BUTTON = { height: 78, padX: 30, cut: 16, edgeWidth: 5, gapAbove: 56, hintBelow: 72 } as const;
+// A hint over the cream runway (the tutorial's Start) sits on a small dark
+// card, `height` px tall, padX each side of its words, its corners cut by
+// `cut`, edged like the dark cards (DARK_CARD).
+export const HINT_CARD = { height: 44, padX: 18, cut: 10 } as const;
 // Headings (HOW TO PLAY, PAUSED): Anton on a card slanting both ways, one
 // size on every screen (M11 review 2), `height` px tall with padX beside the
 // word.
@@ -256,21 +262,44 @@ export const TITLE = {
   sTerminal: 658 / 2048,
   bloom: { blur: 24, alpha: 0.35 },
 } as const;
-// How to play (M11 review), between the title and the first wall: the
-// heading centered on headingY, then one dark card per step, `cards.top`
-// down and cards.height tall, marginX from the screen's sides and gap apart.
-// Inside each, padX from its left: the step's number and name centered on
-// titleY, its keys (or a PERFECT badge) on keysY, and its text from textY
-// down. Then the Start button and its hint, and input waits inputDelayMs so
-// the title's click can't skip the screen.
-export const HOW_TO = {
-  headingY: 78,
-  cards: { top: 160, height: 316, marginX: 56, gap: 28, padX: 26, titleY: 54, keysY: 126, textY: 176 },
+// The interactive tutorial (the Play scene's tutorial mode, after the title):
+// one step at a time on a dark card by what it is about
+// (src/logic/tutorial-layout.ts), card.width wide (step 1's, beside the
+// runway, sideWidth), marginX from the screen's side when at one. Step 1's
+// top is lineUpTop, beside the runway's far end where the wall waits; step
+// 2's foot is holdGap above the letter bar; step 3's top is scoreTop,
+// between the HUD's cards. Inside, padX from its left: the step's number,
+// its name and any keys centered on titleY (numberGap and keyGap apart),
+// then its text from textY down, wrapped to the card (lineHeight a line),
+// with room between the two (a review asked for more), and padBottom under
+// it. Each card fades out over fadeMs before the next fades in.
+// The Enter-to-skip hint sits on skipY, right-aligned marginX from the edge,
+// its key skipGap before its words. In step 3 the Start button waits
+// continueLockoutMs, long enough for the cleared wall's completion to play
+// out, then for every key to be let go (RestartGate); the HUD fades in over
+// hudFadeMs as it starts, and the Caps Lock warning moves from the top
+// band, which step 3's card takes, to capsWarningY, under the card. ms and
+// px.
+export const TUTORIAL = {
+  card: { width: 600, sideWidth: 400, padX: 26, titleY: 36, textY: 76, lineHeight: 31, padBottom: 16 },
+  marginX: 24,
+  lineUpTop: 104,
+  holdGap: 10,
+  scoreTop: 12,
+  fadeMs: 200,
   numberGap: 14,
-  keyGap: 10,
-  badge: { height: 64, padX: 18 },
-  inputDelayMs: 400,
+  keyGap: 18,
+  skipY: 52,
+  skipGap: 12,
+  continueLockoutMs: 1600,
+  hudFadeMs: 300,
+  capsWarningY: 163,
 } as const;
+// After the tutorial: READY? for readyMs, then 3, 2, 1, stepMs each, then the
+// first wall comes and the music starts with it. One step is a beat of the
+// track's 90 BPM, so the track comes in on the beat. The count sits on a
+// badge (BADGE) centered on y, where the first wall will appear. ms and px.
+export const READY_COUNT = { readyMs: 1333, stepMs: 667, y: 214 } as const;
 // Labeled key caps (keycap.ts): height px tall, padX each side of their
 // label.
 export const KEY_CAP = { height: 50, padX: 14 } as const;
@@ -608,7 +637,7 @@ export const AUDIO = {
   // fades in over fadeInMs as the screen shows, under the end of the whomp,
   // and stops (stopMs) on restart. Picked from rendered options.
   gameOverMusic: { gain: 0.24, rate: 0.8, cutoffHz: 1200, echo: { ms: 300, feedback: 0.35 }, fadeInMs: 1000 },
-  // The title and How to play music, "Standby", picked from rendered options:
+  // The title and tutorial music, "Standby", picked from rendered options:
   // an ambient loop drawn in code, in the track's key and tempo but with none
   // of its notes or sounds (its chords and bells are in src/data/standby.ts).
   // It is rendered once at boot, then looped, at about -27 LUFS, a little
@@ -675,6 +704,9 @@ export const AUDIO = {
   // Its notes are 32nds at the music's 90 BPM. (A C major arpeggio, 90 ms
   // apart, until the music came: its E clashed with the track's Eb.)
   fanfare: { gain: 0.22, rootHz: 523.25, semitones: [0, 3, 7, 12], wave: 'pulse', noteMs: 83, lastMs: 360 },
+  // The count into the first wall: a short beep on each of 3, 2, 1 (G5) and a
+  // longer, higher one (C6) as the wall appears, on the pulse wave.
+  ready: { gain: 0.22, wave: 'pulse', hz: 783.99, ms: 120, goHz: 1046.5, goMs: 320 },
   // Shift Wall warning: rising chirps from the side the hole is moving to,
   // C5 to C6, then a whoosh that way as it slides.
   shiftAlert: { gain: 0.28, fromHz: 523.25, toHz: 1046.5, chirps: 2, chirpMs: 90, gapMs: 120, pan: 0.7 },

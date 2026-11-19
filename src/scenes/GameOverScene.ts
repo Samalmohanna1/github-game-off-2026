@@ -1,14 +1,14 @@
 import Phaser from 'phaser';
 import { Music } from '@/audio/Music';
 import { AUDIO, COLORS, GAME_HEIGHT, GAME_OVER, GAME_WIDTH } from '@/config';
-import { RestartGate } from '@/logic/restart';
 import { BAR_SLASHES_REACH, BAR_STEP, drawBarLine } from '@/objects/bar-line';
 import { drawDarkCard } from '@/objects/card';
+import { GatedPrompt } from '@/objects/GatedPrompt';
 import { GridVoid } from '@/objects/GridVoid';
-import { buttonYBelow, HINT_REACH, PromptButton } from '@/objects/PromptButton';
+import { buttonYBelow, HINT_REACH } from '@/objects/PromptButton';
 import { SceneKeys, type RunResult } from '@/scenes/scene-keys';
 import { alignGlyphs, centerGlyphs, glyphWidth, textStyle } from '@/scenes/text-styles';
-import { formatNumber, onWindowKeys, webAudio } from '@/scenes/ui';
+import { formatNumber, webAudio } from '@/scenes/ui';
 
 interface Box {
   readonly x: number;
@@ -24,10 +24,6 @@ interface Box {
 // and its hint.
 export class GameOverScene extends Phaser.Scene {
   private result!: RunResult;
-  private gate!: RestartGate;
-  private restarting = false;
-  private button!: PromptButton;
-  private hint!: Phaser.GameObjects.Text;
 
   constructor() {
     super(SceneKeys.GameOver);
@@ -35,8 +31,6 @@ export class GameOverScene extends Phaser.Scene {
 
   init(data: RunResult): void {
     this.result = data;
-    this.gate = new RestartGate(data.keysDown);
-    this.restarting = false;
   }
 
   create(): void {
@@ -60,27 +54,11 @@ export class GameOverScene extends Phaser.Scene {
     drawDarkCard(g, card.x, card.y, card.width, card.height);
     this.placeRows(rows, card, g);
 
-    this.button = new PromptButton(this, GAME_WIDTH / 2, buttonYBelow(card.y + card.height), 'PLAY AGAIN').setVisible(false);
-    this.hint = this.button.addHint('').setVisible(false);
-
-    this.input.on('pointerdown', () => {
-      if (this.gate.click()) this.restart();
+    const text = { button: 'PLAY AGAIN', waiting: 'LET GO OF EVERY KEY TO PLAY AGAIN', ready: 'PRESS ANY KEY OR CLICK' };
+    new GatedPrompt(this, GAME_WIDTH / 2, buttonYBelow(card.y + card.height), text, {
+      keysDown: this.result.keysDown,
+      onGo: () => this.scene.start(SceneKeys.Play),
     });
-    onWindowKeys(this, {
-      down: (event) => {
-        if (event.repeat) this.gate.holding(event.code);
-        else if (this.gate.press(event.code)) this.restart();
-      },
-      up: (event) => this.gate.release(event.code),
-      blur: () => this.gate.forgetKeys(),
-    });
-  }
-
-  update(_time: number, deltaMs: number): void {
-    this.gate.tick(deltaMs);
-    this.button.setVisible(this.gate.ready);
-    this.hint.setVisible(this.gate.lockoutOver);
-    this.hint.setText(this.gate.ready ? 'PRESS ANY KEY OR CLICK' : 'LET GO OF EVERY KEY TO PLAY AGAIN');
   }
 
   // The card's text, top to bottom, made before the card so it can grow to
@@ -118,11 +96,5 @@ export class GameOverScene extends Phaser.Scene {
       { x: stepAt + BAR_STEP.across, y: y + BAR_STEP.drop },
       { x: right, y: y + BAR_STEP.drop },
     ]);
-  }
-
-  private restart(): void {
-    if (this.restarting) return;
-    this.restarting = true;
-    this.scene.start(SceneKeys.Play);
   }
 }

@@ -136,7 +136,7 @@ describe('feel (M8)', () => {
 });
 
 describe('audio (M9)', () => {
-  const { master, music, gameOverMusic, standby, tick, click, slip, fanfare, shiftAlert, whoosh, hit, whomp } = C.AUDIO;
+  const { master, music, gameOverMusic, standby, ready, tick, click, slip, fanfare, shiftAlert, whoosh, hit, whomp } = C.AUDIO;
 
   it('keeps every gain above silence and at most full scale', () => {
     // Above zero too: the envelopes ramp exponentially, which can't reach 0.
@@ -151,6 +151,7 @@ describe('audio (M9)', () => {
       standby.bells.level,
       ...standby.bells.partials.map(([, level]) => level),
       standby.reverb.wet,
+      ready.gain,
       tick.gain,
       click.gain,
       slip.gain,
@@ -362,6 +363,7 @@ const TEXT_ON = {
   gradePerfect: ['ink'],
   gradeGreat: ['ink'],
   gradeCloseCall: ['ink'],
+  readyBadge: ['ink'],
   calloutCard: ['ink'],
   badgeTab: ['light'],
   debugPanel: ['ink'],
@@ -408,14 +410,33 @@ describe('screen layouts', () => {
     expect(C.TITLE.lean).toBeCloseTo(C.BADGE.slant / C.BADGE.height);
   });
 
-  it('stacks the how-to heading, steps, button and hint without overlap', () => {
-    const { headingY, cards } = C.HOW_TO;
-    const half = C.HEADING_CARD.height / 2;
-    expect(headingY - half).toBeGreaterThan(0);
-    expect(headingY + half).toBeLessThan(cards.top);
-    expect(cards.top + cards.height + hintFoot).toBeLessThan(C.GAME_HEIGHT);
-    expect(cards.titleY).toBeLessThan(cards.keysY);
-    expect(cards.keysY + Math.max(C.KEY_CAP.height, C.HOW_TO.badge.height) / 2).toBeLessThan(cards.textY);
+  // The interactive tutorial's step card sits in the band above the wall that
+  // the HUD leaves free until step 3, then between the HUD's cards; step 3's
+  // Start button and hint go under it, on a clear stage, above the figure.
+  // The interactive tutorial; where its cards go is in tests/tutorial-layout.test.ts.
+  describe('the tutorial', () => {
+    const T = C.TUTORIAL;
+    const figureTop = C.FIGURE_FLOOR_Y - C.FIGURE_HEIGHT;
+
+    it("keeps the Start hint's card clear of the button as it pulses, and roomy for its words", () => {
+      const pulsedHalf = (B.height / 2 + B.edgeWidth) * C.PROMPT_PULSE_SCALE;
+      expect(B.hintBelow - C.HINT_CARD.height / 2 - C.DARK_CARD.edgeWidth).toBeGreaterThan(pulsedHalf);
+      expect(C.HINT_CARD.height).toBeGreaterThan(C.FONT_SIZES.small);
+      expect(C.HINT_CARD.cut).toBeLessThan(C.HINT_CARD.height / 2);
+    });
+
+    it('waits on step 3 until the cleared wall has played out', () => {
+      const { pixelMs, restoreMs, holdMs, exitMs } = C.WALL_COMPLETE;
+      expect(T.continueLockoutMs).toBeGreaterThanOrEqual(C.LOCK_RUSH_DURATION + pixelMs + restoreMs + holdMs + exitMs);
+    });
+
+    it('counts READY?, 3, 2, 1 on beats of the game track, over the stage and above the figure', () => {
+      const beatMs = 60000 / C.AUDIO.standby.bpm;
+      expect(C.READY_COUNT.stepMs).toBeCloseTo(beatMs, 0);
+      expect(C.READY_COUNT.readyMs).toBeCloseTo(2 * beatMs, 0);
+      expect(C.READY_COUNT.y - C.BADGE.height / 2).toBeGreaterThan(C.HUD.top + C.HUD.height);
+      expect(C.READY_COUNT.y + C.BADGE.height / 2).toBeLessThan(figureTop);
+    });
   });
 
   // M11 review 4 asked for room to breathe: the card, Play again and its

@@ -1,7 +1,7 @@
 import { AUDIO } from '@/config';
 import { STANDBY_CHORDS } from '@/data/standby';
 
-// When each note of Standby, the title and How to play music, plays (times in
+// When each note of Standby, the title and tutorial music, plays (times in
 // s from the first chord), kept pure so it can be tested without a browser;
 // src/audio/standby.ts renders it.
 

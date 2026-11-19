@@ -1,4 +1,4 @@
-// Standby, the title and How to play music (AUDIO.standby): four chords of
+// Standby, the title and tutorial music (AUDIO.standby): four chords of
 // AUDIO.standby.chordBars each, in C minor, as MIDI note numbers (60 is C4).
 // Each has its pad voicing, its bass note, and a bell melody as
 // [beats into the chord, note].

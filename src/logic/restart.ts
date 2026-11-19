@@ -2,17 +2,21 @@ import { RESTART_LOCKOUT } from '@/config';
 
 // PLAN.md §7: after a fail, input is ignored for RESTART_LOCKOUT, then every
 // key must be up before a fresh key press or a click restarts, so keys still
-// held from the failed wall can't restart the game by accident.
+// held from the failed wall can't restart the game by accident. The
+// tutorial's last step waits the same way, with its own lockout.
 export class RestartGate {
   private elapsed = 0;
   private readonly down: Set<string>;
 
-  constructor(keysDown: Iterable<string>) {
+  constructor(
+    keysDown: Iterable<string>,
+    private readonly lockoutMs: number = RESTART_LOCKOUT,
+  ) {
     this.down = new Set(keysDown);
   }
 
   get lockoutOver(): boolean {
-    return this.elapsed >= RESTART_LOCKOUT;
+    return this.elapsed >= this.lockoutMs;
   }
 
   get ready(): boolean {

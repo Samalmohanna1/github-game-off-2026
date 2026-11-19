@@ -97,6 +97,16 @@ export class Synth {
     });
   }
 
+  // The count into the first wall: a beep on 3, 2 and 1, and a higher, longer
+  // one as the wall appears (go).
+  readyBeep(go: boolean): void {
+    if (!this.running) return;
+    const { gain, wave, hz, ms, goHz, goMs } = AUDIO.ready;
+    const [pitch, length] = go ? [goHz, goMs] : [hz, ms];
+    const at = this.ctx.currentTime;
+    this.tone(wave, pitch, at, length).connect(this.filter('lowpass', pitch * 6)).connect(this.envelope(gain, 3, length, at));
+  }
+
   // Shift Wall warning: rising chirps, heard from the side the hole is going.
   shiftAlert(dir: -1 | 1): void {
     if (!this.running) return;

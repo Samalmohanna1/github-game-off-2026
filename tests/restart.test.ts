@@ -58,4 +58,12 @@ describe('RestartGate', () => {
     gate.forgetKeys();
     expect(gate.ready).toBe(true);
   });
+
+  it("waits a lockout of its own when given one (the tutorial's Start)", () => {
+    const gate = new RestartGate([], RESTART_LOCKOUT * 2);
+    gate.tick(RESTART_LOCKOUT);
+    expect(gate.lockoutOver).toBe(false);
+    gate.tick(RESTART_LOCKOUT);
+    expect(gate.ready).toBe(true);
+  });
 });

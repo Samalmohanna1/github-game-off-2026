@@ -10,7 +10,7 @@ const DOWN_60_DB = Math.log(1000); // the reverb's noise fades this many e-folds
 let rendered: Promise<AudioBuffer | null> | null = null;
 let menuMusic: Music | null = null;
 
-// Standby, the title and How to play music (AUDIO.standby), rendered once in
+// Standby, the title and tutorial music (AUDIO.standby), rendered once in
 // the background into a buffer one loop long: Boot starts it, so the title
 // rarely waits. Null when the browser can't render it; the menus are then
 // silent.
@@ -19,7 +19,7 @@ export function loadStandby(ctx: BaseAudioContext): Promise<AudioBuffer | null> 
   return rendered;
 }
 
-// The title starts it, it carries on through How to play, and the first
+// The title starts it, it carries on through the tutorial, and the first
 // wall stops it. Like all the music, it waits for the first click to unlock
 // audio.
 export function startMenuMusic(ctx: BaseAudioContext, destination: AudioNode): void {

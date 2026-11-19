@@ -31,9 +31,8 @@ Scenes, one per screen:
 | Scene | Status | Contents |
 |---|---|---|
 | `BootScene` | Final (M10b) | Starts loading the track (`loadMusic()`) and rendering the menus' Standby (`loadStandby()`) in the background, so neither holds up the title, and waits for the bundled fonts (`loadFonts()`, giving up after `FONT_LOAD_TIMEOUT`), then hands off to Title. |
-| `TitleScene` | Final (M11 review 6) | The grid stage, the lockup (`TitleLockup`, Option 2 of the user's title concepts) and a lime CLICK TO PLAY button below it, the two centered as one block. The lockup is a dark card lit like a wall (a lime bloom outside its lime edge, the wall panel's glow inside) with SHAPE in cream, large, over SHIFT in lime, both in Anton leaning like the badges, SHIFT's right edge on the E's leaning edge, and the bar's line, half as big again, starting with its slashes under the S and stepping down to the top of SHIFT's S's lower tail. (Until review 5 it was a cream card slanting both ways; review 3 made it a stacked lockup.) The click gives the page keyboard focus inside the itch.io iframe and leads to How to play. The menus' music, Standby, starts here (`startMenuMusic()`), once the browser lets audio play, which on a fresh page is that click. |
-| `HowToScene` | Final (M11 review) | How to play, between the title and the first wall: HOW TO PLAY on a heading card, then three numbered steps on dark cards, each with its keys and one sentence (01 LINE UP, Space; 02 HOLD ON, the letters and Shift; 03 FIT THROUGH, a PERFECT badge), and a lime START button. Any key or a click starts the run, after `HOW_TO.inputDelayMs` so the title's click can't skip it. Restarts from game over skip it. Standby plays on from the title, and the first wall stops it. |
-| `PlayScene` | Interim (M10b) | The full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). Space lines the figure up, one lane toward the hole per press (during a Shift Wall's warning, toward the lane it is about to slide to); the arrow keys don't move it; the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 4+), the wall stops behind a SHIFT callout, turns orange with an arrow, and the hole slides 1 lane with a sideways jolt while the new lane's tile is marked on the floor; then the wall carries on; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: a PERFECT / GREAT / CLOSE CALL label pops over the figure, the wall comes the rest of the way to the figure, the figure's cells light up lime like the panel's pixels and the panel fills back in (the completion), and the wall fades away as the next one fades in. Held blocks land with a squash, slipped ones slump back limp, a wrong key rattles the wall, and a CLOSE CALL plays the rush in slow motion. If the wall arrives first, it knocks the figure over: it topples toward the camera with its arms flailing, and its blocks come apart and bounce to a stop on the floor before the run ends. The music plays from the top through each run and stops as the wall hits (`Music`). Synthesized sounds (M9), tuned to its key, play over it: the countdown tick in CLOSE CALL range, clicks, slips, the PERFECT fanfare, the Shift Wall alert and whoosh; then, once it stops, the fail's hit and "whomp whomp whooom". Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses the game behind a veil, with PAUSED on a heading card and a lime CLICK TO RESUME button (`PauseOverlay`, M11). F2 toggles the debug overlay. Everything is drawn in the M10b art, a dark grid stage after the user's mockup: a glossy floor grid running back to a gridded back wall at the runway's far end, meeting it at a glowing lime seam, with lit cells that breathe, squares that fall slowly and fade, and streaks running down the floor; a cream runway with thin seams and glowing lime edges, where the figure stands centered on its lane's tile and the lined-up tile is marked; walls that are dark glass display panels lined on the figure's cells, with dots at the crossings, scanlines and the glow of a neon lime frame, with a see-through cutout in an equally thick lime edge; black blocks with cream seams between their cells and a cream edge; a dark line-art bar of cream key caps with lime slashes and a square per letter; SCORE and WALL on cream cards with lime slashes in the top corners; the timing label and the SHIFT callout on solid badges in a thick ink edge; and the Caps Lock warning in bright letters inside a thick dark outline. No texture anywhere. |
+| `TitleScene` | Final (M11 review 6) | The grid stage, the lockup (`TitleLockup`, Option 2 of the user's title concepts) and a lime CLICK TO PLAY button below it, the two centered as one block. The lockup is a dark card lit like a wall (a lime bloom outside its lime edge, the wall panel's glow inside) with SHAPE in cream, large, over SHIFT in lime, both in Anton leaning like the badges, SHIFT's right edge on the E's leaning edge, and the bar's line, half as big again, starting with its slashes under the S and stepping down to the top of SHIFT's S's lower tail. (Until review 5 it was a cream card slanting both ways; review 3 made it a stacked lockup.) The click gives the page keyboard focus inside the itch.io iframe and leads to the interactive tutorial (`PlayScene` in its tutorial mode). The menus' music, Standby, starts here (`startMenuMusic()`), once the browser lets audio play, which on a fresh page is that click, and plays on through the tutorial. |
+| `PlayScene` | Interim (M10b) | Three modes (`PlayStart`). **Tutorial**, after the title: the **interactive tutorial**, the real stage and rules on wall 1's plan, the wall waiting at its start until the first letter is held, one step at a time on a dark card by what it shows (`TutorialPanel`, placed by `tutorialCardPlace()`; each fades out before the next fades in): 1. LINE UP with Space, 2. HOLD ON to every letter, then, once the pose locks, 3. SCORE, as the HUD (hidden until then) fades in with the points, and a START button that waits for the completion and every key to be let go (`GatedPrompt`), its hint on a small dark card so it reads over the runway. A fail plays out and replays the tutorial wall; ENTER TO SKIP (top right, until step 3) goes to the count. Standby plays throughout. **Countdown**, after the tutorial: READY?, 3, 2, 1 on a lime badge where the first wall will appear (`ReadyCount`), a beat of the track each, with a beep per number and a higher one as the first wall comes with the music. **Run**, for Play again: straight into wall 1. Every run is the full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). Space lines the figure up, one lane toward the hole per press (during a Shift Wall's warning, toward the lane it is about to slide to); the arrow keys don't move it; the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 4+), the wall stops behind a SHIFT callout, turns orange with an arrow, and the hole slides 1 lane with a sideways jolt while the new lane's tile is marked on the floor; then the wall carries on; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: a PERFECT / GREAT / CLOSE CALL label pops over the figure, the wall comes the rest of the way to the figure, the figure's cells light up lime like the panel's pixels and the panel fills back in (the completion), and the wall fades away as the next one fades in. Held blocks land with a squash, slipped ones slump back limp, a wrong key rattles the wall, and a CLOSE CALL plays the rush in slow motion. If the wall arrives first, it knocks the figure over: it topples toward the camera with its arms flailing, and its blocks come apart and bounce to a stop on the floor before the run ends. The music plays from the top through each run and stops as the wall hits (`Music`). Synthesized sounds (M9), tuned to its key, play over it: the countdown tick in CLOSE CALL range, clicks, slips, the PERFECT fanfare, the Shift Wall alert and whoosh; then, once it stops, the fail's hit and "whomp whomp whooom". Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses the game behind a veil, with PAUSED on a heading card and a lime CLICK TO RESUME button (`PauseOverlay`, M11). F2 toggles the debug overlay. Everything is drawn in the M10b art, a dark grid stage after the user's mockup: a glossy floor grid running back to a gridded back wall at the runway's far end, meeting it at a glowing lime seam, with lit cells that breathe, squares that fall slowly and fade, and streaks running down the floor; a cream runway with thin seams and glowing lime edges, where the figure stands centered on its lane's tile and the lined-up tile is marked; walls that are dark glass display panels lined on the figure's cells, with dots at the crossings, scanlines and the glow of a neon lime frame, with a see-through cutout in an equally thick lime edge; black blocks with cream seams between their cells and a cream edge; a dark line-art bar of cream key caps with lime slashes and a square per letter; SCORE and WALL on cream cards with lime slashes in the top corners; the timing label and the SHIFT callout on solid badges in a thick ink edge; and the Caps Lock warning in bright letters inside a thick dark outline. No texture anywhere. |
 | `GameOverScene` | Final (M11 review 4) | After the user's mock, on the grid stage: one dark card in a lime edge, centered, with GAME OVER in cream Anton over a lime rule, then this run's SCORE and WALLS CLEARED (lime captions over cream numbers, the walls at the HUD's number size), parted by the bar's line; the card, Play again and its hint centered down the screen with room above and below. (Review 2 set GAME over OVER beside the card, and review 3 made it a stacked lockup.) No all-time best is kept or shown (M11 review), nor the wall the run ended on, which is always walls cleared + 1 (M11 review 2). Restart follows PLAN.md §7: input is ignored for `RESTART_LOCKOUT`, then every key must be up ("LET GO OF EVERY KEY TO PLAY AGAIN" shows meanwhile) before a key or click restarts, when a lime PLAY AGAIN button shows under the card over "PRESS ANY KEY OR CLICK". The music plays slowed, muffled and echoing under it (`AUDIO.gameOverMusic`), fading in as it shows, until the restart. |
 
 Shared scene helpers live in `src/scenes/` (`ui.ts`, `text-styles.ts`,
@@ -157,6 +156,7 @@ src/
     keyboard.ts            # QWERTY row/x (with stagger), hand, finger per letter
     poses.ts               # block ids, neutral pose and alt poses on the grid
     void-art.ts            # the grid stage's fixed composition: lit back wall cells, falling squares, floor streaks
+    tutorial.ts            # each tutorial step's card: name, keys, one line of copy
     standby.ts             # Standby's chords: pad voicing, bass note and bell melody per chord
   input/
     KeyboardInput.ts       # native key/blur events -> Space, letters, pause, Caps Lock
@@ -172,7 +172,10 @@ src/
     convex.ts              # chamfered rects: the key caps' angular shape, grown evenly for an edge (keyCapRect)
     perspective.ts         # vanishing point, project(), floor edges, tile seams + the figure's tile
     wall-shape.ts          # the wall's layout per lane, solid and hole rects, hole and frame edges, the panel's cell grid, a texture's cover fit and crops
-    restart.ts             # game-over lockout + "release every key" gate
+    restart.ts             # game-over lockout + "release every key" gate (also the tutorial's Start)
+    tutorial.ts            # the tutorial's steps: line up, hold, score; forward only; when its wall waits
+    tutorial-layout.ts     # where each tutorial card goes: beside the runway, above the letter bar, between the HUD's cards
+    ready-count.ts         # READY?, 3, 2, 1: which label shows when
     scoring.ts             # grades, wall points, PERFECT streak multiplier
     sequence.ts            # prompt / held / slip queue state machine + lock
     shift-wall.ts          # Shift Wall trigger, warning timer, slide target, wall hold
@@ -199,8 +202,11 @@ src/
     Completion.ts          # the completion over the figure: its cells light up lime, the panel fills back in
     TitleLockup.ts         # the title: SHAPE over a lime SHIFT, leaning, on a dark card lit like a wall (drawn into a canvas texture), with the bar's line
     PromptTray.ts          # the bar: held / current (in its socket) / next preview / slipped key caps; a square per letter
-    keycap.ts              # the key caps' chamfered shape; fillEdgedKeyCap(): it in a closed edge; addKeyCap(): a labeled cap (the how-to screen's keys)
+    keycap.ts              # the key caps' chamfered shape; fillEdgedKeyCap(): it in a closed edge; addKeyCap(): a labeled cap (the tutorial's keys)
     PromptButton.ts        # a screen's call to action: a pulsing lime key cap in a cream edge (Click to play, Start, Click to resume, Play again)
+    GatedPrompt.ts         # a button that waits for its lockout and every key to be let go (Play again, the tutorial's Start)
+    TutorialPanel.ts       # the tutorial's step card (number, name, keys, one sentence), fading from place to place, and ENTER TO SKIP
+    ReadyCount.ts          # READY?, 3, 2, 1 on a lime badge before the first wall
     PauseOverlay.ts        # veil, PAUSED on a heading card, Click to resume button; shown on blur
     ShiftCallout.ts        # SHIFT + arrow on a yellow badge while a Shift Wall holds
     TimingLabel.ts         # PERFECT / GREAT / CLOSE CALL on a badge in the grade's color, points on an ink tab
@@ -209,7 +215,6 @@ src/
     BootScene.ts           # starts loading the music, waits for fonts, hands off to Title
     fonts.ts               # loads the bundled font faces before any text is drawn
     TitleScene.ts          # the title lockup and "Click to play" (gets keyboard focus)
-    HowToScene.ts          # how to play: three steps with their keys, then Start
     PlayScene.ts           # the game: draws state, passes input in
     GameOverScene.ts       # one centered card: GAME OVER, the run's score and walls cleared; gated restart
     scene-keys.ts          # scene keys + RunResult handed to GameOver
@@ -228,7 +233,10 @@ tests/
   perspective.test.ts      # projection, floor geometry, tile seams centered on the figure
   poses.test.ts            # neutral pose fits the grid, no overlaps
   purity.test.ts           # pure modules never import Phaser
-  restart.test.ts          # lockout, release-every-key, click
+  restart.test.ts          # lockout (and a lockout of its own), release-every-key, click
+  tutorial.test.ts         # steps in order, forward only, each reported once; the wall waits for the first letter
+  tutorial-layout.test.ts  # each card's place: clear of the waiting wall, the runway, the figure, the HUD; Start above the figure
+  ready-count.test.ts      # READY? then 3, 2, 1, each its step, then over
   scoring.test.ts          # grades, points, streak multiplier and cap, start wall
   seeded.ts                # deterministic random for repeatable tests
   sequence.test.ts         # PLAN.md §2 input rules, incl. the M3 cases + lock
@@ -424,7 +432,7 @@ playtest covers.
   `keyCapRect()`): cream with dark letters, lime-edged when held, framed in
   lime when current. Dark cards (`drawDarkCard()`, `DARK_CARD`) are as dark
   as the bar, cut like the key caps, in a lime edge (all of them since M11
-  review 5): the title, the how-to steps and the game-over results, with a
+  review 5): the title, the tutorial's step card and the game-over results, with a
   lime rule under GAME OVER. The title's card is lit like a wall: a lime
   bloom outside its edge and the wall panel's glow inside (M11 review 6). The screens (M11) are
   built only from these parts on the grid stage.
@@ -465,15 +473,16 @@ playtest covers.
   behind;
   the Caps Lock warning is bright inside a thick `COLORS.textOutline` stroke
   (`outlinedStyle()`, `TEXT_OUTLINE`), and is measured against that outline;
-  the rest sits on a chip, a dark card or the void (GAME OVER, the screens'
+  the rest sits on a chip, a dark card (the tutorial Start's hint, over the
+  runway, on a small one) or the void (GAME OVER, the screens'
   hints). The buttons' cream edge sets them off the stage and the pause
   veil.
   Record every pair below AAA, with its measured ratio, in the list below.
   - Pairs below AAA: none.
 - **Keyboard first.** The game is played entirely on the keyboard, except the
   title's "Click to play", which PLAN.md §2 requires so the itch.io iframe gets
-  keyboard focus. How to play starts the run, and game over restarts it, on
-  any key or a click. During play, a
+  keyboard focus. The tutorial's Start and game over's Play again take any
+  key or a click, and Enter skips the tutorial. During play, a
   warning shows while Caps Lock is on (PLAN.md §2).
 - **Don't rely on color alone.** Held, current and slipped letters also differ
   by position in the tray (left, center, right; PLAN.md §3), and the next-letter
@@ -732,7 +741,33 @@ Work through **PLAN.md §10** one milestone at a time.
   review 5.)
 - **Restart gate** — after a fail, input is ignored for `RESTART_LOCKOUT`, then
   every key held from the run must be released before a fresh key or a click
-  restarts (`src/logic/restart.ts`).
+  restarts (`src/logic/restart.ts`). The tutorial's Start waits the same way,
+  for `TUTORIAL.continueLockoutMs` (`GatedPrompt` shows both).
+- **Tutorial** — the interactive tutorial, the Play scene's tutorial mode,
+  between the title and the first run (it replaced the How to play screen of
+  three static step cards). It plays wall 1's plan by the real rules, one
+  step at a time (`TutorialSteps` in `src/logic/tutorial.ts`,
+  forward only), each on a dark card that shows until the player has done it,
+  set by what it shows (`src/logic/tutorial-layout.ts`, a review's ask): step
+  1 beside the runway's far end, where the wall waits, on the side of the
+  hole; step 2 just above the letter bar, on the side away from the figure,
+  so it never covers the pose; step 3 at the top between the HUD's cards.
+  Each card fades out before the next fades in where it goes, and the last
+  one and Start fade away before the count (`TUTORIAL.fadeMs`). The steps:
+  1. LINE UP (Space), then 2. HOLD ON (every letter; the card says capitals
+  need Shift, though wall 1 has none), and, as the pose locks, 3. SCORE: the
+  HUD fades in with the points, and the card says "Clear walls faster for
+  more points." (Each card's copy, in `src/data/tutorial.ts`, fits its place:
+  step 1's wraps to two lines on its narrower card, step 3's is one line, so
+  its Start clears the figure.) The wall waits at its start, not even a
+  wrong key pushing it on, until the first letter is held; then it comes at
+  wall 1's speed, and keeps coming if the letters slip
+  (`TutorialSteps.wallWaits`). Step 3's Start hint sits on a small dark card
+  (`HINT_CARD`), since cream text would vanish on the runway. It is
+  practice: its points don't carry over.
+  Its Start leads to the **ready count**, READY?, 3, 2, 1, and the run starts
+  from 0 on wall 1. A fail replays the tutorial wall from step 1. Enter skips
+  to the count until step 3. Play again skips both.
 - **Shift Wall** — from wall 4, partway through the approach, the hole slides
   `SHIFT_WALL_SLIDE` (1) lane, staying on the stage. It fires once, at a
   random `t` in `SHIFT_WALL_T_RANGE` but not before a letter is held, or
@@ -794,7 +829,7 @@ Work through **PLAN.md §10** one milestone at a time.
   wall hits, so the fail's sounds play alone. The game over plays the same
   track "after the show" (`AUDIO.gameOverMusic`): slowed to 0.8, which also
   lowers it, through a lowpass, with an echo, fading in as the screen shows,
-  under the end of the whomp, until the restart. The title and How to play
+  under the end of the whomp, until the restart. The title and the tutorial
   play **Standby** instead (below). Like the synth it goes through Phaser's
   context and master node (`webAudio()` in `src/scenes/ui.ts`), so it is
   silent while the window is blurred and will follow the M12 mute. It is
@@ -803,7 +838,7 @@ Work through **PLAN.md §10** one milestone at a time.
   music. (At first it played under every screen from the title's click and
   never stopped. The game-over version and the fail's new sound were picked
   from options rendered offline into `../design-mocks/audio-options/`.)
-- **Standby** — the title and How to play music (`AUDIO.standby`), picked
+- **Standby** — the title and tutorial music (`AUDIO.standby`), picked
   from the second round of rendered options
   (`../design-mocks/audio-options-2/`): an ambient loop drawn in code, in the
   track's key and tempo but with none of its notes or sounds. A warm pad of
@@ -815,10 +850,10 @@ Work through **PLAN.md §10** one milestone at a time.
   (`src/logic/standby-schedule.ts`) over two loops' time, keeping the
   second, whose start carries the tails of the first, so the buffer loops
   seamlessly. The title starts it (`startMenuMusic()`), fading in, it plays
-  on through How to play, and the first wall stops it (`stopMenuMusic()`).
+  on through the tutorial, and the count into the first wall stops it (`stopMenuMusic()`).
   Restarts from game over never play it. Browsers allow no audio before the
   player's first interaction, so on a fresh page it starts with the title's
-  click, just as How to play shows. (In round 1, two options were the game
+  click, just as the tutorial starts. (In round 1, two options were the game
   track itself, too close to the game music, and a chip loop didn't fit the
   game.)
 - **Sounds** (M9) — every sound effect is synthesized in
@@ -883,7 +918,7 @@ Work through **PLAN.md §10** one milestone at a time.
   screens' buttons were lime badges until M11 review 2.)
 - **Button** — a screen's call to action (`PromptButton`, M11 review 2):
   dark Anton on a lime key cap shape, its top-left and bottom-right corners
-  cut like the how-to's Space key, in a closed cream edge, its shape
+  cut like the key caps, in a closed cream edge, its shape
   pulsing in size while its label holds still (M11 review 3):
   CLICK TO PLAY, START, CLICK TO RESUME, PLAY AGAIN. It sits one gap
   (`PROMPT_BUTTON.gapAbove`) below what comes before it, with any hint
@@ -896,10 +931,10 @@ Work through **PLAN.md §10** one milestone at a time.
   review 5.)
 - **Dark card** — a panel as dark as the bar, cut like a key cap, in a
   lime edge (`drawDarkCard()`; the title's is drawn lit, in `TitleLockup`):
-  the title's lockup, the how-to steps, and
+  the title's lockup, the tutorial's step card, and
   the game-over card, with GAME OVER over a lime rule and the results parted
-  by the bar's line (M11 review 4). The how-to's edges were sage until M11
-  review 5.
+  by the bar's line (M11 review 4). (The How to play screen's step cards had
+  sage edges until M11 review 5.)
 - **Outlined text** — bright letters inside a thick dark stroke
   (`outlinedStyle()`, `TEXT_OUTLINE`), for the Caps Lock warning over the
   moving scene. (The timing label, the SHIFT callout and the pause text were

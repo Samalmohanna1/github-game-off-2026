@@ -56,6 +56,8 @@ describe('the effects heard over the music', () => {
       ...fanfareHz(),
       AUDIO.shiftAlert.fromHz,
       AUDIO.shiftAlert.toHz,
+      AUDIO.ready.hz,
+      AUDIO.ready.goHz,
       ...whomp,
       sag,
     ];

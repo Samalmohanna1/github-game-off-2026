@@ -13,6 +13,7 @@ import {
   LOCK_RUSH_DURATION,
   SCREEN_LAYOUT,
   SHIFT_JOLT,
+  TUTORIAL,
   WALL_COMPLETE,
 } from '@/config';
 import { NEUTRAL_POSE } from '@/data/poses';
@@ -26,20 +27,26 @@ import { generateLetters } from '@/logic/letters';
 import { ScoreKeeper, gradeFor } from '@/logic/scoring';
 import { LetterSequence, type SequenceEffect } from '@/logic/sequence';
 import { ShiftWall, type ShiftWallEvent } from '@/logic/shift-wall';
+import { TutorialSteps, type TutorialStep } from '@/logic/tutorial';
+import { tutorialCardPlace, type CardPlace, type Side } from '@/logic/tutorial-layout';
 import { generateWall, holeGrid, type WallSpec } from '@/logic/wall-gen';
 import { Completion } from '@/objects/Completion';
 import { DebugOverlay, type DebugRow } from '@/objects/DebugOverlay';
 import { Figure } from '@/objects/Figure';
 import { Floor } from '@/objects/Floor';
+import { GatedPrompt } from '@/objects/GatedPrompt';
 import { GridVoid } from '@/objects/GridVoid';
 import { Hud } from '@/objects/Hud';
 import { LaneTiles } from '@/objects/LaneTiles';
 import { PauseOverlay } from '@/objects/PauseOverlay';
+import { buttonYBelow } from '@/objects/PromptButton';
 import { PromptTray } from '@/objects/PromptTray';
+import { ReadyCount } from '@/objects/ReadyCount';
 import { ShiftCallout } from '@/objects/ShiftCallout';
 import { TimingLabel } from '@/objects/TimingLabel';
+import { TutorialPanel } from '@/objects/TutorialPanel';
 import { Wall } from '@/objects/Wall';
-import { SceneKeys, type RunResult } from '@/scenes/scene-keys';
+import { SceneKeys, type PlayMode, type PlayStart, type RunResult } from '@/scenes/scene-keys';
 import { outlinedStyle } from '@/scenes/text-styles';
 import { prefersReducedMotion, webAudio } from '@/scenes/ui';
 
@@ -62,12 +69,20 @@ const LAYER = {
 // Kept in the game registry so the overlay stays on across walls and restarts.
 const DEBUG_VISIBLE = 'debugOverlayVisible';
 
-// approach: the wall is coming and the player can act. rush: the pose locked,
-// and the wall comes to the figure, completes and leaves. failing:
-// the wall reached the figure first.
-type Phase = 'approach' | 'rush' | 'failing';
+// ready: the count into the first wall, before there is one. approach: the
+// wall is coming and the player can act. rush: the pose locked, and the wall
+// comes to the figure, completes and leaves (and, in the tutorial, the stage
+// then stays clear for its last step). failing: the wall reached the figure
+// first.
+type Phase = 'ready' | 'approach' | 'rush' | 'failing';
 
+// One scene for the game and its tutorial, so the tutorial plays by the real
+// rules on the real stage. Its modes (PlayStart): the interactive tutorial,
+// after the title, where a fail replays the tutorial wall and the HUD shows
+// from its last step; the count into the first wall, after the tutorial or
+// skipping it; and a run at once, for Play again.
 export class PlayScene extends Phaser.Scene {
+  private mode: PlayMode = 'run';
   private phase: Phase = 'approach';
   private t = 0;
   private figureLane = CENTER_LANE;
@@ -95,6 +110,13 @@ export class PlayScene extends Phaser.Scene {
   private synth: Synth | null = null;
   private music: Music | null = null;
   private countdown = new Countdown();
+  // The tutorial's steps and their card; null outside the tutorial.
+  private tutorial: TutorialSteps | null = null;
+  private panel: TutorialPanel | null = null;
+  private startPrompt: GatedPrompt | null = null;
+  private readyCount: ReadyCount | null = null;
+  // Set once the scene has asked to restart, so a second ask can't.
+  private leaving = false;
   // The URL's playtest shortcuts, honored on the dev server only, so a
   // published build always plays a normal run.
   private readonly dev = import.meta.env.DEV ? parseDevOptions(window.location.search) : NO_DEV_OPTIONS;
@@ -103,12 +125,19 @@ export class PlayScene extends Phaser.Scene {
     super(SceneKeys.Play);
   }
 
+  // Scene data is a boundary: anything but a known mode starts a run.
+  init(data: PlayStart): void {
+    this.mode = data.mode === 'tutorial' || data.mode === 'countdown' ? data.mode : 'run';
+  }
+
   create(): void {
     // A restart can land mid slow-motion; the tween clock outlives the run.
     this.tweens.timeScale = 1;
     this.figureLane = CENTER_LANE;
+    this.leaving = false;
     this.sequence = new LetterSequence();
-    this.scoreKeeper = new ScoreKeeper(this.dev.startWall);
+    // The tutorial is practice: wall 1's plan, wherever the URL starts runs.
+    this.scoreKeeper = new ScoreKeeper(this.mode === 'tutorial' ? 1 : this.dev.startWall);
 
     // The Shift Wall jolt and the fail's shake move the camera past the
     // scene's edge, where the void should go on.
@@ -137,33 +166,84 @@ export class PlayScene extends Phaser.Scene {
       if (this.sequence.paused) this.resume();
     });
     this.keyboard = new KeyboardInput({
-      onSpace: () => this.moveFigure(stepToward(this.figureLane, this.shiftWall.upcomingLane ?? this.holeLane)),
+      // There is no wall, and no Shift Wall to ask, during the count.
+      onSpace: () => {
+        if (this.phase === 'approach') this.moveFigure(stepToward(this.figureLane, this.shiftWall.upcomingLane ?? this.holeLane));
+      },
       onKeyDown: (key, code) => this.apply(this.sequence.press(key, code)),
       onKeyUp: (code) => this.apply(this.sequence.release(code)),
       onBlur: () => this.pause(),
       onCapsLock: (on) => this.capsWarning.setVisible(on),
       onToggleDebug: () => this.toggleDebug(),
+      onEnter: () => this.skipTutorial(),
     });
-    stopMenuMusic();
+    // The tutorial plays to the menus' Standby; a run has the track.
     const audio = webAudio(this);
-    if (audio !== null) {
-      this.synth = new Synth(audio.ctx, audio.destination);
-      this.music = new Music(audio.ctx, audio.destination);
-      this.music.start();
-    }
+    this.synth = audio === null ? null : new Synth(audio.ctx, audio.destination);
+    this.music = audio === null || this.mode === 'tutorial' ? null : new Music(audio.ctx, audio.destination);
     this.events.once('shutdown', () => this.keyboard.destroy());
 
+    this.tutorial = null;
+    this.panel = null;
+    this.startPrompt = null;
+    this.readyCount = null;
+    if (this.mode === 'tutorial') this.startTutorial();
+    else if (this.mode === 'countdown') this.startCount();
+    else this.beginRun();
+  }
+
+  // The tutorial: the HUD waits for the last step, and step 1's card goes up
+  // once the wall says which side the hole is on.
+  private startTutorial(): void {
+    this.hud.setVisible(false);
+    this.tutorial = new TutorialSteps();
+    this.panel = new TutorialPanel(this).setDepth(LAYER.hud);
+    this.startWall();
+    this.panel.show(this.tutorial.step, this.cardPlace(this.tutorial.step));
+  }
+
+  // Which halves of the stage the hole and the figure are in, for where a
+  // step's card goes. The hole is never in the figure's lane at the start,
+  // and the figure is never centered once lined up; right breaks a tie.
+  private cardPlace(step: TutorialStep): CardPlace {
+    const side = (d: number): Side => (d < 0 ? -1 : 1);
+    return tutorialCardPlace(step, side(this.holeLane - this.figureLane), side(this.figureLane - CENTER_LANE));
+  }
+
+  // READY?, 3, 2, 1 on an empty stage, a beep on each number and a higher one
+  // as the first wall comes with the music.
+  private startCount(): void {
+    stopMenuMusic();
+    this.phase = 'ready';
+    this.hud.setWall(this.scoreKeeper.wallNumber);
+    this.wall.setAlpha(0);
+    this.readyCount = new ReadyCount(
+      this,
+      (step) => {
+        if (step > 0) this.synth?.readyBeep(false);
+      },
+      () => {
+        this.synth?.readyBeep(true);
+        this.beginRun();
+      },
+    ).setDepth(LAYER.label);
+  }
+
+  private beginRun(): void {
+    stopMenuMusic();
+    this.music?.start();
     this.startWall();
   }
 
   update(_time: number, deltaMs: number): void {
     if (this.debug.visible) this.debug.show(this.debugRows());
+    if (this.phase === 'ready') this.readyCount?.advance(deltaMs);
     if (this.sequence.paused) return;
     if (this.phase === 'failing') this.figure.updateTumble(deltaMs);
     if (this.phase === 'approach') {
       this.sequence.tick(deltaMs);
       this.applyShift(this.shiftWall.update(this.t, this.sequence.heldCount, this.sequence.leftCount, deltaMs));
-      if (!this.shiftWall.holding) this.setT(advanceT(this.t, deltaMs / 1000, this.plan.wallTime));
+      if (!this.shiftWall.holding && !this.wallWaits) this.setT(advanceT(this.t, deltaMs / 1000, this.plan.wallTime));
       // setT may have just failed the wall.
       const tick = this.phase === 'approach' ? this.countdown.update(this.t, deltaMs) : null;
       if (tick !== null) this.synth?.tick(tick);
@@ -209,7 +289,8 @@ export class PlayScene extends Phaser.Scene {
   }
 
   private startWall(): void {
-    this.plan = planWall(this.scoreKeeper.wallNumber, Math.random, this.dev.forceShiftWall);
+    // The tutorial wall is wall 1, which never shifts, whatever the URL asks.
+    this.plan = planWall(this.scoreKeeper.wallNumber, Math.random, this.mode !== 'tutorial' && this.dev.forceShiftWall);
     this.hud.setWall(this.scoreKeeper.wallNumber);
     const { letters, stretch } = generateLetters(this.plan);
     this.stretch = stretch;
@@ -237,7 +318,7 @@ export class PlayScene extends Phaser.Scene {
     if (effect.type === 'wrongKey') {
       this.wall.flash();
       if (!prefersReducedMotion()) this.wall.rattle();
-      this.setT(jumpT(this.t));
+      if (!this.wallWaits) this.setT(jumpT(this.t));
       return;
     }
     const block = this.spec.blockFor[effect.letter];
@@ -245,6 +326,8 @@ export class PlayScene extends Phaser.Scene {
     if (effect.type === 'held') {
       this.figure.snapBlock(block, this.spec.targets[block]);
       this.synth?.click(this.sequence.heldCount);
+      // The tutorial wall starts coming with the first letter held.
+      this.advanceTutorial();
     } else {
       this.figure.slumpBlock(block, NEUTRAL_POSE[block]);
       if (!quiet) this.synth?.slip();
@@ -266,7 +349,50 @@ export class PlayScene extends Phaser.Scene {
     this.laneTiles.setLit(aligned ? this.figureLane : null);
     // The target stays through the warning, while the old lane still counts.
     if (aligned && !this.shiftWall.warning) this.laneTiles.setTarget(null);
+    this.advanceTutorial();
     this.maybeLock();
+  }
+
+  // Each step's card shows until the player has done it; the last step
+  // brings the HUD in and waits for Start.
+  private advanceTutorial(): void {
+    const aligned = isAligned(this.figureLane, this.holeLane);
+    const step = this.tutorial?.update(aligned, this.sequence.locked, this.sequence.heldCount) ?? null;
+    if (step === null || this.panel === null) return;
+    this.panel.show(step, this.cardPlace(step));
+    if (step !== 'score') return;
+    this.hud.setVisible(true).setAlpha(0);
+    this.tweens.add({ targets: this.hud, alpha: 1, duration: TUTORIAL.hudFadeMs });
+    // Step 3's card takes the top band, so the warning goes under it.
+    this.capsWarning.setY(TUTORIAL.capsWarningY);
+    const text = { button: 'START', waiting: 'LET GO OF EVERY KEY', ready: 'PRESS ANY KEY OR CLICK' };
+    this.startPrompt = new GatedPrompt(this, GAME_WIDTH / 2, buttonYBelow(this.panel.bottom), text, {
+      keysDown: this.keyboard.heldCodes(),
+      lockoutMs: TUTORIAL.continueLockoutMs,
+      hintOnCard: true,
+      onGo: () => this.leave('countdown'),
+    }).setDepth(LAYER.hud);
+  }
+
+  // The tutorial wall waits until the first letter is held.
+  private get wallWaits(): boolean {
+    return this.tutorial?.wallWaits ?? false;
+  }
+
+  // Enter skips the tutorial to the count, until its last step, whose Start
+  // waits for every key to be let go.
+  private skipTutorial(): void {
+    if (this.mode !== 'tutorial' || this.tutorial?.step === 'score') return;
+    this.leave('countdown');
+  }
+
+  // The tutorial's cards and Start fade away before the scene restarts.
+  private leave(mode: PlayMode): void {
+    if (this.leaving) return;
+    this.leaving = true;
+    this.panel?.hide();
+    this.startPrompt?.fadeOut(TUTORIAL.fadeMs);
+    this.time.delayedCall(TUTORIAL.fadeMs, () => this.scene.restart({ mode } satisfies PlayStart));
   }
 
   // PLAN.md §3: pass = lined up and every letter held, decided from game
@@ -278,6 +404,7 @@ export class PlayScene extends Phaser.Scene {
 
     this.phase = 'rush';
     this.sequence.lock();
+    this.advanceTutorial();
     const score = this.scoreKeeper.clearWall(this.t);
     this.hud.setScore(this.scoreKeeper.score);
     this.label.show(score, laneCenterX(this.figureLane));
@@ -298,7 +425,7 @@ export class PlayScene extends Phaser.Scene {
 
   // The completed wall fades, growing a little toward the camera unless the
   // player prefers reduced motion, taking the completion with it, and the
-  // figure is itself again.
+  // figure is itself again. The tutorial's last step keeps the stage clear.
   private clearWall(): void {
     const { exitGrow, exitMs } = WALL_COMPLETE;
     this.tweens.add({
@@ -307,7 +434,9 @@ export class PlayScene extends Phaser.Scene {
       scale: prefersReducedMotion() ? 1 : exitGrow,
       duration: exitMs,
       ease: 'Quad.easeIn',
-      onComplete: () => this.startWall(),
+      onComplete: () => {
+        if (this.mode !== 'tutorial') this.startWall();
+      },
     });
   }
 
@@ -330,7 +459,10 @@ export class PlayScene extends Phaser.Scene {
       this.synth?.whomp();
       if (!prefersReducedMotion()) this.cameras.main.shake(FAIL_SHAKE_MS, FAIL_SHAKE_INTENSITY);
     });
-    this.time.delayedCall(FAIL_TO_GAME_OVER_MS, () => this.endRun());
+    // A fail in the tutorial fades its card as the wall hits, plays out, then
+    // replays the tutorial wall.
+    this.panel?.hide();
+    this.time.delayedCall(FAIL_TO_GAME_OVER_MS, () => (this.mode === 'tutorial' ? this.leave('tutorial') : this.endRun()));
   }
 
   private pause(): void {
@@ -354,7 +486,9 @@ export class PlayScene extends Phaser.Scene {
 
   // PLAN.md §8's list, plus the tier, wall time and score for tuning.
   private debugRows(): DebugRow[] {
+    if (this.phase === 'ready') return [['state', 'ready count']];
     const flags = [
+      this.mode === 'run' ? '' : `${this.mode}${this.tutorial === null ? '' : ` (${this.tutorial.step})`}`,
       this.phase,
       this.sequence.paused ? 'paused' : '',
       this.sequence.locked ? 'locked' : '',
