@@ -325,8 +325,11 @@ export const KEY_CAP = { height: 50, padX: 14 } as const;
 // floating floatPx up and down, floatMs each way; A SLEEPYSAM GAME (in the
 // subheading size) centered on textY, fading in over textFadeMs after textDelayMs. It leaves after
 // leaveMs (or on a click or a key), dissolving through the void's color
-// over fadeMs each way into the title. px, degrees and ms.
+// over fadeMs each way into the title. px, degrees and ms. Shown only when
+// `show`: it is off for now, at the user's request, and kept for later, so
+// Boot goes straight to the title.
 export const SPLASH = {
+  show: false,
   imageY: 320,
   imageScale: 0.7,
   angleDeg: -90,
