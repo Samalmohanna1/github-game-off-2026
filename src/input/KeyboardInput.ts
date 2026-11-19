@@ -1,6 +1,7 @@
 export interface KeyboardHandlers {
   onSpace(): void;
-  onKeyDown(key: string, code: string): void;
+  // shift: whether Shift was down at the press (PLAN.md §2).
+  onKeyDown(key: string, code: string, shift: boolean): void;
   onKeyUp(code: string): void;
   onBlur(): void;
   onCapsLock(on: boolean): void;
@@ -30,7 +31,7 @@ export class KeyboardInput {
     else if (event.code === 'F2') this.handlers.onToggleDebug();
     // Enter isn't a letter either, so it can never be a wrong key.
     else if (event.code === 'Enter' || event.code === 'NumpadEnter') this.handlers.onEnter();
-    else this.handlers.onKeyDown(event.key, event.code);
+    else this.handlers.onKeyDown(event.key, event.code, event.shiftKey);
   };
 
   private readonly onKeyUp = (event: KeyboardEvent): void => {

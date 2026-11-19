@@ -28,10 +28,12 @@ export function isUppercaseLetter(letter: string): boolean {
 }
 
 // PLAN.md §2: an uppercase prompt needs the exact key, so Shift must be down at
-// press time. A lowercase prompt takes either case, so a Shift still held from
-// an earlier letter isn't punished.
-export function matchesPrompt(prompt: string, key: string): boolean {
-  return isUppercaseLetter(prompt) ? key === prompt : key.toLowerCase() === prompt;
+// press time. A lowercase prompt needs Shift up (`shift`, from the key event):
+// case is the rule, so a Shift still held from an earlier capital is a wrong
+// key. It is checked by Shift, not by the letter's case, so Caps Lock alone
+// (which turns a plain j into J) doesn't spoil every lowercase prompt.
+export function matchesPrompt(prompt: string, key: string, shift = false): boolean {
+  return isUppercaseLetter(prompt) ? key === prompt : key.toLowerCase() === prompt && !shift;
 }
 
 // Held keys are tracked by event.code, so letting go of Shift never looks like
@@ -110,14 +112,15 @@ export class LetterSequence {
     this.delayLeft = Math.max(0, this.delayLeft - dtMs);
   }
 
-  press(key: string, code: string): SequenceEffect | null {
+  // shift: whether Shift was down at the press.
+  press(key: string, code: string, shift = false): SequenceEffect | null {
     if (this.isPaused || this.isLocked || !isLetterKey(key)) return null;
     // A keydown proves the key was released, even if its keyup never arrived.
     this.stale.delete(code);
     if (this.held.some((h) => h.code === code)) return null;
 
     const prompt = this.current;
-    if (prompt === null || !matchesPrompt(prompt, key)) return { type: 'wrongKey', key };
+    if (prompt === null || !matchesPrompt(prompt, key, shift)) return { type: 'wrongKey', key };
 
     this.queue.shift();
     this.held.push({ letter: prompt, code });

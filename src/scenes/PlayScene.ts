@@ -170,7 +170,7 @@ export class PlayScene extends Phaser.Scene {
       onSpace: () => {
         if (this.phase === 'approach') this.moveFigure(stepToward(this.figureLane, this.shiftWall.upcomingLane ?? this.holeLane));
       },
-      onKeyDown: (key, code) => this.apply(this.sequence.press(key, code)),
+      onKeyDown: (key, code, shift) => this.apply(this.sequence.press(key, code, shift)),
       onKeyUp: (code) => this.apply(this.sequence.release(code)),
       onBlur: () => this.pause(),
       onCapsLock: (on) => this.capsWarning.setVisible(on),
