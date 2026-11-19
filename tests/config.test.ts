@@ -345,6 +345,11 @@ describe('graphics contrast', () => {
     expect(contrastRatio(C.COLORS.gameOverRule, C.COLORS.darkCard)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
+  it("reads the title's mute button on the stage, and its speaker on the key", () => {
+    expect(contrastRatio(C.COLORS.muteButton, C.COLORS.void)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(contrastRatio(C.COLORS.muteIcon, C.COLORS.muteButton)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  });
+
   it.each(['trayLine', 'trayAccent', 'trayDim'] as const)('%s reads on the bar', (name) => {
     expect(contrastRatio(C.COLORS[name], C.COLORS.tray)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });

@@ -138,6 +138,9 @@ export const COLORS = {
   gameOverRule: PALETTE.lime,
   debugPanel: PALETTE.cream,
   veil: PALETTE.voidInk, // over the paused game
+  // The title's mute button: a cream key with a dark speaker, as in the mock.
+  muteButton: PALETTE.cream,
+  muteIcon: PALETTE.ink,
 } as const;
 
 const css = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
@@ -308,6 +311,10 @@ export const READY_COUNT = { readyMs: 1333, stepMs: 667, y: 214 } as const;
 // Labeled key caps (keycap.ts): height px tall, padX each side of their
 // label.
 export const KEY_CAP = { height: 50, padX: 14 } as const;
+// The title's mute button (MuteButton): a square key cap `size` px across,
+// marginX from the right edge and `top` from the top (the HUD's corner), its
+// speaker drawn in lines iconLineWidth px thick.
+export const MUTE_BUTTON = { size: 56, marginX: 24, top: 18, iconLineWidth: 3.5 } as const;
 // Pause: a veil over the game, the PAUSED heading centered on headingY, and
 // the Click to resume button below it.
 export const PAUSE = { veilAlpha: 0.8, headingY: 260 } as const;
