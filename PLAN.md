@@ -347,7 +347,7 @@ Built in this order (chosen after M7): feel and audio go on the grey box first, 
 - ✅ A new player can start a run knowing the controls from the title and the interactive tutorial.
 
 **M12: Ship**
-- itch.io HTML5 upload (zip of `dist/`), set the embed to 1280×720, add the mocks' fullscreen and mute buttons, and test in Chrome, Firefox and Safari. (The title got its sound switch early, at the user's request: a lime track with the knob right with sound, a dark one with it left muted.)
+- itch.io HTML5 upload (zip of `dist/`), set the embed to 1280×720, add the mocks' fullscreen and mute buttons, and test in Chrome, Firefox and Safari. (The title got its sound switch early, at the user's request: both options on a dark track, muted on the left and sound on the right, the one in force lit under a cream knob and the other faded.)
 - ✅ The itch.io build plays a full run in Chrome, Firefox and Safari, both embedded and fullscreen.
 
 ### Stretch goals (only if there's time)
