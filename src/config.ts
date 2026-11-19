@@ -263,7 +263,8 @@ export const TITLE = {
 // down, in the band above the wall that the HUD leaves free until step 3
 // shows it. Inside, padX from its left: the step's number, its name and any
 // keys centered on titleY (numberGap and keyGap apart), then its text from
-// textY down, wrapped to the card, and padBottom under it; a step's text is
+// textY down, wrapped to the card, with room between the two (a review asked
+// for more), and padBottom under it; a step's text is
 // at most maxLines lines, so the card's foot never reaches the wall's top.
 // The Enter-to-skip hint sits on skipY, right-aligned marginX from the edge,
 // its key skipGap before its words. In step 3 the Start button waits
@@ -272,7 +273,7 @@ export const TITLE = {
 // hudFadeMs as it starts. The Caps Lock warning moves under the card, to
 // capsWarningY. ms and px.
 export const TUTORIAL = {
-  card: { top: 12, width: 600, padX: 26, titleY: 40, textY: 70, lineHeight: 31, maxLines: 2, padBottom: 18 },
+  card: { top: 12, width: 600, padX: 26, titleY: 36, textY: 76, lineHeight: 31, maxLines: 2, padBottom: 16 },
   numberGap: 14,
   keyGap: 18,
   skipY: 52,

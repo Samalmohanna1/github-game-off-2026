@@ -20,9 +20,10 @@ const CARDS: Record<TutorialStep, StepCard> = {
 const CARD_FADE_MS = 200;
 
 // The interactive tutorial's step, one at a time: a dark card centered in
-// the band above the wall, with the step's number in lime, its name and any
-// keys it uses, and one sentence; and, until the last step, ENTER TO SKIP
-// in the top-right corner, where the HUD's WALL card shows from step 3.
+// the band above the wall, with the step's number (1., 2., 3.) in lime, its
+// name and any keys it uses, and one sentence under them; and, until the
+// last step, ENTER TO SKIP in the top-right corner, where the HUD's WALL
+// card shows from step 3.
 export class TutorialPanel extends Phaser.GameObjects.Container {
   private card: Phaser.GameObjects.Container | null = null;
   private readonly skip: Phaser.GameObjects.Container;
@@ -68,7 +69,7 @@ export class TutorialPanel extends Phaser.GameObjects.Container {
     card.add([shape, sentence]);
 
     const y = top + titleY;
-    const number = centerGlyphs(new Phaser.GameObjects.Text(this.scene, left + padX, y, `0${TUTORIAL_STEPS.indexOf(step) + 1}`, textStyle('subheading', 'good')));
+    const number = centerGlyphs(new Phaser.GameObjects.Text(this.scene, left + padX, y, `${TUTORIAL_STEPS.indexOf(step) + 1}.`, textStyle('subheading', 'good')));
     number.setOrigin(0, number.originY);
     const title = centerGlyphs(new Phaser.GameObjects.Text(this.scene, number.x + number.width + TUTORIAL.numberGap, y, name, textStyle('subheading', 'light')));
     title.setOrigin(0, title.originY);
