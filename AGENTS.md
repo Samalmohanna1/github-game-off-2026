@@ -21,8 +21,8 @@ Current state: **Week 2**, built one milestone at a time (PLAN.md §10). The
 Week 1 prototype (M0–M7), the M8 feel pass, the M9 synthesized audio (with
 the user's music track added after M11), the M10 art for the play screen, the M10b grid void restyle and the M11 title,
 pause and game-over screens are done. The palette and fonts come from design
-mocks kept outside the repo (`../design-mocks/`). Everything is drawn in
-code, the wall's display panel included (M10b review 4, picked from the wall
+mocks kept outside the repo (`../design-mocks/`). Everything in play is
+drawn in code (the splash's Sleepy Sam is the one image), the wall's display panel included (M10b review 4, picked from the wall
 directions in `../design-mocks/wall-options*/`; supplied photos and
 geometric patterns were tried and dropped).
 
@@ -30,8 +30,9 @@ Scenes, one per screen:
 
 | Scene | Status | Contents |
 |---|---|---|
-| `BootScene` | Final (M10b) | Starts loading the track (`loadMusic()`) and rendering the menus' Standby (`loadStandby()`) in the background, so neither holds up the title, and waits for the bundled fonts (`loadFonts()`, giving up after `FONT_LOAD_TIMEOUT`), then hands off to Title. |
-| `TitleScene` | Final (M11 review 6) | The grid stage, the lockup (`TitleLockup`, Option 2 of the user's title concepts) and a lime CLICK TO PLAY button below it, the two centered as one block. The lockup is a dark card lit like a wall (a lime bloom outside its lime edge, the wall panel's glow inside) with SHAPE in cream, large, over SHIFT in lime, both in Anton leaning like the badges, SHIFT's right edge on the E's leaning edge, and the bar's line, half as big again, starting with its slashes under the S and stepping down to the top of SHIFT's S's lower tail. (Until review 5 it was a cream card slanting both ways; review 3 made it a stacked lockup.) The click gives the page keyboard focus inside the itch.io iframe and leads to the interactive tutorial (`PlayScene` in its tutorial mode). The menus' music, Standby, starts here (`startMenuMusic()`), once the browser lets audio play, which on a fresh page is that click, and plays on through the tutorial. |
+| `BootScene` | Final (M10b) | Starts loading the track (`loadMusic()`) and rendering the menus' Standby (`loadStandby()`) in the background, so neither holds up the title, and waits for the bundled fonts (`loadFonts()`, giving up after `FONT_LOAD_TIMEOUT`), then hands off to the splash. |
+| `SplashScene` | New (after M11) | The studio's card, at the user's request: Sleepy Sam (`src/assets/sleepysam.png`), turned to lie on his side at 70%, floats up and down in the middle of a charcoal screen (`COLORS.splash`; still for reduced motion), and A SLEEPYSAM GAME fades in below him in cream Anton. After `SPLASH.leaveMs`, or at once on a click or a key, it dissolves through the void's color into the title, which fades in from it. |
+| `TitleScene` | Final (M11 review 6) | The grid stage, the lockup (`TitleLockup`, Option 2 of the user's title concepts) and a lime CLICK TO PLAY button below it, the two centered as one block. The lockup is a dark card lit like a wall (a lime bloom outside its lime edge, the wall panel's glow inside) with SHAPE in cream, large, over SHIFT in lime, both in Anton leaning like the badges, SHIFT's right edge on the E's leaning edge, and the bar's line, half as big again, starting with its slashes under the S and stepping down to the top of SHIFT's S's lower tail. (Until review 5 it was a cream card slanting both ways; review 3 made it a stacked lockup.) A sound switch sits in the top-right corner (`MuteToggle`): a lime track with the knob at its right while the game is heard, a dark track in a cream edge with the knob at its left muted, the knob's speaker giving off waves or crossed out; a click on it toggles Phaser's mute and never starts the game. Any other click gives the page keyboard focus inside the itch.io iframe and leads to the interactive tutorial (`PlayScene` in its tutorial mode). The menus' music, Standby, starts here (`startMenuMusic()`), once the browser lets audio play, which on a fresh page is that click, and plays on through the tutorial. |
 | `PlayScene` | Interim (M10b) | Three modes (`PlayStart`). **Tutorial**, after the title: the **interactive tutorial**, the real stage and rules on wall 1's plan, the wall waiting at its start until the first letter is held, one step at a time on a dark card by what it shows (`TutorialPanel`, placed by `tutorialCardPlace()`; each fades out before the next fades in): 1. LINE UP with Space, 2. HOLD ON to every letter, then, once the pose locks, 3. SCORE, as the HUD (hidden until then) fades in with the points, and a START button that waits for the completion and every key to be let go (`GatedPrompt`), its hint on a small dark card so it reads over the runway. A fail plays out and replays the tutorial wall; ENTER TO SKIP (top right, until step 3) goes to the count. Standby plays throughout. **Countdown**, after the tutorial: READY?, 3, 2, 1 on a lime badge where the first wall will appear (`ReadyCount`), a beat of the track each, with a beep per number and a higher one as the first wall comes with the music. **Run**, for Play again: straight into wall 1. Every run is the full Week 1 loop, driven by the difficulty curve (`planWall()` per wall: letter count, stretch range, Shift letters, wall time, hole distance, Shift Wall roll). A wall approaches with a hole cut from the poses (`wall-gen.ts`). Space lines the figure up, one lane toward the hole per press (during a Shift Wall's warning, toward the lane it is about to slide to); the arrow keys don't move it; the tray then prompts the wall's stretch-scored letters one at a time, and each held letter snaps its block into the target pose. Slips, wrong keys and the Shift rule follow PLAN.md §2. On a Shift Wall (wall 4+), the wall stops behind a SHIFT callout, turns orange with an arrow, and the hole slides 1 lane with a sideways jolt while the new lane's tile is marked on the floor; then the wall carries on; held letters stay, and new ones wait until the figure lines up again. All letters held while lined up locks the pose: a PERFECT / GREAT / CLOSE CALL label pops over the figure, the wall comes the rest of the way to the figure, the figure's cells light up lime like the panel's pixels and the panel fills back in (the completion), and the wall fades away as the next one fades in. Held blocks land with a squash, slipped ones slump back limp, a wrong key rattles the wall, and a CLOSE CALL plays the rush in slow motion. If the wall arrives first, it knocks the figure over: it topples toward the camera with its arms flailing, and its blocks come apart and bounce to a stop on the floor before the run ends. The music plays from the top through each run and stops as the wall hits (`Music`). Synthesized sounds (M9), tuned to its key, play over it: the countdown tick in CLOSE CALL range, clicks, slips, the PERFECT fanfare, the Shift Wall alert and whoosh; then, once it stops, the fail's hit and "whomp whomp whooom". Capital chips carry a Shift mark, a warning shows while Caps Lock is on, and losing focus pauses the game behind a veil, with PAUSED on a heading card and a lime CLICK TO RESUME button (`PauseOverlay`, M11). F2 toggles the debug overlay. Everything is drawn in the M10b art, a dark grid stage after the user's mockup: a glossy floor grid running back to a gridded back wall at the runway's far end, meeting it at a glowing lime seam, with lit cells that breathe, squares that fall slowly and fade, and streaks running down the floor; a cream runway with thin seams and glowing lime edges, where the figure stands centered on its lane's tile and the lined-up tile is marked; walls that are dark glass display panels lined on the figure's cells, with dots at the crossings, scanlines and the glow of a neon lime frame, with a see-through cutout in an equally thick lime edge; black blocks with cream seams between their cells and a cream edge; a dark line-art bar of cream key caps with lime slashes and a square per letter; SCORE and WALL on cream cards with lime slashes in the top corners; the timing label and the SHIFT callout on solid badges in a thick ink edge; and the Caps Lock warning in bright letters inside a thick dark outline. No texture anywhere. |
 | `GameOverScene` | Final (M11 review 4) | After the user's mock, on the grid stage: one dark card in a lime edge, centered, with GAME OVER in cream Anton over a lime rule, then this run's SCORE and WALLS CLEARED (lime captions over cream numbers, the walls at the HUD's number size), parted by the bar's line; the card, Play again and its hint centered down the screen with room above and below. (Review 2 set GAME over OVER beside the card, and review 3 made it a stacked lockup.) No all-time best is kept or shown (M11 review), nor the wall the run ended on, which is always walls cleared + 1 (M11 review 2). Restart follows PLAN.md §7: input is ignored for `RESTART_LOCKOUT`, then every key must be up ("LET GO OF EVERY KEY TO PLAY AGAIN" shows meanwhile) before a key or click restarts, when a lime PLAY AGAIN button shows under the card over "PRESS ANY KEY OR CLICK". The music plays slowed, muffled and echoing under it (`AUDIO.gameOverMusic`), fading in as it shows, until the restart. |
 
@@ -107,7 +108,8 @@ the doc is **part of that change, not a follow-up**.
   never scroll the host page, and like other non-letters never count as a
   wrong key.
 - **Art:** drawn in code, with Phaser shapes and Graphics and one canvas
-  texture for the wall's panel. M10b is a sci-fi grid stage with an
+  texture for the wall's panel; the one image is the splash's Sleepy Sam
+  (`src/assets/sleepysam.png`). M10b is a sci-fi grid stage with an
   editorial edge (PLAN.md §1, §3): a dark perspective grid, a cream runway,
   walls that are neon-framed display panels with their hole cut out, cream
   cards and a line-art bar with lime slashes, solid badges for the popups,
@@ -148,6 +150,7 @@ src/
   config.ts                # every tunable number (PLAN.md §8), palette and fonts
   assets/
     audio/                 # the music track (the game's one sound file)
+    sleepysam.png          # Sleepy Sam, for the splash (the game's one image)
   audio/
     Synth.ts               # Web Audio sound effects, no files: tick, click, slip, fanfare, Shift alert, hit, whomp
     Music.ts               # loadMusic(): the track, fetched and decoded once; Music: a buffer looping in a style (the track as a run's music, stopped when the player loses, or the game over's, slowed, muffled, echoing; or Standby)
@@ -204,6 +207,7 @@ src/
     PromptTray.ts          # the bar: held / current (in its socket) / next preview / slipped key caps; a square per letter
     keycap.ts              # the key caps' chamfered shape; fillEdgedKeyCap(): it in a closed edge; addKeyCap(): a labeled cap (the tutorial's keys)
     PromptButton.ts        # a screen's call to action: a pulsing lime key cap in a cream edge (Click to play, Start, Click to resume, Play again)
+    MuteToggle.ts          # the title's sound switch: a track and a sliding knob with a speaker, toggling Phaser's mute
     GatedPrompt.ts         # a button that waits for its lockout and every key to be let go (Play again, the tutorial's Start)
     TutorialPanel.ts       # the tutorial's step card (number, name, keys, one sentence), fading from place to place, and ENTER TO SKIP
     ReadyCount.ts          # READY?, 3, 2, 1 on a lime badge before the first wall
@@ -212,7 +216,8 @@ src/
     TimingLabel.ts         # PERFECT / GREAT / CLOSE CALL on a badge in the grade's color, points on an ink tab
     DebugOverlay.ts        # F2 panel: state, t, lanes, prompt, queue, held, stretch
   scenes/
-    BootScene.ts           # starts loading the music, waits for fonts, hands off to Title
+    BootScene.ts           # starts loading the music, waits for fonts, hands off to the splash
+    SplashScene.ts         # the studio card: Sleepy Sam floating, A SLEEPYSAM GAME, a dissolve into the title
     fonts.ts               # loads the bundled font faces before any text is drawn
     TitleScene.ts          # the title lockup and "Click to play" (gets keyboard focus)
     PlayScene.ts           # the game: draws state, passes input in
@@ -485,9 +490,10 @@ playtest covers.
   key or a click, and Enter skips the tutorial. During play, a
   warning shows while Caps Lock is on (PLAN.md §2).
 - **Don't rely on color alone.** Held, current and slipped letters also differ
-  by position in the tray (left, center, right; PLAN.md §3), and the next-letter
-  preview is hollow where the others are filled. Show "not yet" with style,
-  never with opacity: a faded chip would drop its letter below AA. Don't rely on case
+  by position in the tray (left, center, right; PLAN.md §3), and only the
+  current one is bright and framed. Show "not yet" with style, never with
+  opacity: a see-through chip would drop its letter below AA, so the bar's
+  faded caps are colors (`creamFaded`, `limeFaded`) that keep AAA. Don't rely on case
   alone either: capital chips carry a drawn Shift mark (`SHIFT_MARK`). The
   Shift Wall warning is as bright as the wrong-key flash, so its arrow, not
   its amber, is what sets it apart.
@@ -497,7 +503,7 @@ playtest covers.
   places at any window size; there is no separate mobile or touch layout.
 - **Motion.** Honor `prefers-reduced-motion`: the pulsing prompts and the
   grid void stay still, and the wrong-key wall rattle, the block squash, the
-  limp slump, the fail's arm flail, the chips' slides, pops and wobbles, the
+  limp slump, the fail's arm flail, the chips' slides, pops and shakes, the
   HUD's pop, the lined-up marker's flash and the cleared wall's grow as it
   leaves are skipped under it
   (`prefersReducedMotion()` in `src/scenes/ui.ts`). Fades are not motion and
@@ -687,21 +693,27 @@ Work through **PLAN.md §10** one milestone at a time.
   `PROMPT_APPEAR_DELAY` after the previous hold, and only while lined up and
   not paused.
 - **Next-letter preview** — while lined up, the fresh letter after the current
-  one waits just right of center as a hollow, cream-outlined chip (`view().next`
-  in `src/logic/sequence.ts`), then slides to the center when it becomes
-  current. Letters further back stay hidden, and a slipped next letter shows as
-  coral instead.
+  one waits just right of center, faded white (`view().next` in
+  `src/logic/sequence.ts`), then slides to the center when it becomes
+  current. Letters further back stay hidden. (It was a hollow outline until a
+  review asked for a clearer bar.)
 - **Prompt tray** (the bar, M10b) — a dark band along the bottom, below the
   runway (`PromptTray`), with a thin stepped line along its foot, lime "//"
   slashes at its left end, and at its right end one square per letter of the
   wall, lit lime as each is held (`setLetters()`, from the wall's letter
   count). A faint socket in its center marks the current prompt's slot. Its
-  chips are angular cream key caps with dark letters, and letters flow
-  right to left: the hollow next-letter preview and slipped letters waiting
-  their turn (coral) right of center in queue order, the current prompt (in
-  the socket, framed in lime), and held letters (edged in lime) left of
-  center, the latest nearest it. A chip that changes place slides there; a
-  newly held one pops and a newly slipped one wobbles. Capital letters carry
+  chips are angular key caps with dark letters, `CHIP.gap` apart, and
+  letters flow right to left: the next letter and slipped letters waiting
+  their turn, faded white, right of center in queue order; the current
+  prompt, the one bright cream cap, in the socket, framed in lime; and held
+  letters, faded green, left of center, the latest nearest it. A chip that
+  changes place slides there, and a newly held one pops. A letter just
+  dropped, once at its place in line, shows its held green in a red edge
+  (`chipDropEdge`) and shakes, then settles to faded white (just the edge
+  and the fade, for reduced motion), timed from the drop so it carries on as
+  the bar rebuilds. (A review asked for the clearer bar and more room; until
+  then held caps were cream edged in lime, the next a hollow outline, and
+  slipped ones coral, wobbling.) Capital letters carry
   a ⇧ Shift mark in the chip's top-right corner. (M10b first made it a
   charcoal console panel; until then it was a plain
   black strip, with held letters lined up from its left edge.)
@@ -717,8 +729,9 @@ Work through **PLAN.md §10** one milestone at a time.
   head is the current prompt (`LetterSequence` in `src/logic/sequence.ts`).
 - **Wrong key** — any letter that isn't the current prompt and isn't held,
   including a slipped letter pressed early, any letter while no prompt is
-  showing (not lined up, or during the appear delay), and an uppercase prompt
-  pressed without Shift. The wall jumps forward by `WRONG_KEY_JUMP` and
+  showing (not lined up, or during the appear delay), an uppercase prompt
+  pressed without Shift, and a lowercase prompt pressed with Shift down (a
+  review called accepting it a bug; Caps Lock alone still types it). The wall jumps forward by `WRONG_KEY_JUMP` and
   flashes, and the wall rattles (`WALL_RATTLE`) unless the player prefers
   reduced motion.
   Letters pressed with Ctrl, Cmd or Alt are shortcuts and are ignored.
