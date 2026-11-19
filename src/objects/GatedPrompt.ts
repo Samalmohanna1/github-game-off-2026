@@ -17,14 +17,17 @@ export interface GatedPromptOptions {
   // Over the cream runway the cream hint would vanish, so it sits on a
   // small dark card (HINT_CARD).
   readonly hintOnCard?: boolean;
+  // Whether a click presses it too (yes when left out). Play again takes
+  // only Space or Enter, at the user's request.
+  readonly clicks?: boolean;
   readonly onGo: () => void;
 }
 
 // A button that waits (PLAN.md §7, RestartGate): nothing shows for the
 // lockout, then the `waiting` hint until every key held from before is let
-// go, then the button over the `ready` hint; a fresh Space or Enter, or a
-// click, then calls onGo, once. Play again on the game over, and Start on the
-// tutorial's last step.
+// go, then the button over the `ready` hint; a fresh Space or Enter (or a
+// click, unless `clicks` is false) then calls onGo, once. Play again on the
+// game over, and Start on the tutorial's last step.
 export class GatedPrompt {
   private readonly gate: RestartGate;
   private readonly button: PromptButton;
@@ -45,9 +48,11 @@ export class GatedPrompt {
     this.hintCard = options.hintOnCard === true ? scene.add.graphics().setVisible(false) : null;
     this.hint = this.button.addHint('').setVisible(false);
 
-    scene.input.on('pointerdown', () => {
-      if (this.gate.click()) this.go();
-    });
+    if (options.clicks !== false) {
+      scene.input.on('pointerdown', () => {
+        if (this.gate.click()) this.go();
+      });
+    }
     onWindowKeys(scene, {
       down: (event) => {
         if (event.repeat) this.gate.holding(event.code);

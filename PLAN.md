@@ -63,7 +63,7 @@ SPAWN → ALIGN → POSE → (SHIFT WALL?) → RESOLVE → next wall | GAME OVER
 - Ignore `event.repeat`.
 - If Caps Lock is on (`event.getModifierState('CapsLock')` on any key event), show a "Caps Lock is on" warning during play. The rules above don't change, but with Caps Lock on, Shift + letter can produce a lowercase `event.key`.
 - Call `preventDefault()` on arrow keys and Space, so they don't scroll the page.
-- The game will run inside an iframe (itch.io), where the page only gets keyboard focus from a click, so a click anywhere on the title plays, as well as Space or Enter. Every button takes Space or Enter and a click, so the mouse is never needed once the frame has focus. (Until a review asked for that, the title needed a click and read "Click to play".)
+- The game will run inside an iframe (itch.io), where the page only gets keyboard focus from a click, so a click anywhere on the title plays, as well as Space or Enter. Every button takes Space or Enter, so the mouse is never needed once the frame has focus; all but Play again take a click too (§7). (Until a review asked for that, the title needed a click and read "Click to play".)
 
 ---
 
@@ -177,7 +177,7 @@ The timing label pops up big over the figure as the wall rushes past. The game o
 
 - When the player fails: the wall knocks the figure off its feet, toward the camera. It flails its arms as it topples toward the middle of the stage, and when it hits the floor its blocks come apart and bounce, low like wood rather than rubber, then tip flat and lie still. A screen shake goes with the landing. (Until the fifth M10 review, the figure fell into a pool with a splash of water particles and a ripple.)
 - Game-over screen: the run's **Score** and **Walls cleared**. (It also showed the wall number where the run ended until M11 review 2; that is always walls cleared + 1.)
-- **Restart:** ignore input for 1s, wait until **every key is released**, then Space, Enter or a click restarts (any key did until a review asked for Space or Enter). This stops keys still held from the failed wall from restarting the game straight away.
+- **Restart:** ignore input for 1s, wait until **every key is released**, then Space or Enter restarts; a click doesn't (any key or a click did, until reviews asked for Space or Enter only). This stops keys still held from the failed wall from restarting the game straight away.
 
 ---
 
