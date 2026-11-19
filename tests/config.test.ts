@@ -78,6 +78,19 @@ describe('config', () => {
     expect(C.TRAY.lowY).toBeLessThanOrEqual(C.TRAY_HEIGHT);
   });
 
+  // A review asked for more room between letters: the row, at its widest (the
+  // current cap with MAX_LETTERS - 1 caps either side), still clears the
+  // bar's slashes on the left and its letter squares on the right, and the
+  // bar's line still steps down under it after a flat run.
+  it("fits the widest row of caps between the bar's slashes and its letter squares", () => {
+    const { size, currentSize, gap } = C.CHIP;
+    const reach = currentSize / 2 + 2 * gap + size / 2 + (C.MAX_LETTERS - 1) * (size + gap) + size / 2;
+    const { squares } = C.TRAY;
+    const squaresLeft = C.GAME_WIDTH - squares.rightX - C.MAX_LETTERS * squares.size - (C.MAX_LETTERS - 1) * squares.gap;
+    expect(C.GAME_WIDTH / 2 + reach).toBeLessThan(squaresLeft);
+    expect(C.GAME_WIDTH / 2 - reach - C.TRAY.padX - C.TRAY.ramp).toBeGreaterThan(C.TRAY.lineFromX);
+  });
+
   it('keeps the HUD above the horizon, where nothing that moves reaches', () => {
     expect(C.HUD.top + C.HUD.height).toBeLessThan(C.HORIZON_Y);
   });
@@ -336,20 +349,22 @@ describe('graphics contrast', () => {
     expect(contrastRatio(C.COLORS[name], C.COLORS.tray)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
-  it.each(['chipHeld', 'chipHeldEdge', 'chipCurrent', 'chipSlipped', 'chipFocus'] as const)(
+  it.each(['chipHeld', 'chipCurrent', 'chipNext', 'chipSlipped', 'chipFocus', 'chipDropEdge'] as const)(
     '%s stands out from the bar',
     (name) => {
       expect(contrastRatio(C.COLORS[name], C.COLORS.tray)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
     },
   );
 
-  it.each(['chipHeld', 'chipCurrent', 'chipSlipped'] as const)('the Shift mark reads on %s chips', (name) => {
+  it.each(['chipHeld', 'chipCurrent', 'chipNext', 'chipSlipped'] as const)('the Shift mark reads on %s chips', (name) => {
     expect(contrastRatio(C.COLORS.chipShiftMark, C.COLORS[name])).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
-  it('outlines the next-letter preview, and its Shift mark, clearly on the bar', () => {
-    expect(contrastRatio(C.COLORS.chipNextEdge, C.COLORS.tray)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
-    expect(contrastRatio(C.COLORS.chipNextEdge, C.COLORS.chipNext)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  // A review asked for a clearer bar: only the current letter is bright; the
+  // rest are faded, by color rather than opacity, so their letters keep AAA
+  // (TEXT_ON below).
+  it.each(['chipNext', 'chipHeld', 'chipSlipped'] as const)('fades %s chips below the current one', (name) => {
+    expect(relativeLuminance(C.COLORS[name])).toBeLessThan(relativeLuminance(C.COLORS.chipCurrent) * 0.6);
   });
 });
 
@@ -376,7 +391,7 @@ const TEXT_ON = {
   darkCard: ['light', 'good'],
   // GAME OVER and the screens' hints on the void.
   void: ['light'],
-  chipNext: ['light'],
+  chipNext: ['ink'],
   chipHeld: ['ink'],
   chipCurrent: ['ink'],
   chipSlipped: ['ink'],

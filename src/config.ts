@@ -19,6 +19,11 @@ export const PALETTE = {
   voidInk: 0x0b1510, // greenDark, taken almost to black: the void, the bar, the wall panel
   greenDeep: 0x2f7f3a, // deepened to hold 3:1 on cream: the lit lane tile, lit squares
   lime: 0xb4ec4a, // the acid accent: the seam, edges, slashes, held keys, the wall's neon
+  // Cream and lime, faded toward the bar (65% over voidInk): the bar's waiting
+  // and held key caps, dimmer than the current one but holding AAA for their
+  // dark letters (5.7:1 and 5.4:1).
+  creamFaded: 0x9f9889,
+  limeFaded: 0x79a136,
   yellow: 0xffff7f, // mock logo
   ochre: 0x8f6a00, // yellow, darkened to hold 3:1 on cream
   coral: 0xff7f7f, // mock logo
@@ -90,18 +95,18 @@ export const COLORS = {
   trayLine: PALETTE.sage,
   trayAccent: PALETTE.lime,
   trayDim: PALETTE.forest,
-  // Key caps in the bar: cream with dark letters, lime-edged once held,
-  // framed in lime while current, coral when slipped.
-  chipHeld: PALETTE.cream,
-  chipHeldEdge: PALETTE.lime,
+  // Key caps in the bar, all with dark letters (a review asked for a clearer
+  // bar): the current one bright cream in a lime frame; the next and the
+  // slipped ones waiting their turn faded white; held ones faded green. A
+  // dropped letter's cap flashes a red edge as it shakes, then settles. The
+  // fades are colors, never opacity, so every letter keeps AAA.
   chipCurrent: PALETTE.cream,
-  chipSlipped: PALETTE.coral,
+  chipNext: PALETTE.creamFaded,
+  chipHeld: PALETTE.limeFaded,
+  chipSlipped: PALETTE.creamFaded,
+  chipDropEdge: PALETTE.red,
   chipShiftMark: PALETTE.ink,
   chipFocus: PALETTE.lime, // the frame round the current key cap
-  // The next-letter preview is hollow rather than faded, so its letter keeps
-  // full contrast while still reading as "not yet".
-  chipNext: PALETTE.voidInk,
-  chipNextEdge: PALETTE.cream,
   // Text drawn over the moving scene (the timing label, the SHIFT callout and
   // its arrow, the Caps Lock warning, the pause text) is bright, inside a thick
   // outline of this, so it reads over anything.
@@ -327,24 +332,25 @@ export const GAME_OVER = {
 // Key caps in the bar, px. The current prompt sits in the center; held
 // letters line up to its left, the most recent nearest the center, and to its
 // right come the next-letter preview and then slipped letters, in queue
-// order. Letters flow right to left: a chip that changes place slides there
-// over slideMs. A newly held chip pops from popScale; a newly slipped one
-// wobbles. Each cap is a square with its top-left and bottom-right corners
-// cut by `cut`. A held cap is edged in lime; the current one has a lime
-// frame focusGap outside it.
+// order, `gap` apart. Letters flow right to left: a chip that changes place
+// slides there over slideMs. A newly held chip pops from popScale. A dropped
+// (slipped) one, once at its new place in line, shows its held green in a red
+// edge (drop.edgeWidth) and shakes drop.px either way, drop.swings times over
+// drop.shakeMs, then settles to the faded white of a letter waiting its turn
+// over drop.settleMs (just the edge and the fade, for reduced motion). Each
+// cap is a square with its top-left and bottom-right corners cut by `cut`;
+// the current one has a lime frame focusGap outside it.
 export const CHIP = {
   size: 68,
   currentSize: 88,
-  gap: 14,
+  gap: 20,
   cut: 10,
-  nextEdgeWidth: 3,
-  heldEdgeWidth: 3,
   focusGap: 4,
   focusWidth: 2.5,
   slideMs: 140,
   popScale: 1.2,
   popMs: 220,
-  wobble: { deg: 9, ms: 280, swings: 3 },
+  drop: { edgeWidth: 4, px: 7, swings: 4, shakeMs: 360, settleMs: 300 },
 } as const;
 
 // The bar along the bottom (PromptTray), below the runway, after the mockup:
@@ -369,7 +375,7 @@ export const TRAY = {
   ramp: 14,
   lineFromX: 88,
   lineEndInset: 24,
-  squares: { size: 13, gap: 8, rightX: 34, y: 66 },
+  squares: { size: 13, gap: 8, rightX: 24, y: 66 },
   socketWidth: 1.5,
   socketAlpha: 0.45,
 } as const;
