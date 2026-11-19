@@ -608,6 +608,54 @@ export const AUDIO = {
   // fades in over fadeInMs as the screen shows, under the end of the whomp,
   // and stops (stopMs) on restart. Picked from rendered options.
   gameOverMusic: { gain: 0.24, rate: 0.8, cutoffHz: 1200, echo: { ms: 300, feedback: 0.35 }, fadeInMs: 1000 },
+  // The title and How to play music, "Standby", picked from rendered options:
+  // an ambient loop drawn in code, in the track's key and tempo but with none
+  // of its notes or sounds (its chords and bells are in src/data/standby.ts).
+  // It is rendered once at boot, then looped, at about -27 LUFS, a little
+  // under the game music; it fades in over fadeInMs. Each pad chord note is
+  // detuned saws, and it and the bass swell (src/logic/standby-schedule.ts):
+  // in from leadInMs before their chord over attackMs, out over releaseMs
+  // from leadInMs before it ends. The pad's lowpass breathes cutoffHz ±
+  // breatheHz over breatheBars. A bell is sine partials as [ratio, level],
+  // dying away over decayMs. `reverb` and `echo` are send levels; the echo
+  // repeats every echo.beats at echo.feedback, into the reverb at
+  // echo.reverb, and the reverb is reverb.seconds of decaying noise mixed in
+  // at reverb.wet.
+  standby: {
+    gain: 0.61,
+    fadeInMs: 1000,
+    bpm: 90,
+    chordBars: 2,
+    pad: {
+      level: 0.22,
+      detuneCents: [-14, -5, 5, 14],
+      pans: [-0.35, -0.12, 0.12, 0.35],
+      leadInMs: 600,
+      attackMs: 1200,
+      releaseMs: 1400,
+      cutoffHz: 750,
+      breatheHz: 450,
+      breatheBars: 2,
+      reverb: 0.5,
+    },
+    bass: { level: 0.14, octaveLevel: 0.2, leadInMs: 300, attackMs: 600, releaseMs: 900 },
+    bells: {
+      level: 0.18,
+      partials: [
+        [1, 1],
+        [2, 0.3],
+        [2.76, 0.12],
+        [5.4, 0.04],
+      ],
+      attackMs: 4,
+      decayMs: 1800,
+      pan: 0.3,
+      reverb: 0.6,
+      echo: 0.55,
+    },
+    echo: { beats: 0.75, feedback: 0.4, reverb: 0.5 },
+    reverb: { seconds: 3, wet: 0.35 },
+  },
   // The music's key, measured from the track: C minor (it leans on C, Eb, F,
   // G and Bb, at 90 BPM). The effects heard over it keep to its pentatonic
   // scale, in semitones above C, so they sit in the music.

@@ -8,7 +8,7 @@ import { GridVoid } from '@/objects/GridVoid';
 import { buttonYBelow, HINT_REACH, PromptButton } from '@/objects/PromptButton';
 import { SceneKeys, type RunResult } from '@/scenes/scene-keys';
 import { alignGlyphs, centerGlyphs, glyphWidth, textStyle } from '@/scenes/text-styles';
-import { formatNumber, onWindowKeys } from '@/scenes/ui';
+import { formatNumber, onWindowKeys, webAudio } from '@/scenes/ui';
 
 interface Box {
   readonly x: number;
@@ -43,9 +43,9 @@ export class GameOverScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(COLORS.void);
     new GridVoid(this);
 
-    const sound = this.sound;
-    if (sound instanceof Phaser.Sound.WebAudioSoundManager) {
-      const music = new Music(sound.context, sound.destination, AUDIO.gameOverMusic);
+    const audio = webAudio(this);
+    if (audio !== null) {
+      const music = new Music(audio.ctx, audio.destination, AUDIO.gameOverMusic);
       music.start();
       this.events.once('shutdown', () => music.stop());
     }

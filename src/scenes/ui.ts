@@ -1,4 +1,18 @@
-import type Phaser from 'phaser';
+import Phaser from 'phaser';
+
+export interface WebAudio {
+  readonly ctx: BaseAudioContext;
+  readonly destination: AudioNode;
+}
+
+// Phaser's audio context and master node, which all the game's sound goes
+// through: Phaser unlocks it on the first click and suspends it while the
+// window is blurred, and its mute and volume apply (PLAN.md §10, M9). Null
+// when the browser has no Web Audio; the game then plays silent.
+export function webAudio(scene: Phaser.Scene): WebAudio | null {
+  const sound = scene.sound;
+  return sound instanceof Phaser.Sound.WebAudioSoundManager ? { ctx: sound.context, destination: sound.destination } : null;
+}
 
 export function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
