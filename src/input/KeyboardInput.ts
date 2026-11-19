@@ -6,7 +6,7 @@ export interface KeyboardHandlers {
   onBlur(): void;
   onCapsLock(on: boolean): void;
   onToggleDebug(): void;
-  // Enter skips the tutorial.
+  // Enter skips the tutorial, or, like Space, presses Resume while paused.
   onEnter(): void;
 }
 

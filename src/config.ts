@@ -124,11 +124,13 @@ export const COLORS = {
   readyBadge: PALETTE.lime,
   calloutCard: PALETTE.yellow,
   calloutInk: PALETTE.ink,
-  // The screens' buttons (Click to play, Start, Click to resume, Play again;
-  // M11 review 2): lime key cap shapes with dark text, in a cream edge that
-  // sets them off the dark stage.
+  // The screens' buttons (Play, Start, Resume, Play again; M11 review 2):
+  // lime key cap shapes with dark text, in a cream edge that sets them off
+  // the dark stage.
   button: PALETTE.lime,
   buttonEdge: PALETTE.cream,
+  // The ring round the title's focused control, once the arrow keys move it.
+  focusRing: PALETTE.lime,
   // Dark cards (M11 review): the title's lockup, the how-to steps and the
   // game-over results, as dark as the bar, in a lime edge (every dark card
   // since M11 review 5; the how-to's were sage), with cream words and lime
@@ -243,10 +245,15 @@ export const DEBUG_OVERLAY = { x: 12, y: 12, padding: 10 } as const;
 // (PROMPT_PULSE_*). Every screen sets its button gapAbove px below what comes
 // before it, and a hint's middle hintBelow px below the button's.
 export const PROMPT_BUTTON = { height: 78, padX: 30, cut: 16, edgeWidth: 5, gapAbove: 56, hintBelow: 72 } as const;
-// A hint over the cream runway (the tutorial's Start) sits on a small dark
-// card, `height` px tall, padX each side of its words, its corners cut by
-// `cut`, edged like the dark cards (DARK_CARD).
+// A hint over the cream runway (the tutorial's Start) or the pause veil sits
+// on a small dark card, `height` px tall, padX each side of its words, its
+// corners cut by `cut`, edged like the dark cards (DARK_CARD).
 export const HINT_CARD = { height: 44, padX: 18, cut: 10 } as const;
+// The focus ring (MenuFocus): on the title, once the arrow keys move between
+// Play and the sound switch, the focused one is ringed by a key cap outline
+// `width` px thick, `gap` px outside its edge (and outside a button's
+// pulse, PROMPT_PULSE_SCALE).
+export const FOCUS_RING = { gap: 6, width: 3 } as const;
 // Headings (HOW TO PLAY, PAUSED): Anton on a card slanting both ways, one
 // size on every screen (M11 review 2), `height` px tall with padX beside the
 // word.
@@ -360,7 +367,7 @@ export const MUTE_TOGGLE = {
   iconLineWidth: 2.5,
 } as const;
 // Pause: a veil over the game, the PAUSED heading centered on headingY, and
-// the Click to resume button below it.
+// the Resume button below it, over its hint.
 export const PAUSE = { veilAlpha: 0.8, headingY: 260 } as const;
 // Game over (M11 review 4), after the user's mock: one dark card in a lime
 // edge, cardHeight tall and at least minCardWidth wide (wider for a long

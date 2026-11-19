@@ -1,9 +1,12 @@
 import { RESTART_LOCKOUT } from '@/config';
+import { isPressKey } from '@/logic/menu-keys';
 
 // PLAN.md §7: after a fail, input is ignored for RESTART_LOCKOUT, then every
-// key must be up before a fresh key press or a click restarts, so keys still
-// held from the failed wall can't restart the game by accident. The
-// tutorial's last step waits the same way, with its own lockout.
+// key must be up before a fresh Space or Enter, or a click, restarts, so
+// keys still held from the failed wall can't restart the game by accident.
+// Any other key restarts nothing, and must be let go again first. (Until a
+// review asked for Space or Enter, any key restarted.) The tutorial's last
+// step waits the same way, with its own lockout.
 export class RestartGate {
   private elapsed = 0;
   private readonly down: Set<string>;
@@ -29,7 +32,7 @@ export class RestartGate {
 
   // True when this press should restart.
   press(code: string): boolean {
-    const restart = this.ready;
+    const restart = this.ready && isPressKey(code);
     this.down.add(code);
     return restart;
   }

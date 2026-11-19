@@ -39,7 +39,7 @@ import { GridVoid } from '@/objects/GridVoid';
 import { Hud } from '@/objects/Hud';
 import { LaneTiles } from '@/objects/LaneTiles';
 import { PauseOverlay } from '@/objects/PauseOverlay';
-import { buttonYBelow } from '@/objects/PromptButton';
+import { buttonYBelow, PRESS_HINT } from '@/objects/PromptButton';
 import { PromptTray } from '@/objects/PromptTray';
 import { ReadyCount } from '@/objects/ReadyCount';
 import { ShiftCallout } from '@/objects/ShiftCallout';
@@ -166,16 +166,18 @@ export class PlayScene extends Phaser.Scene {
       if (this.sequence.paused) this.resume();
     });
     this.keyboard = new KeyboardInput({
-      // There is no wall, and no Shift Wall to ask, during the count.
+      // Space, like Enter, presses Resume while paused. There is no wall,
+      // and no Shift Wall to ask, during the count.
       onSpace: () => {
-        if (this.phase === 'approach') this.moveFigure(stepToward(this.figureLane, this.shiftWall.upcomingLane ?? this.holeLane));
+        if (this.sequence.paused) this.resume();
+        else if (this.phase === 'approach') this.moveFigure(stepToward(this.figureLane, this.shiftWall.upcomingLane ?? this.holeLane));
       },
       onKeyDown: (key, code, shift) => this.apply(this.sequence.press(key, code, shift)),
       onKeyUp: (code) => this.apply(this.sequence.release(code)),
       onBlur: () => this.pause(),
       onCapsLock: (on) => this.capsWarning.setVisible(on),
       onToggleDebug: () => this.toggleDebug(),
-      onEnter: () => this.skipTutorial(),
+      onEnter: () => (this.sequence.paused ? this.resume() : this.skipTutorial()),
     });
     // The tutorial plays to the menus' Standby; a run has the track.
     const audio = webAudio(this);
@@ -365,7 +367,7 @@ export class PlayScene extends Phaser.Scene {
     this.tweens.add({ targets: this.hud, alpha: 1, duration: TUTORIAL.hudFadeMs });
     // Step 3's card takes the top band, so the warning goes under it.
     this.capsWarning.setY(TUTORIAL.capsWarningY);
-    const text = { button: 'START', waiting: 'LET GO OF EVERY KEY', ready: 'PRESS ANY KEY OR CLICK' };
+    const text = { button: 'START', waiting: 'LET GO OF EVERY KEY', ready: PRESS_HINT };
     this.startPrompt = new GatedPrompt(this, GAME_WIDTH / 2, buttonYBelow(this.panel.bottom), text, {
       keysDown: this.keyboard.heldCodes(),
       lockoutMs: TUTORIAL.continueLockoutMs,

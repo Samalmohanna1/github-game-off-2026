@@ -363,6 +363,32 @@ describe('graphics contrast', () => {
     expect(relativeLuminance(C.COLORS.muteIconFaded)).toBeLessThan(relativeLuminance(C.COLORS.muteKnob) * 0.6);
   });
 
+  // The title's focus ring, round Play or the sound switch, reads on the
+  // stage; round Play it clears the button's pulse and the hint below, and
+  // round the switch it stays on screen.
+  describe('the focus ring', () => {
+    const F = C.FOCUS_RING;
+    const B = C.PROMPT_BUTTON;
+
+    it('reads on the stage', () => {
+      expect(contrastRatio(C.COLORS.focusRing, C.COLORS.void)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    });
+
+    it("clears Play's pulse and its hint", () => {
+      const pulsedHalf = (B.height / 2 + B.edgeWidth) * C.PROMPT_PULSE_SCALE;
+      const ringBottom = pulsedHalf + F.gap + F.width;
+      expect(F.gap).toBeGreaterThan(0);
+      expect(ringBottom).toBeLessThan(B.hintBelow - C.FONT_SIZES.small / 2);
+    });
+
+    it('stays on screen round the sound switch', () => {
+      const M = C.MUTE_TOGGLE;
+      const reach = M.edgeWidth + F.gap + F.width;
+      expect(M.top - reach).toBeGreaterThan(0);
+      expect(M.marginX - reach).toBeGreaterThan(0);
+    });
+  });
+
   it.each(['trayLine', 'trayAccent', 'trayDim'] as const)('%s reads on the bar', (name) => {
     expect(contrastRatio(C.COLORS[name], C.COLORS.tray)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
@@ -424,9 +450,8 @@ describe('screen layouts', () => {
   // Anton's capitals stand about 0.9 of its size.
   const ANTON_CAPS = 0.9;
   const B = C.PROMPT_BUTTON;
-  // A button's reach below what comes before it, and its hint's middle below
-  // that same edge (the hint is small text, half its size tall).
-  const buttonReach = B.gapAbove + 2 * B.edgeWidth + B.height;
+  // How far a button and the hint under it (every button has one) reach
+  // below what comes before them; the hint is small text, half its size tall.
   const hintFoot = B.gapAbove + B.edgeWidth + B.height / 2 + B.hintBelow + C.FONT_SIZES.small / 2;
 
   it('keeps a button\'s hint clear of the button as it pulses', () => {
@@ -434,10 +459,10 @@ describe('screen layouts', () => {
     expect(B.hintBelow - C.FONT_SIZES.small / 2).toBeGreaterThan(pulsedHalf);
   });
 
-  it('fits the title lockup and its button on screen', () => {
+  it('fits the title lockup, its button and the hint on screen', () => {
     const { padY, lineGap } = C.TITLE;
     const lockup = ANTON_CAPS * (C.FONT_SIZES.lockup + C.FONT_SIZES.lockupSub) + lineGap + 2 * padY;
-    expect(lockup + buttonReach).toBeLessThan(C.GAME_HEIGHT);
+    expect(lockup + hintFoot).toBeLessThan(C.GAME_HEIGHT);
   });
 
   // M11 review 5: the title leans like the badges.
@@ -502,10 +527,11 @@ describe('screen layouts', () => {
     expect(rows.wallsY + walls + gap).toBeLessThanOrEqual(cardHeight);
   });
 
-  it('fits the pause heading and its button on screen', () => {
+  it('fits the pause heading, its button and the hint on its card on screen', () => {
     const half = C.HEADING_CARD.height / 2;
+    const hintCardFoot = hintFoot - C.FONT_SIZES.small / 2 + C.HINT_CARD.height / 2 + C.DARK_CARD.edgeWidth;
     expect(C.PAUSE.headingY - half).toBeGreaterThan(0);
-    expect(C.PAUSE.headingY + half + buttonReach).toBeLessThan(C.GAME_HEIGHT);
+    expect(C.PAUSE.headingY + half + hintCardFoot).toBeLessThan(C.GAME_HEIGHT);
   });
 });
 

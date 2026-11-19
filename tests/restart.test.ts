@@ -6,15 +6,25 @@ describe('RestartGate', () => {
   it('ignores input during the lockout', () => {
     const gate = new RestartGate([]);
     gate.tick(RESTART_LOCKOUT - 1);
-    expect(gate.press('KeyA')).toBe(false);
+    expect(gate.press('Space')).toBe(false);
     expect(gate.click()).toBe(false);
   });
 
-  it('restarts on a fresh press once the lockout is over and no key is down', () => {
+  it.each(['Space', 'Enter', 'NumpadEnter'])('restarts on a fresh %s once the lockout is over and no key is down', (code) => {
     const gate = new RestartGate([]);
     gate.tick(RESTART_LOCKOUT);
     expect(gate.ready).toBe(true);
-    expect(gate.press('Space')).toBe(true);
+    expect(gate.press(code)).toBe(true);
+  });
+
+  it('restarts on no other key, which must be let go before Space or Enter can', () => {
+    const gate = new RestartGate([]);
+    gate.tick(RESTART_LOCKOUT);
+    expect(gate.press('KeyA')).toBe(false);
+    expect(gate.press('Space')).toBe(false);
+    gate.release('KeyA');
+    gate.release('Space');
+    expect(gate.press('Enter')).toBe(true);
   });
 
   it('restarts on a click once ready', () => {

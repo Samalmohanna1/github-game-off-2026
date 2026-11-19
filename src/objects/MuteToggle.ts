@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
-import { COLORS, GAME_WIDTH, MUTE_TOGGLE } from '@/config';
+import { CHIP, COLORS, GAME_WIDTH, MUTE_TOGGLE } from '@/config';
 import { keyCapShape } from '@/objects/keycap';
+import { drawFocusRing, type Focusable } from '@/objects/MenuFocus';
 import { toVectors } from '@/objects/vectors';
 import { prefersReducedMotion } from '@/scenes/ui';
 
@@ -43,13 +44,15 @@ function drawSpeaker(g: Phaser.GameObjects.Graphics, x: number, slot: number, mu
 // with two slots, muted on the left (a speaker crossed out) and sound on the
 // right (a speaker giving off waves). The option in force is lit: a cream
 // knob over its slot, its speaker dark; the other is only its speaker, in
-// faded white on the track. A click slides the knob to the other slot (no
-// slide for reduced motion) and toggles Phaser's mute, which every sound and
-// the music go through, for the rest of the visit. (Before: a single knob on
-// a track that turned lime, and before that a key labeled SOUND ON / OFF.)
-export class MuteToggle extends Phaser.GameObjects.Container {
+// faded white on the track. A click, or Space or Enter with the focus on it
+// (MenuFocus), slides the knob to the other slot (no slide for reduced
+// motion) and toggles Phaser's mute, which every sound and the music go
+// through, for the rest of the visit. (Before: a single knob on a track that
+// turned lime, and before that a key labeled SOUND ON / OFF.)
+export class MuteToggle extends Phaser.GameObjects.Container implements Focusable {
   private readonly knob: Phaser.GameObjects.Container;
   private readonly knobIcon: Phaser.GameObjects.Graphics;
+  private readonly ring: Phaser.GameObjects.Graphics;
   // Kept here, not read back from Phaser: its mute is a gain change that
   // the audio thread applies a moment later, so reading it right after a
   // click gave the old state and showed the switch a click behind the sound.
@@ -76,7 +79,9 @@ export class MuteToggle extends Phaser.GameObjects.Container {
     knobShape.fillPoints(toVectors(keyCapShape(knob, knob)), true);
     this.knobIcon = new Phaser.GameObjects.Graphics(scene);
     this.knob = new Phaser.GameObjects.Container(scene, slotX(this.muted), 0, [knobShape, this.knobIcon]);
-    this.add([track, this.knob]);
+    this.ring = new Phaser.GameObjects.Graphics(scene).setVisible(false);
+    drawFocusRing(this.ring, width, height, CHIP.cut, edgeWidth);
+    this.add([this.ring, track, this.knob]);
     this.drawKnobIcon();
 
     this.setInteractive({
@@ -84,15 +89,22 @@ export class MuteToggle extends Phaser.GameObjects.Container {
       hitAreaCallback: Phaser.Geom.Rectangle.Contains,
       useHandCursor: true,
     });
-    this.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => {
-      this.muted = !this.muted;
-      scene.sound.mute = this.muted;
-      this.drawKnobIcon();
-      const x = slotX(this.muted);
-      scene.tweens.killTweensOf(this.knob);
-      if (prefersReducedMotion()) this.knob.setX(x);
-      else scene.tweens.add({ targets: this.knob, x, duration: MUTE_TOGGLE.slideMs, ease: 'Quad.easeOut' });
-    });
+    this.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => this.press());
+  }
+
+  setFocusRing(on: boolean): void {
+    this.ring.setVisible(on);
+  }
+
+  // Flips the sound on or off.
+  press(): void {
+    this.muted = !this.muted;
+    this.scene.sound.mute = this.muted;
+    this.drawKnobIcon();
+    const x = slotX(this.muted);
+    this.scene.tweens.killTweensOf(this.knob);
+    if (prefersReducedMotion()) this.knob.setX(x);
+    else this.scene.tweens.add({ targets: this.knob, x, duration: MUTE_TOGGLE.slideMs, ease: 'Quad.easeOut' });
   }
 
   private drawKnobIcon(): void {
