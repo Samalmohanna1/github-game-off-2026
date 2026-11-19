@@ -345,9 +345,14 @@ describe('graphics contrast', () => {
     expect(contrastRatio(C.COLORS.gameOverRule, C.COLORS.darkCard)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
-  it("reads the title's mute button on the stage, and its speaker on the key", () => {
+  // Sound on: a bright key with a dark speaker. Muted: a dark key in a cream
+  // edge with a cream speaker and X. Each reads on the stage, and its
+  // speaker on its key.
+  it("reads the title's mute button, on and muted, on the stage, and its speaker on the key", () => {
     expect(contrastRatio(C.COLORS.muteButton, C.COLORS.void)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
     expect(contrastRatio(C.COLORS.muteIcon, C.COLORS.muteButton)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(contrastRatio(C.COLORS.mutedEdge, C.COLORS.void)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(contrastRatio(C.COLORS.mutedIcon, C.COLORS.mutedButton)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
   it.each(['trayLine', 'trayAccent', 'trayDim'] as const)('%s reads on the bar', (name) => {
