@@ -142,14 +142,14 @@ export const COLORS = {
   // The studio's splash before the title: charcoal, as the user asked (ink
   // until a review asked for darker).
   splash: PALETTE.charcoal,
-  // The title's sound switch: a lime track with sound, a dark one in a cream
-  // edge muted, with a cream knob in an ink edge carrying a dark speaker.
-  muteOn: PALETTE.lime,
-  muteOff: PALETTE.voidInk,
-  muteOffEdge: PALETTE.cream,
+  // The title's sound switch: a dark track in a cream edge showing both
+  // options, the one in force lit (a cream knob with a dark speaker), the
+  // other faded (its speaker in faded white).
+  muteTrack: PALETTE.voidInk,
+  muteTrackEdge: PALETTE.cream,
   muteKnob: PALETTE.cream,
-  muteKnobEdge: PALETTE.ink,
   muteIcon: PALETTE.ink,
+  muteIconFaded: PALETTE.creamFaded,
 } as const;
 
 const css = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
@@ -341,9 +341,9 @@ export const SPLASH = {
 } as const;
 // The title's sound switch (MuteToggle): a key cap track `width` by
 // `height`, marginX from the right edge and `top` from the top (the HUD's
-// corner), muted in a cream edge edgeWidth px thick; a square knob `knob`
-// px across in an ink edge knobEdgeWidth px thick, knobInset from the
-// track's end, sliding over slideMs, its speaker drawn in lines
+// corner), in a cream edge edgeWidth px thick, with two slots `knob` px
+// across, knobInset from its ends: the knob over the one in force, sliding
+// over slideMs, its speaker (and the other slot's) drawn in lines
 // iconLineWidth px thick.
 export const MUTE_TOGGLE = {
   width: 92,
@@ -352,7 +352,6 @@ export const MUTE_TOGGLE = {
   top: 18,
   edgeWidth: 2.5,
   knob: 38,
-  knobEdgeWidth: 2,
   knobInset: 5,
   slideMs: 140,
   iconLineWidth: 2.5,

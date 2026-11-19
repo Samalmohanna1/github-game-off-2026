@@ -352,16 +352,15 @@ describe('graphics contrast', () => {
     expect(textY).toBeLessThan(C.GAME_HEIGHT);
   });
 
-  // The title's sound switch: its lime track (with sound) and the dark one's
-  // cream edge (muted) read on the stage; its knob reads on either track (by
-  // its fill on the dark one, by its ink edge on the lime), and its speaker
-  // on the knob.
-  it("reads the title's sound switch, on and muted, and its knob and speaker", () => {
-    expect(contrastRatio(C.COLORS.muteOn, C.COLORS.void)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
-    expect(contrastRatio(C.COLORS.muteOffEdge, C.COLORS.void)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
-    expect(contrastRatio(C.COLORS.muteKnob, C.COLORS.muteOff)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
-    expect(contrastRatio(C.COLORS.muteKnobEdge, C.COLORS.muteOn)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  // The title's sound switch shows both options: its track's edge reads on
+  // the stage, the lit knob on the track and its speaker on the knob, and the
+  // faded option's speaker on the track, dimmer than the lit knob.
+  it("reads the title's sound switch, both its options, lit and faded", () => {
+    expect(contrastRatio(C.COLORS.muteTrackEdge, C.COLORS.void)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(contrastRatio(C.COLORS.muteKnob, C.COLORS.muteTrack)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
     expect(contrastRatio(C.COLORS.muteIcon, C.COLORS.muteKnob)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(contrastRatio(C.COLORS.muteIconFaded, C.COLORS.muteTrack)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(relativeLuminance(C.COLORS.muteIconFaded)).toBeLessThan(relativeLuminance(C.COLORS.muteKnob) * 0.6);
   });
 
   it.each(['trayLine', 'trayAccent', 'trayDim'] as const)('%s reads on the bar', (name) => {
