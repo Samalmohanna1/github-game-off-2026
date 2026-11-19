@@ -31,30 +31,27 @@ type ChipKind = 'held' | 'current' | 'next' | 'slipped';
 
 interface ChipLook {
   readonly fill: number;
-  readonly edge: { readonly color: number; readonly width: number } | null;
   readonly text: keyof typeof TEXT_COLORS;
-  readonly mark: number;
 }
 
-// Key caps in the bar (M10b review): cream with dark letters, edged in
-// lime once held, coral when slipped, and a hollow cream outline for the
-// preview. The current cap gets a lime frame round it (addChip).
+// Key caps in the bar (a review asked for a clearer bar), every one with a
+// dark letter on a fill that says where it stands: bright cream for the
+// current one (with a lime frame, addChip), faded white for the next and
+// for slipped letters waiting their turn, faded green once held. (Until
+// then: cream caps, held ones edged in lime, slipped ones coral, and the
+// next a hollow outline.)
 const LOOKS: Readonly<Record<ChipKind, ChipLook>> = {
-  held: {
-    fill: COLORS.chipHeld,
-    edge: { color: COLORS.chipHeldEdge, width: CHIP.heldEdgeWidth },
-    text: 'ink',
-    mark: COLORS.chipShiftMark,
-  },
-  current: { fill: COLORS.chipCurrent, edge: null, text: 'ink', mark: COLORS.chipShiftMark },
-  next: {
-    fill: COLORS.chipNext,
-    edge: { color: COLORS.chipNextEdge, width: CHIP.nextEdgeWidth },
-    text: 'light',
-    mark: COLORS.chipNextEdge,
-  },
-  slipped: { fill: COLORS.chipSlipped, edge: null, text: 'ink', mark: COLORS.chipShiftMark },
+  held: { fill: COLORS.chipHeld, text: 'ink' },
+  current: { fill: COLORS.chipCurrent, text: 'ink' },
+  next: { fill: COLORS.chipNext, text: 'ink' },
+  slipped: { fill: COLORS.chipSlipped, text: 'ink' },
 };
+
+// A dropped letter's flash: it slides to its new place in line, shakes in a
+// red edge, then settles.
+const DROP_SHAKE_FROM = CHIP.slideMs;
+const DROP_SETTLE_FROM = DROP_SHAKE_FROM + CHIP.drop.shakeMs;
+const DROP_MS = DROP_SETTLE_FROM + CHIP.drop.settleMs;
 
 interface ChipSpec {
   readonly letter: string;
@@ -113,6 +110,10 @@ export class PromptTray extends Phaser.GameObjects.Container {
   // Where each letter sat last time, and how big, so a moved chip can glide
   // from there.
   private lastLayout = new Map<string, ChipSpec>();
+  // When each letter still flashing was dropped (scene time, ms). Chips are
+  // rebuilt whenever the bar changes, so the flash runs from this, not from
+  // the chip, and carries on across rebuilds.
+  private readonly drops = new Map<string, number>();
   private shown = '';
 
   constructor(scene: Phaser.Scene) {
@@ -124,10 +125,13 @@ export class PromptTray extends Phaser.GameObjects.Container {
     this.add([bar, this.progress]);
   }
 
-  // A new wall: how many letters it asks for, one square each.
+  // A new wall: how many letters it asks for, one square each. Its letters
+  // may repeat the last wall's, which mustn't glide or flash from there.
   setLetters(count: number): void {
     this.letters = count;
     this.shown = '';
+    this.lastLayout.clear();
+    this.drops.clear();
   }
 
   show(view: SequenceView): void {
@@ -141,7 +145,14 @@ export class PromptTray extends Phaser.GameObjects.Container {
       chip.destroy();
     }
     const specs = layout(view);
-    this.chips = specs.map((spec) => this.addChip(spec));
+    const now = this.scene.time.now;
+    for (const spec of specs) {
+      if (spec.kind !== 'held' && this.lastLayout.get(spec.letter)?.kind === 'held') this.drops.set(spec.letter, now);
+    }
+    for (const [letter, at] of this.drops) {
+      if (now - at >= DROP_MS || !specs.some((spec) => spec.letter === letter && spec.kind !== 'held')) this.drops.delete(letter);
+    }
+    this.chips = specs.map((spec) => this.addChip(spec, now));
     this.lastLayout = new Map(specs.map((spec) => [spec.letter, spec]));
   }
 
@@ -158,36 +169,75 @@ export class PromptTray extends Phaser.GameObjects.Container {
     }
   }
 
-  private addChip(spec: ChipSpec): Phaser.GameObjects.Container {
+  // The cap (and its lime frame, if current), a dropped letter's flash over
+  // it, the Shift mark and the letter, on a face that can shake inside the
+  // chip while the chip itself slides.
+  private addChip(spec: ChipSpec, now: number): Phaser.GameObjects.Container {
     const look = LOOKS[spec.kind];
-    const shape = new Phaser.GameObjects.Graphics(this.scene);
     const cap = toVectors(capShape(spec.size));
-    shape.fillStyle(look.fill);
-    shape.fillPoints(cap, true);
-    if (look.edge !== null) {
-      shape.lineStyle(look.edge.width, look.edge.color);
-      shape.strokePoints(cap, true, true);
-    }
+    const base = new Phaser.GameObjects.Graphics(this.scene);
+    base.fillStyle(look.fill);
+    base.fillPoints(cap, true);
     if (spec.kind === 'current') {
-      shape.lineStyle(CHIP.focusWidth, COLORS.chipFocus);
-      shape.strokePoints(toVectors(capShape(spec.size, CHIP.focusGap)), true, true);
+      base.lineStyle(CHIP.focusWidth, COLORS.chipFocus);
+      base.strokePoints(toVectors(capShape(spec.size, CHIP.focusGap)), true, true);
     }
-    if (isUppercaseLetter(spec.letter)) drawShiftMark(shape, spec.size, look.mark);
+    const face = new Phaser.GameObjects.Container(this.scene, 0, 0, [base]);
 
-    const text = new Phaser.GameObjects.Text(this.scene, 0, 0, spec.letter, {
-      ...textStyle('chip', look.text, true),
-      fontFamily: CHIP_FONT_FAMILY,
-    }).setOrigin(0.5);
+    const droppedAt = this.drops.get(spec.letter);
+    const flash = droppedAt === undefined ? null : new Phaser.GameObjects.Graphics(this.scene);
+    if (flash !== null) {
+      flash.fillStyle(COLORS.chipHeld);
+      flash.fillPoints(cap, true);
+      flash.lineStyle(CHIP.drop.edgeWidth, COLORS.chipDropEdge);
+      flash.strokePoints(cap, true, true);
+      face.add(flash);
+    }
+    if (isUppercaseLetter(spec.letter)) {
+      const mark = new Phaser.GameObjects.Graphics(this.scene);
+      drawShiftMark(mark, spec.size, COLORS.chipShiftMark);
+      face.add(mark);
+    }
+    face.add(
+      new Phaser.GameObjects.Text(this.scene, 0, 0, spec.letter, {
+        ...textStyle('chip', look.text, true),
+        fontFamily: CHIP_FONT_FAMILY,
+      }).setOrigin(0.5),
+    );
 
-    const chip = new Phaser.GameObjects.Container(this.scene, spec.x, BAR_ROW_Y, [shape, text]);
+    const chip = new Phaser.GameObjects.Container(this.scene, spec.x, BAR_ROW_Y, [face]);
     this.add(chip);
     this.animate(chip, spec);
+    if (flash !== null && droppedAt !== undefined) this.playDrop(chip, face, flash, now - droppedAt);
     return chip;
   }
 
+  // A dropped letter, `elapsed` ms after the drop: once at its new place in
+  // line, it shows its held green in a red edge and shakes, then settles to
+  // the look of its place, so it reads as "press this again". The flash
+  // fades between two opaque fills, so the letter never loses contrast. No
+  // shake for reduced motion; the edge and the fade stay.
+  private playDrop(chip: Phaser.GameObjects.Container, face: Phaser.GameObjects.Container, flash: Phaser.GameObjects.Graphics, elapsed: number): void {
+    const { px, swings, shakeMs, settleMs } = CHIP.drop;
+    const still = prefersReducedMotion();
+    const step = (t: number) => {
+      const shake = (t - DROP_SHAKE_FROM) / shakeMs;
+      face.setX(still || shake <= 0 || shake >= 1 ? 0 : px * Math.sin(shake * swings * 2 * Math.PI) * (1 - shake));
+      flash.setAlpha(1 - Phaser.Math.Clamp((t - DROP_SETTLE_FROM) / settleMs, 0, 1));
+    };
+    step(elapsed);
+    const run = this.scene.tweens.addCounter({
+      from: elapsed,
+      to: DROP_MS,
+      duration: Math.max(0, DROP_MS - elapsed),
+      onUpdate: (tween) => step(tween.getValue() ?? DROP_MS),
+    });
+    chip.once(Phaser.GameObjects.Events.DESTROY, () => run.stop());
+  }
+
   // A chip that changed place glides there from its old spot, resizing as it
-  // goes. Feedback on top: a letter just held pops into place, and one just
-  // slipped wobbles. All still for reduced motion.
+  // goes, and a letter just held pops into place. All still for reduced
+  // motion.
   private animate(chip: Phaser.GameObjects.Container, spec: ChipSpec): void {
     const before = this.lastLayout.get(spec.letter);
     if (before === undefined || prefersReducedMotion()) return;
@@ -202,19 +252,6 @@ export class PromptTray extends Phaser.GameObjects.Container {
     } else if (before.size !== spec.size) {
       chip.setScale(before.size / spec.size);
       tweens.add({ targets: chip, scale: 1, duration: CHIP.slideMs, ease: 'Quad.easeOut' });
-    }
-    if (spec.kind === 'slipped' && before.kind !== 'slipped') {
-      const { deg, ms, swings } = CHIP.wobble;
-      const wobble = tweens.addCounter({
-        from: 0,
-        to: 1,
-        duration: ms,
-        onUpdate: (tween) => {
-          const p = tween.getValue() ?? 1;
-          chip.setAngle(deg * Math.sin(p * swings * 2 * Math.PI) * (1 - p));
-        },
-      });
-      chip.once(Phaser.GameObjects.Events.DESTROY, () => wobble.stop());
     }
   }
 }

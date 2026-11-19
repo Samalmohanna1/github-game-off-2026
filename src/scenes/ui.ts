@@ -14,6 +14,11 @@ export function webAudio(scene: Phaser.Scene): WebAudio | null {
   return sound instanceof Phaser.Sound.WebAudioSoundManager ? { ctx: sound.context, destination: sound.destination } : null;
 }
 
+// A color as the three channels Phaser's camera fades take.
+export function rgb(color: number): [number, number, number] {
+  return [(color >> 16) & 0xff, (color >> 8) & 0xff, color & 0xff];
+}
+
 export function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }

@@ -1,8 +1,6 @@
 import Phaser from 'phaser';
-import { COLORS, DARK_CARD, HINT_CARD } from '@/config';
 import { RestartGate } from '@/logic/restart';
-import { fillEdgedKeyCap } from '@/objects/keycap';
-import { PromptButton } from '@/objects/PromptButton';
+import { fitHintCard, PromptButton } from '@/objects/PromptButton';
 import { onWindowKeys } from '@/scenes/ui';
 
 export interface GatedPromptText {
@@ -24,8 +22,8 @@ export interface GatedPromptOptions {
 
 // A button that waits (PLAN.md §7, RestartGate): nothing shows for the
 // lockout, then the `waiting` hint until every key held from before is let
-// go, then the button over the `ready` hint; a fresh key or a click then
-// calls onGo, once. Play again on the game over, and Start on the
+// go, then the button over the `ready` hint; a fresh Space or Enter, or a
+// click, then calls onGo, once. Play again on the game over, and Start on the
 // tutorial's last step.
 export class GatedPrompt {
   private readonly gate: RestartGate;
@@ -84,28 +82,10 @@ export class GatedPrompt {
     const label = this.gate.ready ? this.text.ready : this.text.waiting;
     if (label !== this.hint.text) {
       this.hint.setText(label);
-      this.drawHintCard();
+      if (this.hintCard !== null) fitHintCard(this.hintCard, this.hint);
     }
     this.hint.setVisible(this.gate.lockoutOver);
     this.hintCard?.setVisible(this.gate.lockoutOver);
-  }
-
-  // A dark card fitted to the hint's words, cut and edged like the others.
-  private drawHintCard(): void {
-    if (this.hintCard === null) return;
-    const { height, padX, cut } = HINT_CARD;
-    const width = this.hint.width + 2 * padX;
-    this.hintCard.clear();
-    fillEdgedKeyCap(this.hintCard, {
-      x: this.hint.x - width / 2,
-      y: this.hint.y - height / 2,
-      width,
-      height,
-      cut,
-      edgeWidth: DARK_CARD.edgeWidth,
-      edge: COLORS.darkCardEdge,
-      fill: COLORS.darkCard,
-    });
   }
 
   private go(): void {

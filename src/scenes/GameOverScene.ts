@@ -5,7 +5,7 @@ import { BAR_SLASHES_REACH, BAR_STEP, drawBarLine } from '@/objects/bar-line';
 import { drawDarkCard } from '@/objects/card';
 import { GatedPrompt } from '@/objects/GatedPrompt';
 import { GridVoid } from '@/objects/GridVoid';
-import { buttonYBelow, HINT_REACH } from '@/objects/PromptButton';
+import { buttonYBelow, HINT_REACH, PRESS_HINT } from '@/objects/PromptButton';
 import { SceneKeys, type RunResult } from '@/scenes/scene-keys';
 import { alignGlyphs, centerGlyphs, glyphWidth, textStyle } from '@/scenes/text-styles';
 import { formatNumber, webAudio } from '@/scenes/ui';
@@ -54,7 +54,7 @@ export class GameOverScene extends Phaser.Scene {
     drawDarkCard(g, card.x, card.y, card.width, card.height);
     this.placeRows(rows, card, g);
 
-    const text = { button: 'PLAY AGAIN', waiting: 'LET GO OF EVERY KEY TO PLAY AGAIN', ready: 'PRESS ANY KEY OR CLICK' };
+    const text = { button: 'PLAY AGAIN', waiting: 'LET GO OF EVERY KEY TO PLAY AGAIN', ready: PRESS_HINT };
     new GatedPrompt(this, GAME_WIDTH / 2, buttonYBelow(card.y + card.height), text, {
       keysDown: this.result.keysDown,
       onGo: () => this.scene.start(SceneKeys.Play),

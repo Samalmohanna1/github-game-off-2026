@@ -1,5 +1,6 @@
 export const SceneKeys = {
   Boot: 'Boot',
+  Splash: 'Splash',
   Title: 'Title',
   Play: 'Play',
   GameOver: 'GameOver',

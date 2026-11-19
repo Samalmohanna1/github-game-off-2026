@@ -171,10 +171,19 @@ describe('case and Shift', () => {
     expect(seq.release('KeyJ')).toEqual({ type: 'slipped', letter: 'J' });
   });
 
-  it('accepts a lowercase prompt pressed with Shift still down', () => {
+  it('counts a lowercase prompt pressed with Shift still down as a wrong key', () => {
     const seq = lineUp(['J', 'k']);
     hold(seq, 'J');
-    expect(seq.press('K', 'KeyK')).toEqual({ type: 'held', letter: 'k' });
+    expect(seq.press('K', 'KeyK', true)).toEqual({ type: 'wrongKey', key: 'K' });
+    expect(seq.current).toBe('k');
+  });
+
+  it('takes the lowercase prompt once Shift is let go', () => {
+    const seq = lineUp(['J', 'k']);
+    hold(seq, 'J');
+    seq.press('K', 'KeyK', true);
+    seq.release('KeyK');
+    expect(seq.press('k', 'KeyK', false)).toEqual({ type: 'held', letter: 'k' });
   });
 
   it('tells capitals (which need Shift) from lowercase letters', () => {
@@ -185,10 +194,19 @@ describe('case and Shift', () => {
 
   it('matches prompts by the rules', () => {
     expect(matchesPrompt('a', 'a')).toBe(true);
-    expect(matchesPrompt('a', 'A')).toBe(true);
-    expect(matchesPrompt('A', 'A')).toBe(true);
+    expect(matchesPrompt('A', 'A', true)).toBe(true);
     expect(matchesPrompt('A', 'a')).toBe(false);
     expect(matchesPrompt('a', 'b')).toBe(false);
+  });
+
+  it('turns a lowercase prompt down whenever Shift is down', () => {
+    expect(matchesPrompt('a', 'A', true)).toBe(false);
+    // Caps Lock on: Shift turns the letter back to lowercase.
+    expect(matchesPrompt('a', 'a', true)).toBe(false);
+  });
+
+  it('takes a lowercase prompt typed with Caps Lock on and Shift up', () => {
+    expect(matchesPrompt('a', 'A', false)).toBe(true);
   });
 });
 

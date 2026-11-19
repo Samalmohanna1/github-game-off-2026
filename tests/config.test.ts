@@ -78,6 +78,19 @@ describe('config', () => {
     expect(C.TRAY.lowY).toBeLessThanOrEqual(C.TRAY_HEIGHT);
   });
 
+  // A review asked for more room between letters: the row, at its widest (the
+  // current cap with MAX_LETTERS - 1 caps either side), still clears the
+  // bar's slashes on the left and its letter squares on the right, and the
+  // bar's line still steps down under it after a flat run.
+  it("fits the widest row of caps between the bar's slashes and its letter squares", () => {
+    const { size, currentSize, gap } = C.CHIP;
+    const reach = currentSize / 2 + 2 * gap + size / 2 + (C.MAX_LETTERS - 1) * (size + gap) + size / 2;
+    const { squares } = C.TRAY;
+    const squaresLeft = C.GAME_WIDTH - squares.rightX - C.MAX_LETTERS * squares.size - (C.MAX_LETTERS - 1) * squares.gap;
+    expect(C.GAME_WIDTH / 2 + reach).toBeLessThan(squaresLeft);
+    expect(C.GAME_WIDTH / 2 - reach - C.TRAY.padX - C.TRAY.ramp).toBeGreaterThan(C.TRAY.lineFromX);
+  });
+
   it('keeps the HUD above the horizon, where nothing that moves reaches', () => {
     expect(C.HUD.top + C.HUD.height).toBeLessThan(C.HORIZON_Y);
   });
@@ -332,24 +345,70 @@ describe('graphics contrast', () => {
     expect(contrastRatio(C.COLORS.gameOverRule, C.COLORS.darkCard)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
+  it("shows the splash's words, faded in, a good while before it leaves", () => {
+    const { textDelayMs, textFadeMs, leaveMs, imageY, textY } = C.SPLASH;
+    expect(textDelayMs + textFadeMs).toBeLessThan(leaveMs / 2);
+    expect(textY).toBeGreaterThan(imageY);
+    expect(textY).toBeLessThan(C.GAME_HEIGHT);
+  });
+
+  // The title's sound switch shows both options: its track's edge reads on
+  // the stage, the lit knob on the track and its speaker on the knob, and the
+  // faded option's speaker on the track, dimmer than the lit knob.
+  it("reads the title's sound switch, both its options, lit and faded", () => {
+    expect(contrastRatio(C.COLORS.muteTrackEdge, C.COLORS.void)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(contrastRatio(C.COLORS.muteKnob, C.COLORS.muteTrack)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(contrastRatio(C.COLORS.muteIcon, C.COLORS.muteKnob)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(contrastRatio(C.COLORS.muteIconFaded, C.COLORS.muteTrack)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    expect(relativeLuminance(C.COLORS.muteIconFaded)).toBeLessThan(relativeLuminance(C.COLORS.muteKnob) * 0.6);
+  });
+
+  // The title's focus ring, round Play or the sound switch, reads on the
+  // stage; round Play it clears the button's pulse and the hint below, and
+  // round the switch it stays on screen.
+  describe('the focus ring', () => {
+    const F = C.FOCUS_RING;
+    const B = C.PROMPT_BUTTON;
+
+    it('reads on the stage', () => {
+      expect(contrastRatio(C.COLORS.focusRing, C.COLORS.void)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+    });
+
+    it("clears Play's pulse and its hint", () => {
+      const pulsedHalf = (B.height / 2 + B.edgeWidth) * C.PROMPT_PULSE_SCALE;
+      const ringBottom = pulsedHalf + F.gap + F.width;
+      expect(F.gap).toBeGreaterThan(0);
+      expect(ringBottom).toBeLessThan(B.hintBelow - C.FONT_SIZES.small / 2);
+    });
+
+    it('stays on screen round the sound switch', () => {
+      const M = C.MUTE_TOGGLE;
+      const reach = M.edgeWidth + F.gap + F.width;
+      expect(M.top - reach).toBeGreaterThan(0);
+      expect(M.marginX - reach).toBeGreaterThan(0);
+    });
+  });
+
   it.each(['trayLine', 'trayAccent', 'trayDim'] as const)('%s reads on the bar', (name) => {
     expect(contrastRatio(C.COLORS[name], C.COLORS.tray)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
-  it.each(['chipHeld', 'chipHeldEdge', 'chipCurrent', 'chipSlipped', 'chipFocus'] as const)(
+  it.each(['chipHeld', 'chipCurrent', 'chipNext', 'chipSlipped', 'chipFocus', 'chipDropEdge'] as const)(
     '%s stands out from the bar',
     (name) => {
       expect(contrastRatio(C.COLORS[name], C.COLORS.tray)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
     },
   );
 
-  it.each(['chipHeld', 'chipCurrent', 'chipSlipped'] as const)('the Shift mark reads on %s chips', (name) => {
+  it.each(['chipHeld', 'chipCurrent', 'chipNext', 'chipSlipped'] as const)('the Shift mark reads on %s chips', (name) => {
     expect(contrastRatio(C.COLORS.chipShiftMark, C.COLORS[name])).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
   });
 
-  it('outlines the next-letter preview, and its Shift mark, clearly on the bar', () => {
-    expect(contrastRatio(C.COLORS.chipNextEdge, C.COLORS.tray)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
-    expect(contrastRatio(C.COLORS.chipNextEdge, C.COLORS.chipNext)).toBeGreaterThanOrEqual(NON_TEXT_RATIO);
+  // A review asked for a clearer bar: only the current letter is bright; the
+  // rest are faded, by color rather than opacity, so their letters keep AAA
+  // (TEXT_ON below).
+  it.each(['chipNext', 'chipHeld', 'chipSlipped'] as const)('fades %s chips below the current one', (name) => {
+    expect(relativeLuminance(C.COLORS[name])).toBeLessThan(relativeLuminance(C.COLORS.chipCurrent) * 0.6);
   });
 });
 
@@ -374,9 +433,11 @@ const TEXT_ON = {
   // The dark cards: the how-to steps' lime numbers and cream names and text
   // (M11 review), the game-over card's lime captions and cream numbers.
   darkCard: ['light', 'good'],
+  // A SLEEPYSAM GAME on the splash.
+  splash: ['light'],
   // GAME OVER and the screens' hints on the void.
   void: ['light'],
-  chipNext: ['light'],
+  chipNext: ['ink'],
   chipHeld: ['ink'],
   chipCurrent: ['ink'],
   chipSlipped: ['ink'],
@@ -389,9 +450,8 @@ describe('screen layouts', () => {
   // Anton's capitals stand about 0.9 of its size.
   const ANTON_CAPS = 0.9;
   const B = C.PROMPT_BUTTON;
-  // A button's reach below what comes before it, and its hint's middle below
-  // that same edge (the hint is small text, half its size tall).
-  const buttonReach = B.gapAbove + 2 * B.edgeWidth + B.height;
+  // How far a button and the hint under it (every button has one) reach
+  // below what comes before them; the hint is small text, half its size tall.
   const hintFoot = B.gapAbove + B.edgeWidth + B.height / 2 + B.hintBelow + C.FONT_SIZES.small / 2;
 
   it('keeps a button\'s hint clear of the button as it pulses', () => {
@@ -399,10 +459,10 @@ describe('screen layouts', () => {
     expect(B.hintBelow - C.FONT_SIZES.small / 2).toBeGreaterThan(pulsedHalf);
   });
 
-  it('fits the title lockup and its button on screen', () => {
+  it('fits the title lockup, its button and the hint on screen', () => {
     const { padY, lineGap } = C.TITLE;
     const lockup = ANTON_CAPS * (C.FONT_SIZES.lockup + C.FONT_SIZES.lockupSub) + lineGap + 2 * padY;
-    expect(lockup + buttonReach).toBeLessThan(C.GAME_HEIGHT);
+    expect(lockup + hintFoot).toBeLessThan(C.GAME_HEIGHT);
   });
 
   // M11 review 5: the title leans like the badges.
@@ -467,10 +527,11 @@ describe('screen layouts', () => {
     expect(rows.wallsY + walls + gap).toBeLessThanOrEqual(cardHeight);
   });
 
-  it('fits the pause heading and its button on screen', () => {
+  it('fits the pause heading, its button and the hint on its card on screen', () => {
     const half = C.HEADING_CARD.height / 2;
+    const hintCardFoot = hintFoot - C.FONT_SIZES.small / 2 + C.HINT_CARD.height / 2 + C.DARK_CARD.edgeWidth;
     expect(C.PAUSE.headingY - half).toBeGreaterThan(0);
-    expect(C.PAUSE.headingY + half + buttonReach).toBeLessThan(C.GAME_HEIGHT);
+    expect(C.PAUSE.headingY + half + hintCardFoot).toBeLessThan(C.GAME_HEIGHT);
   });
 });
 
