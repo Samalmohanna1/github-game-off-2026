@@ -226,6 +226,10 @@ export const DEBUG_OVERLAY = { x: 12, y: 12, padding: 10 } as const;
 // (PROMPT_PULSE_*). Every screen sets its button gapAbove px below what comes
 // before it, and a hint's middle hintBelow px below the button's.
 export const PROMPT_BUTTON = { height: 78, padX: 30, cut: 16, edgeWidth: 5, gapAbove: 56, hintBelow: 72 } as const;
+// A hint over the cream runway (the tutorial's Start) sits on a small dark
+// card, `height` px tall, padX each side of its words, its corners cut by
+// `cut`, edged like the dark cards (DARK_CARD).
+export const HINT_CARD = { height: 44, padX: 18, cut: 10 } as const;
 // Headings (HOW TO PLAY, PAUSED): Anton on a card slanting both ways, one
 // size on every screen (M11 review 2), `height` px tall with padX beside the
 // word.
@@ -263,9 +267,10 @@ export const TITLE = {
 // down, in the band above the wall that the HUD leaves free until step 3
 // shows it. Inside, padX from its left: the step's number, its name and any
 // keys centered on titleY (numberGap and keyGap apart), then its text from
-// textY down, wrapped to the card, with room between the two (a review asked
-// for more), and padBottom under it; a step's text is
-// at most maxLines lines, so the card's foot never reaches the wall's top.
+// textY down (one line, lineHeight tall), with room between the two (a
+// review asked for more), and padBottom under it. One line keeps the card's
+// foot above the wall's top, and step 3's Start and its hint above the
+// figure.
 // The Enter-to-skip hint sits on skipY, right-aligned marginX from the edge,
 // its key skipGap before its words. In step 3 the Start button waits
 // continueLockoutMs, long enough for the cleared wall's completion to play
@@ -273,14 +278,14 @@ export const TITLE = {
 // hudFadeMs as it starts. The Caps Lock warning moves under the card, to
 // capsWarningY. ms and px.
 export const TUTORIAL = {
-  card: { top: 12, width: 600, padX: 26, titleY: 36, textY: 76, lineHeight: 31, maxLines: 2, padBottom: 16 },
+  card: { top: 12, width: 600, padX: 26, titleY: 36, textY: 76, lineHeight: 31, padBottom: 16 },
   numberGap: 14,
   keyGap: 18,
   skipY: 52,
   skipGap: 12,
   continueLockoutMs: 1600,
   hudFadeMs: 300,
-  capsWarningY: 196,
+  capsWarningY: 163,
 } as const;
 // After the tutorial: READY? for readyMs, then 3, 2, 1, stepMs each, then the
 // first wall comes and the music starts with it. One step is a beat of the

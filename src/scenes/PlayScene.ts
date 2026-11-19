@@ -316,6 +316,8 @@ export class PlayScene extends Phaser.Scene {
     if (effect.type === 'held') {
       this.figure.snapBlock(block, this.spec.targets[block]);
       this.synth?.click(this.sequence.heldCount);
+      // The tutorial wall starts coming with the first letter held.
+      this.advanceTutorial();
     } else {
       this.figure.slumpBlock(block, NEUTRAL_POSE[block]);
       if (!quiet) this.synth?.slip();
@@ -344,19 +346,23 @@ export class PlayScene extends Phaser.Scene {
   // Each step's card shows until the player has done it; the last step
   // brings the HUD in and waits for Start.
   private advanceTutorial(): void {
-    const step = this.tutorial?.update(isAligned(this.figureLane, this.holeLane), this.sequence.locked) ?? null;
+    const aligned = isAligned(this.figureLane, this.holeLane);
+    const step = this.tutorial?.update(aligned, this.sequence.locked, this.sequence.heldCount) ?? null;
     if (step === null || this.panel === null) return;
     this.panel.show(step);
     if (step !== 'score') return;
     this.hud.setVisible(true).setAlpha(0);
     this.tweens.add({ targets: this.hud, alpha: 1, duration: TUTORIAL.hudFadeMs });
     const text = { button: 'START', waiting: 'LET GO OF EVERY KEY', ready: 'PRESS ANY KEY OR CLICK' };
-    new GatedPrompt(this, GAME_WIDTH / 2, buttonYBelow(this.panel.bottom), text, this.keyboard.heldCodes(), TUTORIAL.continueLockoutMs, () =>
-      this.leave('countdown'),
-    ).setDepth(LAYER.hud);
+    new GatedPrompt(this, GAME_WIDTH / 2, buttonYBelow(this.panel.bottom), text, {
+      keysDown: this.keyboard.heldCodes(),
+      lockoutMs: TUTORIAL.continueLockoutMs,
+      hintOnCard: true,
+      onGo: () => this.leave('countdown'),
+    }).setDepth(LAYER.hud);
   }
 
-  // The tutorial wall waits for the player to line up (step 1).
+  // The tutorial wall waits until the first letter is held.
   private get wallWaits(): boolean {
     return this.tutorial?.wallWaits ?? false;
   }

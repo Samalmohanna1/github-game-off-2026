@@ -1,21 +1,10 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, HUD, TUTORIAL } from '@/config';
+import { TUTORIAL_CARDS } from '@/data/tutorial';
 import { TUTORIAL_STEPS, type TutorialStep } from '@/logic/tutorial';
 import { drawDarkCard } from '@/objects/card';
 import { addKeyCap } from '@/objects/keycap';
 import { centerGlyphs, textStyle } from '@/scenes/text-styles';
-
-interface StepCard {
-  readonly name: string;
-  readonly keys: readonly string[];
-  readonly text: string;
-}
-
-const CARDS: Record<TutorialStep, StepCard> = {
-  lineUp: { name: 'LINE UP', keys: ['SPACE'], text: 'Press Space to line up with the hole.' },
-  hold: { name: 'HOLD ON', keys: [], text: 'Hold each letter. Shift for capitals.' },
-  score: { name: 'SCORE', keys: [], text: 'The faster you clear a wall, the more points you score.' },
-};
 
 const CARD_FADE_MS = 200;
 
@@ -55,7 +44,7 @@ export class TutorialPanel extends Phaser.GameObjects.Container {
     const { top, width, padX, titleY, textY, padBottom } = TUTORIAL.card;
     const card = new Phaser.GameObjects.Container(this.scene);
     const left = (GAME_WIDTH - width) / 2;
-    const { name, keys, text } = CARDS[step];
+    const { name, keys, text } = TUTORIAL_CARDS[step];
 
     const sentence = new Phaser.GameObjects.Text(this.scene, left + padX, top + textY, text, {
       ...textStyle('small', 'light'),

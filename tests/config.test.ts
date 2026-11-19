@@ -440,14 +440,24 @@ describe('screen layouts', () => {
       expect(skipLeft).toBeGreaterThan(cardRight);
     });
 
-    it("sets step 3's Start button and hint under its card, above the figure", () => {
-      expect(cardFoot(T.card.maxLines) + hintFoot).toBeLessThan(figureTop);
+    // Over the cream runway the hint sits on a small dark card (HINT_CARD).
+    const hintCardFoot = B.gapAbove + B.edgeWidth + B.height / 2 + B.hintBelow + C.HINT_CARD.height / 2 + C.DARK_CARD.edgeWidth;
+
+    it("sets step 3's Start button and its hint's card under its card, above the figure", () => {
+      expect(cardFoot(1) + hintCardFoot).toBeLessThan(figureTop);
+    });
+
+    it("keeps the hint's card clear of the Start button as it pulses, and roomy for its words", () => {
+      const pulsedHalf = (B.height / 2 + B.edgeWidth) * C.PROMPT_PULSE_SCALE;
+      expect(B.hintBelow - C.HINT_CARD.height / 2 - C.DARK_CARD.edgeWidth).toBeGreaterThan(pulsedHalf);
+      expect(C.HINT_CARD.height).toBeGreaterThan(C.FONT_SIZES.small);
+      expect(C.HINT_CARD.cut).toBeLessThan(C.HINT_CARD.height / 2);
     });
 
     it("keeps the Caps Lock warning between step 3's card and its Start button", () => {
       const half = C.FONT_SIZES.small / 2;
-      expect(T.capsWarningY - half).toBeGreaterThan(cardFoot(T.card.maxLines));
-      expect(T.capsWarningY + half).toBeLessThan(cardFoot(T.card.maxLines) + B.gapAbove);
+      expect(T.capsWarningY - half).toBeGreaterThan(cardFoot(1));
+      expect(T.capsWarningY + half).toBeLessThan(cardFoot(1) + B.gapAbove);
     });
 
     it('waits on step 3 until the cleared wall has played out', () => {

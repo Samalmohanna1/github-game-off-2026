@@ -55,9 +55,10 @@ export class GameOverScene extends Phaser.Scene {
     this.placeRows(rows, card, g);
 
     const text = { button: 'PLAY AGAIN', waiting: 'LET GO OF EVERY KEY TO PLAY AGAIN', ready: 'PRESS ANY KEY OR CLICK' };
-    new GatedPrompt(this, GAME_WIDTH / 2, buttonYBelow(card.y + card.height), text, this.result.keysDown, undefined, () =>
-      this.scene.start(SceneKeys.Play),
-    );
+    new GatedPrompt(this, GAME_WIDTH / 2, buttonYBelow(card.y + card.height), text, {
+      keysDown: this.result.keysDown,
+      onGo: () => this.scene.start(SceneKeys.Play),
+    });
   }
 
   // The card's text, top to bottom, made before the card so it can grow to
