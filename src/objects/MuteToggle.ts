@@ -50,11 +50,16 @@ function drawSpeaker(g: Phaser.GameObjects.Graphics, x: number, slot: number, mu
 export class MuteToggle extends Phaser.GameObjects.Container {
   private readonly knob: Phaser.GameObjects.Container;
   private readonly knobIcon: Phaser.GameObjects.Graphics;
+  // Kept here, not read back from Phaser: its mute is a gain change that
+  // the audio thread applies a moment later, so reading it right after a
+  // click gave the old state and showed the switch a click behind the sound.
+  private muted: boolean;
 
   constructor(scene: Phaser.Scene) {
     const { width, height, marginX, top, knob, edgeWidth } = MUTE_TOGGLE;
     super(scene, GAME_WIDTH - marginX - width / 2, top + height / 2);
     scene.add.existing(this);
+    this.muted = scene.sound.mute;
 
     const track = new Phaser.GameObjects.Graphics(scene);
     const shape = toVectors(keyCapShape(width, height));
@@ -70,7 +75,7 @@ export class MuteToggle extends Phaser.GameObjects.Container {
     knobShape.fillStyle(COLORS.muteKnob);
     knobShape.fillPoints(toVectors(keyCapShape(knob, knob)), true);
     this.knobIcon = new Phaser.GameObjects.Graphics(scene);
-    this.knob = new Phaser.GameObjects.Container(scene, slotX(scene.sound.mute), 0, [knobShape, this.knobIcon]);
+    this.knob = new Phaser.GameObjects.Container(scene, slotX(this.muted), 0, [knobShape, this.knobIcon]);
     this.add([track, this.knob]);
     this.drawKnobIcon();
 
@@ -80,9 +85,10 @@ export class MuteToggle extends Phaser.GameObjects.Container {
       useHandCursor: true,
     });
     this.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, () => {
-      scene.sound.mute = !scene.sound.mute;
+      this.muted = !this.muted;
+      scene.sound.mute = this.muted;
       this.drawKnobIcon();
-      const x = slotX(scene.sound.mute);
+      const x = slotX(this.muted);
       scene.tweens.killTweensOf(this.knob);
       if (prefersReducedMotion()) this.knob.setX(x);
       else scene.tweens.add({ targets: this.knob, x, duration: MUTE_TOGGLE.slideMs, ease: 'Quad.easeOut' });
@@ -91,7 +97,7 @@ export class MuteToggle extends Phaser.GameObjects.Container {
 
   private drawKnobIcon(): void {
     this.knobIcon.clear();
-    drawSpeaker(this.knobIcon, 0, MUTE_TOGGLE.knob, this.scene.sound.mute, COLORS.muteIcon);
+    drawSpeaker(this.knobIcon, 0, MUTE_TOGGLE.knob, this.muted, COLORS.muteIcon);
   }
 }
 
