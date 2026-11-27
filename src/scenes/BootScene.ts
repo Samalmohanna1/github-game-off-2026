@@ -8,8 +8,8 @@ import { webAudio } from '@/scenes/ui';
 
 // Starts loading the track and rendering the menus' Standby in the
 // background, so neither holds the title up, and waits for the bundled
-// fonts, then hands off to the title (or to the splash, when SPLASH.show
-// turns it back on).
+// fonts, then hands off to the splash (or straight to the title, when
+// SPLASH.show is off).
 export class BootScene extends Phaser.Scene {
   constructor() {
     super(SceneKeys.Boot);
